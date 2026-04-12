@@ -242,6 +242,9 @@
 }
 .par-quiz-table tr:last-child td { border-bottom: none; }
 
+.par-quiz-type     { font-weight: 600; color: var(--color-text); }
+.par-quiz-sublabel { font-size: 0.72rem; color: var(--color-text-3); margin-top: 2px; }
+
 .par-score-badge {
   display: inline-block;
   padding: 2px 8px;

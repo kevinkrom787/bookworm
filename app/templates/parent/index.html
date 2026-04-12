@@ -144,7 +144,12 @@
         <tbody>
           {% for q in summary.quizzes.recent %}
           <tr>
-            <td>{{ q.card_type | replace('_', ' ') | title }}</td>
+            <td>
+              <div class="par-quiz-type">{{ q.card_type | replace('_', ' ') | title }}</div>
+              {% if q.set_label and q.set_label != 'All' %}
+              <div class="par-quiz-sublabel">{{ q.set_label }}</div>
+              {% endif %}
+            </td>
             <td>
               <span class="par-score-badge
                 {% if q.score_pct >= 80 %}good

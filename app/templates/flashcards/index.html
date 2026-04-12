@@ -41,7 +41,7 @@
       </button>
 
       <a class="fc-type-tile" data-type="word_list"
-         href="/flashcards/word-bank?band=seedlings">
+         href="/flashcards/word-bank?band={{ age_band }}">
         <div class="fc-type-icon">🌱</div>
         <div class="fc-type-name">Word Bank</div>
         <div class="fc-type-meta">Add &amp; manage words</div>
@@ -147,10 +147,14 @@ function closeSheet() {
 }
 
 function startQuiz(count) {
+  const cfg   = TYPE_CFG[activeType];
+  const band  = AGE_BAND.charAt(0).toUpperCase() + AGE_BAND.slice(1);
+  const label = band + " · " + cfg.name + " · " + count + " cards";
   window.location.href =
     "/flashcards/review?band=" + encodeURIComponent(AGE_BAND) +
-    "&type=" + encodeURIComponent(activeType) +
-    "&count=" + count;
+    "&type="      + encodeURIComponent(activeType) +
+    "&count="     + count +
+    "&set_label=" + encodeURIComponent(label);
 }
 
 document.getElementById("fcSheetBg").addEventListener("click", closeSheet);
