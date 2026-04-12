@@ -17,34 +17,34 @@
   </header>
 
   <main class="fc-main">
+    <div class="fc-type-grid">
 
-    <div class="fc-type-grid" id="typeGrid">
-
-      <a class="fc-type-tile" data-type="number"
-         href="/flashcards/quiz?band={{ age_band }}&type=number">
+      <button class="fc-type-tile" data-type="number"
+              data-count="{{ stats.by_type.get('number', 0) }}">
         <div class="fc-type-icon">🔢</div>
         <div class="fc-type-name">Numbers</div>
-        <div class="fc-type-meta" id="metaNumber">
-          {{ stats.by_type.get('number', 0) }} cards
-        </div>
-      </a>
+        <div class="fc-type-meta">{{ stats.by_type.get('number', 0) }} cards</div>
+      </button>
 
-      <a class="fc-type-tile" data-type="vocabulary"
-         href="/flashcards/quiz?band={{ age_band }}&type=vocabulary">
+      <button class="fc-type-tile" data-type="vocabulary"
+              data-count="{{ stats.by_type.get('vocabulary', 0) }}">
         <div class="fc-type-icon">📖</div>
         <div class="fc-type-name">Vocabulary</div>
-        <div class="fc-type-meta" id="metaVocab">
-          {{ stats.by_type.get('vocabulary', 0) }} cards
-        </div>
-      </a>
+        <div class="fc-type-meta">{{ stats.by_type.get('vocabulary', 0) }} cards</div>
+      </button>
 
-      <a class="fc-type-tile" data-type="book_quiz"
-         href="/flashcards/quiz?band={{ age_band }}&type=book_quiz">
+      <button class="fc-type-tile" data-type="book_quiz"
+              data-count="{{ stats.by_type.get('book_quiz', 0) }}">
         <div class="fc-type-icon">🏆</div>
         <div class="fc-type-name">Book Quiz</div>
-        <div class="fc-type-meta" id="metaQuiz">
-          {{ stats.by_type.get('book_quiz', 0) }} cards
-        </div>
+        <div class="fc-type-meta">{{ stats.by_type.get('book_quiz', 0) }} cards</div>
+      </button>
+
+      <a class="fc-type-tile" data-type="word_list"
+         href="/flashcards/word-list?band=seedlings">
+        <div class="fc-type-icon">🌱</div>
+        <div class="fc-type-name">Word Lists</div>
+        <div class="fc-type-meta">{{ word_counts.total }} words · 3 levels</div>
       </a>
 
       <div class="fc-type-tile is-soon">
@@ -54,20 +54,105 @@
       </div>
 
     </div>
-
   </main>
+
+  <!-- ── Count picker sheet ─────────────────────────────────────── -->
+  <div class="fc-sheet" id="fcSheet" hidden>
+    <div class="fc-sheet-bg" id="fcSheetBg"></div>
+    <div class="fc-sheet-panel" id="fcSheetPanel">
+      <div class="fc-sheet-handle"></div>
+      <div class="fc-sheet-header">
+        <span class="fc-sheet-icon" id="fcSheetIcon"></span>
+        <div>
+          <div class="fc-sheet-name" id="fcSheetName"></div>
+          <div class="fc-sheet-sub"  id="fcSheetSub"></div>
+        </div>
+      </div>
+      <div class="fc-sheet-counts" id="fcSheetCounts"></div>
+    </div>
+  </div>
+
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
 "use strict";
-// Disable tiles with 0 cards
+const AGE_BAND = "{{ age_band }}";
+
+const TYPE_CFG = {
+  number:     { icon: "🔢", name: "Numbers"    },
+  vocabulary: { icon: "📖", name: "Vocabulary" },
+  book_quiz:  { icon: "🏆", name: "Book Quiz"  },
+};
+
+let activeType  = null;
+let activeTotal = 0;
+
+// ── Tile tap → open sheet ─────────────────────────────────────────────────────
 document.querySelectorAll(".fc-type-tile[data-type]").forEach(tile => {
-  const meta = tile.querySelector(".fc-type-meta");
-  if (meta && meta.textContent.trim().startsWith("0")) {
+  const type = tile.dataset.type;
+  if (!TYPE_CFG[type]) return;   // word_list etc. navigate as links normally
+
+  const total = parseInt(tile.dataset.count || "0", 10);
+  if (total === 0) {
     tile.classList.add("is-empty");
+    return;
   }
+
+  tile.addEventListener("click", e => {
+    e.preventDefault();
+    openSheet(type, total);
+  });
 });
+
+// ── Sheet ─────────────────────────────────────────────────────────────────────
+function openSheet(type, total) {
+  activeType  = type;
+  activeTotal = total;
+
+  const cfg = TYPE_CFG[type];
+  document.getElementById("fcSheetIcon").textContent = cfg.icon;
+  document.getElementById("fcSheetName").textContent = cfg.name;
+  document.getElementById("fcSheetSub").textContent  =
+    total + " card" + (total !== 1 ? "s" : "") + " ready";
+
+  document.getElementById("fcSheetPanel").dataset.type = type;
+
+  // Build count buttons
+  const el = document.getElementById("fcSheetCounts");
+  el.innerHTML = "";
+  [5, 10, 20, 0].forEach(n => {
+    const actual   = n === 0 ? total : n;
+    const disabled = n !== 0 && n > total;
+    const btn      = document.createElement("button");
+    btn.className  = "fc-sheet-count-btn";
+    btn.disabled   = disabled;
+    btn.innerHTML  =
+      '<span class="fc-count-num">' + (n === 0 ? "All" : n) + '</span>' +
+      '<span class="fc-count-sub">' + (n === 0 ? total + " cards" : "questions") + '</span>';
+    btn.addEventListener("click", () => startQuiz(actual));
+    el.appendChild(btn);
+  });
+
+  const sheet = document.getElementById("fcSheet");
+  sheet.hidden = false;
+  requestAnimationFrame(() => sheet.classList.add("is-open"));
+}
+
+function closeSheet() {
+  const sheet = document.getElementById("fcSheet");
+  sheet.classList.remove("is-open");
+  sheet.addEventListener("transitionend", () => { sheet.hidden = true; }, { once: true });
+}
+
+function startQuiz(count) {
+  window.location.href =
+    "/flashcards/review?band=" + encodeURIComponent(AGE_BAND) +
+    "&type=" + encodeURIComponent(activeType) +
+    "&count=" + count;
+}
+
+document.getElementById("fcSheetBg").addEventListener("click", closeSheet);
 </script>
 {% endblock %}

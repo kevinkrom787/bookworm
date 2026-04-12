@@ -188,11 +188,7 @@ const progressLabel = document.getElementById("progressLabel");
 const progressFill  = document.getElementById("progressFill");
 const reviewBody    = document.getElementById("reviewBody");
 
-// In quiz mode, back button returns to quiz setup
-if (QUIZ_MODE) {
-  const backBtn = document.getElementById("backBtn");
-  if (backBtn) backBtn.href = `/flashcards/quiz?band=${AGE_BAND}&type=${encodeURIComponent(FILTER_TYPE || 'number')}`;
-}
+// Back button always returns to the flashcards index
 
 // ── Load queue ────────────────────────────────────────────────────────────────
 async function loadQueue() {
@@ -319,8 +315,11 @@ async function finishSession() {
 
 // ── Done screen ───────────────────────────────────────────────────────────────
 function showDone(allCaughtUp) {
-  const backParams = new URLSearchParams({ band: AGE_BAND });
-  const setupUrl   = `/flashcards/quiz?band=${AGE_BAND}&type=${encodeURIComponent(FILTER_TYPE || 'number')}`;
+  const indexUrl    = `/flashcards/?band=${AGE_BAND}`;
+  // In quiz mode, "Play again" restarts the exact same quiz — no extra taps
+  const playAgainUrl = (QUIZ_MODE && QUIZ_COUNT)
+    ? `/flashcards/review?band=${AGE_BAND}&type=${encodeURIComponent(FILTER_TYPE)}&count=${QUIZ_COUNT}`
+    : indexUrl;
 
   let icon, title, body, actions;
 
@@ -329,7 +328,7 @@ function showDone(allCaughtUp) {
     title = 'All caught up!';
     body  = 'No cards are due right now. Come back later to keep your streak going.';
     actions = `
-      <a class="fc-done-btn primary"   href="${esc(setupUrl)}">Play again</a>
+      <a class="fc-done-btn primary"   href="${esc(playAgainUrl)}">Play again</a>
       <a class="fc-done-btn secondary" href="/">Home</a>`;
 
   } else if (QUIZ_MODE) {
@@ -345,15 +344,15 @@ function showDone(allCaughtUp) {
       </div>
       <div class="fc-done-pct">${pct}% correct${SET_LABEL ? ' · ' + esc(SET_LABEL) : ''}</div>`;
     actions = `
-      <a class="fc-done-btn primary"   href="${esc(setupUrl)}">Play again</a>
-      <a class="fc-done-btn secondary" href="/flashcards/?${backParams}">All cards</a>`;
+      <a class="fc-done-btn primary"   href="${esc(playAgainUrl)}">Play again</a>
+      <a class="fc-done-btn secondary" href="${esc(indexUrl)}">All cards</a>`;
 
   } else {
     icon  = '✅';
     title = 'Session complete';
     body  = `You reviewed ${queue.length} card${queue.length !== 1 ? 's' : ''}. Great work!`;
     actions = `
-      <a class="fc-done-btn primary"   href="${esc(setupUrl)}">Play again</a>
+      <a class="fc-done-btn primary"   href="${esc(playAgainUrl)}">Play again</a>
       <a class="fc-done-btn secondary" href="/">Home</a>`;
   }
 

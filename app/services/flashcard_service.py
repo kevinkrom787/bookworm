@@ -335,6 +335,25 @@ class FlashcardService:
             }
             self.create_card("number", front, back)
 
+    def _seed_vocab_words(self) -> None:
+        """Populate vocab_words for Seedlings on first run. Idempotent."""
+        with self._connect() as conn:
+            existing = conn.execute(
+                "SELECT COUNT(*) FROM vocab_words WHERE age_band='seedlings'"
+            ).fetchone()[0]
+        if existing > 0:
+            return
+        with self._connect() as conn:
+            conn.executemany(
+                """INSERT OR IGNORE INTO vocab_words
+                       (word, phonetic, definition, example, age_band, level, category)
+                   VALUES (?,?,?,?,?,?,?)""",
+                [
+                    (word, phonetic, defn, example, "seedlings", level, category)
+                    for word, phonetic, defn, example, level, category in _SEEDLINGS_WORDS
+                ],
+            )
+
     def _row_to_card(self, row: sqlite3.Row) -> Card:
         return Card(
             id=row["id"],
@@ -437,6 +456,62 @@ class FlashcardService:
             ).fetchall()
         return [r["source_book"] for r in rows]
 
+    def get_vocab_words(
+        self,
+        age_band: str,
+        level: Optional[int] = None,
+        user_id: str = "default",
+    ) -> list[dict]:
+        """Return curated word list for an age band with in-deck status per word."""
+        clauses = ["age_band = ?"]
+        params: list = [age_band]
+        if level is not None:
+            clauses.append("level = ?")
+            params.append(level)
+
+        with self._connect() as conn:
+            rows = conn.execute(
+                f"SELECT * FROM vocab_words WHERE {' AND '.join(clauses)} ORDER BY level, category, word",
+                params,
+            ).fetchall()
+            card_rows = conn.execute(
+                "SELECT front_data FROM cards WHERE card_type='vocabulary' AND user_id=?",
+                (user_id,),
+            ).fetchall()
+
+        in_deck: set[str] = set()
+        for r in card_rows:
+            try:
+                fd = json.loads(r["front_data"])
+                in_deck.add(fd.get("word", "").lower())
+            except Exception:
+                pass
+
+        return [
+            {
+                "id":         row["id"],
+                "word":       row["word"],
+                "phonetic":   row["phonetic"],
+                "definition": row["definition"],
+                "example":    row["example"],
+                "age_band":   row["age_band"],
+                "level":      row["level"],
+                "category":   row["category"],
+                "in_deck":    row["word"].lower() in in_deck,
+            }
+            for row in rows
+        ]
+
+    def get_vocab_word_counts(self, age_band: str) -> dict:
+        """Return total word count and per-level counts for an age band."""
+        with self._connect() as conn:
+            rows = conn.execute(
+                "SELECT level, COUNT(*) as n FROM vocab_words WHERE age_band=? GROUP BY level",
+                (age_band,),
+            ).fetchall()
+        by_level = {r["level"]: r["n"] for r in rows}
+        return {"total": sum(by_level.values()), "by_level": by_level}
+
     # ── Writes ────────────────────────────────────────────────────────
 
     def create_card(
@@ -479,6 +554,44 @@ class FlashcardService:
                 (card_id, user_id),
             )
         return cur.rowcount > 0
+
+    def add_vocab_word_to_deck(
+        self,
+        vocab_word_id: int,
+        user_id: str = "default",
+    ) -> Optional[Card]:
+        """Create a vocabulary flashcard from a pre-seeded word. Returns None if already in deck."""
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT * FROM vocab_words WHERE id = ?", (vocab_word_id,)
+            ).fetchone()
+        if not row:
+            return None
+        if self.word_exists(row["word"], user_id):
+            return None
+        front = {"word": row["word"], "phonetic": row["phonetic"], "image_url": ""}
+        back  = {"definition": row["definition"], "example_sentence": row["example"]}
+        return self.create_card("vocabulary", front, back, user_id=user_id)
+
+    def add_vocab_level_to_deck(
+        self,
+        age_band: str,
+        level: int,
+        user_id: str = "default",
+    ) -> dict:
+        """Add all words from a level to the deck. Returns {added, skipped}."""
+        words = self.get_vocab_words(age_band=age_band, level=level, user_id=user_id)
+        added = skipped = 0
+        for w in words:
+            if w["in_deck"]:
+                skipped += 1
+                continue
+            card = self.add_vocab_word_to_deck(w["id"], user_id=user_id)
+            if card:
+                added += 1
+            else:
+                skipped += 1
+        return {"added": added, "skipped": skipped}
 
     def submit_review(
         self,
