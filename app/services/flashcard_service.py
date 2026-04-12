@@ -281,6 +281,13 @@ class FlashcardService:
         with self._connect() as conn:
             conn.execute("PRAGMA journal_mode=WAL")  # persists in the DB file
             conn.executescript(_SCHEMA)
+            # Migration: add mastered column to existing databases
+            try:
+                conn.execute(
+                    "ALTER TABLE cards ADD COLUMN mastered INTEGER NOT NULL DEFAULT 0"
+                )
+            except Exception:
+                pass  # column already exists
         self._seed_numbers()
         self._seed_vocab_words()
 
@@ -380,6 +387,7 @@ class FlashcardService:
         card_type: Optional[str] = None,
         source_book: Optional[str] = None,
         due_only: bool = False,
+        include_mastered: bool = False,
         limit: int = 200,
         offset: int = 0,
     ) -> list[Card]:
@@ -394,6 +402,8 @@ class FlashcardService:
         if due_only:
             clauses.append("due_date <= ?")
             params.append(date.today().isoformat())
+        if not include_mastered:
+            clauses.append("mastered = 0")
 
         where = " AND ".join(clauses)
         params += [limit, offset]
@@ -475,15 +485,17 @@ class FlashcardService:
                 params,
             ).fetchall()
             card_rows = conn.execute(
-                "SELECT front_data FROM cards WHERE card_type='vocabulary' AND user_id=?",
+                "SELECT id, front_data, mastered FROM cards WHERE card_type='vocabulary' AND user_id=?",
                 (user_id,),
             ).fetchall()
 
-        in_deck: set[str] = set()
+        # Map word → {card_id, mastered}
+        card_by_word: dict[str, dict] = {}
         for r in card_rows:
             try:
                 fd = json.loads(r["front_data"])
-                in_deck.add(fd.get("word", "").lower())
+                word = fd.get("word", "").lower()
+                card_by_word[word] = {"card_id": r["id"], "mastered": bool(r["mastered"])}
             except Exception:
                 pass
 
@@ -497,7 +509,9 @@ class FlashcardService:
                 "age_band":   row["age_band"],
                 "level":      row["level"],
                 "category":   row["category"],
-                "in_deck":    row["word"].lower() in in_deck,
+                "in_deck":    row["word"].lower() in card_by_word,
+                "mastered":   card_by_word.get(row["word"].lower(), {}).get("mastered", False),
+                "card_id":    card_by_word.get(row["word"].lower(), {}).get("card_id", None),
             }
             for row in rows
         ]
@@ -592,6 +606,26 @@ class FlashcardService:
             else:
                 skipped += 1
         return {"added": added, "skipped": skipped}
+
+    def mark_card_mastered(self, card_id: int, user_id: str = "default") -> bool:
+        """Archive a card — removes it from all future review queues."""
+        with self._connect() as conn:
+            cur = conn.execute(
+                "UPDATE cards SET mastered=1 WHERE id=? AND user_id=?",
+                (card_id, user_id),
+            )
+        return cur.rowcount > 0
+
+    def unmaster_card(self, card_id: int, user_id: str = "default") -> bool:
+        """Return a mastered card to active learning (resets SM-2 streak)."""
+        with self._connect() as conn:
+            cur = conn.execute(
+                """UPDATE cards SET mastered=0, due_date=?, repetitions=0,
+                       interval=0, ease_factor=2.5
+                   WHERE id=? AND user_id=?""",
+                (date.today().isoformat(), card_id, user_id),
+            )
+        return cur.rowcount > 0
 
     def submit_review(
         self,

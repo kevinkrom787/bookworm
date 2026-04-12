@@ -33,8 +33,11 @@
       </div>
     </div>
 
-    <!-- Flip hint -->
-    <div class="fc-flip-hint" id="flipHint">Tap card to reveal answer</div>
+    <!-- Flip hint + pre-flip test-out -->
+    <div class="fc-below-card" id="belowCard">
+      <div class="fc-flip-hint" id="flipHint">Tap card to reveal answer</div>
+      <button class="fc-know-btn" id="knowBtn" title="Skip — this word is already mastered">Know it ✓</button>
+    </div>
 
     <!-- Score buttons (hidden until card is flipped) -->
     <div class="fc-score-row" id="scoreRow">
@@ -183,7 +186,9 @@ const cardWrap      = document.getElementById("cardWrap");
 const cardFront     = document.getElementById("cardFront");
 const cardBack      = document.getElementById("cardBack");
 const scoreRow      = document.getElementById("scoreRow");
+const belowCard     = document.getElementById("belowCard");
 const flipHint      = document.getElementById("flipHint");
+const knowBtn       = document.getElementById("knowBtn");
 const progressLabel = document.getElementById("progressLabel");
 const progressFill  = document.getElementById("progressFill");
 const reviewBody    = document.getElementById("reviewBody");
@@ -242,7 +247,10 @@ function showCard(i) {
   cardWrap.classList.remove("is-flipped");
   scoreRow.classList.remove("is-visible");
   scoreRow.style.pointerEvents = "";
+  belowCard.classList.remove("is-hidden");
   flipHint.classList.remove("is-hidden");
+  knowBtn.disabled = false;
+  knowBtn.textContent = "Know it ✓";
 
   cardWrap.dataset.cardType = card.card_type;
 
@@ -268,8 +276,25 @@ function flipCard() {
   if (flipped) return;
   flipped = true;
   cardWrap.classList.add("is-flipped");
-  flipHint.classList.add("is-hidden");
+  belowCard.classList.add("is-hidden");
   setTimeout(() => scoreRow.classList.add("is-visible"), 200);
+}
+
+// ── Know it / master ──────────────────────────────────────────────────────────
+async function masterCard() {
+  const card = queue[idx];
+  knowBtn.disabled    = true;
+  knowBtn.textContent = "Mastered!";
+  try {
+    await fetch(`/flashcards/api/cards/${card.id}/master`, {
+      method:  "POST",
+      headers: {"Content-Type": "application/json"},
+      body:    "{}",
+    });
+  } catch(e) { /* offline — continue */ }
+  idx++;
+  if (idx >= queue.length) await finishSession();
+  else showCard(idx);
 }
 
 // ── Score ─────────────────────────────────────────────────────────────────────
@@ -403,6 +428,8 @@ document.getElementById("scoreRow").addEventListener("click", e => {
   if (!btn) return;
   submitScore(parseInt(btn.dataset.rating, 10));
 });
+
+document.getElementById("knowBtn").addEventListener("click", masterCard);
 
 document.addEventListener("keydown", e => {
   if (e.key === " " || e.key === "Enter") {

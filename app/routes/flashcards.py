@@ -158,7 +158,8 @@ def api_get_quiz_sessions():
 # ── Word list ─────────────────────────────────────────────────────────────────
 
 @bp.route("/word-list")
-def word_list():
+@bp.route("/word-bank")
+def word_bank():
     age_band = request.args.get("band", current_app.config["DEFAULT_AGE_BAND"])
     svc = _svc()
     counts = svc.get_vocab_word_counts(age_band)
@@ -166,7 +167,7 @@ def word_list():
     if counts["total"] == 0:
         age_band = "seedlings"
         counts = svc.get_vocab_word_counts(age_band)
-    return render_template("flashcards/word_list.html", age_band=age_band, word_counts=counts)
+    return render_template("flashcards/word_bank.html", age_band=age_band, word_counts=counts)
 
 
 @bp.route("/api/vocab-words", methods=["GET"])
@@ -205,3 +206,15 @@ def api_add_vocab_level():
         user_id=data.get("user_id", "default"),
     )
     return jsonify(result)
+
+
+@bp.route("/api/cards/<int:card_id>/master", methods=["POST"])
+def api_master_card(card_id: int):
+    data     = request.get_json(silent=True) or {}
+    user_id  = data.get("user_id", "default")
+    unmaster = bool(data.get("unmaster", False))
+    svc = _svc()
+    ok  = svc.unmaster_card(card_id, user_id) if unmaster else svc.mark_card_mastered(card_id, user_id)
+    if not ok:
+        return jsonify({"error": "Card not found"}), 404
+    return jsonify({"mastered": not unmaster})
