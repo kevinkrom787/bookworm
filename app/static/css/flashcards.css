@@ -1405,3 +1405,155 @@
 }
 .fc-sheet-count-btn:hover .fc-count-sub,
 .fc-sheet-count-btn:active .fc-count-sub { color: rgba(255,255,255,0.8); }
+
+
+/* ═══════════════════════════════════════════════════════════════
+   "Know it ✓" pre-flip mastery button  (review page)
+═══════════════════════════════════════════════════════════════ */
+
+.fc-below-card {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+  padding: 0 20px;
+}
+.fc-below-card.is-hidden { display: none; }
+
+/* Keep existing flip-hint style, just remove its standalone centering */
+.fc-flip-hint { flex-shrink: 0; }
+
+.fc-know-btn {
+  flex-shrink: 0;
+  padding: 8px 18px;
+  border-radius: var(--radius-pill);
+  border: 1.5px solid var(--fc-score-easy);
+  background: transparent;
+  color: var(--fc-score-easy);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--dur-fast), color var(--dur-fast);
+  white-space: nowrap;
+  min-height: 36px;
+}
+.fc-know-btn:hover, .fc-know-btn:active {
+  background: var(--fc-score-easy);
+  color: #fff;
+}
+.fc-know-btn:disabled { opacity: 0.5; pointer-events: none; }
+
+
+/* ═══════════════════════════════════════════════════════════════
+   Word Bank — state badges and action buttons
+═══════════════════════════════════════════════════════════════ */
+
+/* Stats bar */
+.wb-stats {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+.wb-stat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 4px;
+  border-right: 1px solid var(--color-border);
+}
+.wb-stat:last-child { border-right: none; }
+
+.wb-stat-num {
+  font-size: 1.3rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.wb-stat-lbl {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-3);
+  white-space: nowrap;
+}
+.wb-stat--neutral  .wb-stat-num { color: var(--color-text-3); }
+.wb-stat--learning .wb-stat-num { color: var(--fc-number-color); }
+.wb-stat--mastered .wb-stat-num { color: var(--fc-score-easy); }
+
+/* Card state modifiers */
+.wb-card--mastered  { opacity: 0.6; }
+.wb-card--not-started .wl-word-text { color: var(--color-text-2); }
+
+/* Status badges */
+.wb-card-badges {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.wb-status-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  white-space: nowrap;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.wb-status-learning {
+  background: #DBEAFE;
+  color: #1E40AF;
+}
+.wb-status-mastered {
+  background: #D1FAE5;
+  color: #065F46;
+}
+[data-theme="dark"] .wb-status-learning { background: rgba(59,130,246,0.20); color: #93C5FD; }
+[data-theme="dark"] .wb-status-mastered { background: rgba(16,185,129,0.20); color: #6EE7B7; }
+
+/* Action buttons on word cards */
+.wb-action-btn {
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--dur-fast), color var(--dur-fast), border-color var(--dur-fast);
+  white-space: nowrap;
+  min-height: 34px;
+}
+.wb-action-btn:disabled { opacity: 0.5; pointer-events: none; }
+
+.wb-action-add {
+  border: 1.5px solid var(--fc-wl-color);
+  background: var(--fc-wl-color);
+  color: #fff;
+}
+.wb-action-add:active { opacity: 0.8; }
+
+.wb-action-master {
+  border: 1.5px solid var(--fc-score-easy);
+  background: transparent;
+  color: var(--fc-score-easy);
+}
+.wb-action-master:hover, .wb-action-master:active {
+  background: var(--fc-score-easy);
+  color: #fff;
+}
+
+.wb-action-unmaster {
+  border: 1.5px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-3);
+  font-size: 0.7rem;
+}
+.wb-action-unmaster:hover, .wb-action-unmaster:active {
+  border-color: var(--color-text-2);
+  color: var(--color-text);
+}
