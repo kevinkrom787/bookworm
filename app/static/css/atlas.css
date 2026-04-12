@@ -75,14 +75,16 @@ img { display: block; max-width: 100%; }
 
 /* ── Night / Red-light themes ───────────────────────────────── */
 [data-theme="dark"] {
-  --color-bg:        #0E0904;  /* deep warm near-black */
-  --color-surface:   #1A1208;  /* dark amber surface */
-  --color-surface-2: #241A0A;  /* slightly lighter */
-  --color-border:    #382810;  /* warm brown */
-  --color-text:      #F0E6CA;  /* warm cream */
-  --color-text-2:    #A89268;  /* muted amber */
-  --color-text-3:    #685840;  /* dark amber-brown */
-  --color-accent:    #5A9068;  /* warmer green */
+  --color-bg:        #000000;
+  --color-surface:   #111111;
+  --color-surface-2: #1C1C1C;
+  --color-border:    #2E2E2E;
+  --color-text:      #F0F0F0;
+  --color-text-2:    #A0A0A0;
+  --color-text-3:    #606060;
+  --color-accent:    #5A9068;
+  --color-highlight: rgba(255, 225, 80, 0.3);
+  --color-highlight-border: #D4952A;
 }
 
 [data-theme="redlight"] {
