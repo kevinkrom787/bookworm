@@ -69,6 +69,14 @@ CREATE TABLE IF NOT EXISTS vocab_words (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS idx_vocab_words_word_band ON vocab_words (word, age_band);
 
+CREATE TABLE IF NOT EXISTS word_cache (
+    word        TEXT PRIMARY KEY,
+    phonetic    TEXT    NOT NULL DEFAULT '',
+    audio_url   TEXT    NOT NULL DEFAULT '',
+    definitions TEXT    NOT NULL DEFAULT '[]',
+    fetched_at  TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+
 CREATE TABLE IF NOT EXISTS reading_progress (
     user_id       TEXT    NOT NULL DEFAULT 'default',
     book_id       INTEGER NOT NULL,
@@ -635,6 +643,58 @@ class FlashcardService:
                 (date.today().isoformat(), card_id, user_id),
             )
         return cur.rowcount > 0
+
+    # ── Word definition cache ─────────────────────────────────────────────────
+
+    def get_cached_word(self, word: str) -> Optional[dict]:
+        """Return cached definition for a word, or None if not cached."""
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT phonetic, audio_url, definitions FROM word_cache WHERE word = ?",
+                (word.lower(),),
+            ).fetchone()
+        if not row:
+            return None
+        return {
+            "phonetic":    row["phonetic"],
+            "audio_url":   row["audio_url"] or None,
+            "definitions": json.loads(row["definitions"]),
+        }
+
+    def cache_word(
+        self,
+        word: str,
+        phonetic: str,
+        audio_url: str,
+        definitions: list[dict],
+    ) -> None:
+        """Persist a word's definition data so future lookups work offline."""
+        with self._connect() as conn:
+            conn.execute(
+                """INSERT INTO word_cache (word, phonetic, audio_url, definitions, fetched_at)
+                   VALUES (?, ?, ?, ?, datetime('now'))
+                   ON CONFLICT(word) DO UPDATE SET
+                       phonetic    = excluded.phonetic,
+                       audio_url   = excluded.audio_url,
+                       definitions = excluded.definitions,
+                       fetched_at  = excluded.fetched_at""",
+                (word.lower(), phonetic, audio_url or "", json.dumps(definitions)),
+            )
+
+    def get_vocab_word_definition(self, word: str) -> Optional[dict]:
+        """Look up a word in the curated vocab_words table. Returns None if absent."""
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT phonetic, definition, example FROM vocab_words WHERE word = ? LIMIT 1",
+                (word.lower(),),
+            ).fetchone()
+        if not row or not row["definition"]:
+            return None
+        return {
+            "phonetic":    row["phonetic"],
+            "audio_url":   None,
+            "definitions": [{"part_of_speech": "", "definition": row["definition"], "example": row["example"]}],
+        }
 
     # ── Reading progress ──────────────────────────────────────────────────────
 

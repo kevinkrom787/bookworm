@@ -155,30 +155,39 @@ def tts_synthesize():
 @bp.route("/api/vocab/define")
 def vocab_define():
     """
-    Return definition + audio pronunciation + image for a word.
+    Return definition + audio pronunciation for a word.
 
-    Data sources (all free, no API key):
-      - Free Dictionary API  → definitions, phonetic text, audio MP3 URL
-      - Wikipedia REST API   → thumbnail image for concrete words
+    Lookup order (fastest/most-offline first):
+      1. word_cache DB table  — instant, fully offline, grows with use
+      2. vocab_words table    — curated words have kid-friendly definitions
+      3. Free Dictionary API  — requires internet; result saved to cache
+      4. Stub                 — last resort when offline and word is unknown
 
-    Schema note: when the DB is built, vocab_words will store
-    image_url and audio_url columns so these load instantly offline.
+    Image search is intentionally separate (requires a SafeSearch API key).
     """
+    from app.services.flashcard_service import FlashcardService
     word = (request.args.get("word") or "").strip().lower()
     word = word.strip(".,!?;:\"'()")
     if not word:
         return jsonify({"error": "word is required"}), 400
 
-    result = {
-        "word": word,
-        "definitions": [],
-        "phonetic": "",
-        "audio_url": None,    # direct MP3 link — browser plays it natively
-        "image_url": None,    # thumbnail for the vocab card
-        "source": "offline_stub",
-    }
+    svc = FlashcardService(current_app.config["DB_PATH"])
 
-    # ── 1. Free Dictionary API — definitions + audio ──────────────────
+    # ── 1. DB cache (instant, offline) ───────────────────────────────
+    cached = svc.get_cached_word(word)
+    if cached and cached["definitions"]:
+        return jsonify({"word": word, "image_url": None, "source": "cache", **cached})
+
+    # ── 2. Curated vocab_words table ─────────────────────────────────
+    curated = svc.get_vocab_word_definition(word)
+    if curated and curated["definitions"]:
+        # Don't cache vocab_words — they're already in the DB
+        return jsonify({"word": word, "image_url": None, "source": "curated", **curated})
+
+    # ── 3. Free Dictionary API (online) ──────────────────────────────
+    phonetic    = ""
+    audio_url   = ""
+    definitions = []
     try:
         import requests as req
         resp = req.get(
@@ -189,46 +198,43 @@ def vocab_define():
             entries = resp.json()
             if entries and isinstance(entries, list):
                 entry = entries[0]
-                result["phonetic"] = entry.get("phonetic", "")
-
-                # Grab the first phonetics entry that has an audio URL
+                phonetic = entry.get("phonetic", "")
                 for ph in entry.get("phonetics", []):
-                    audio = ph.get("audio", "")
-                    if audio:
-                        result["audio_url"] = audio
-                        # Use this entry's text if root phonetic is missing
-                        if not result["phonetic"]:
-                            result["phonetic"] = ph.get("text", "")
+                    if ph.get("audio"):
+                        audio_url = ph["audio"]
+                        if not phonetic:
+                            phonetic = ph.get("text", "")
                         break
-
-                # Definitions — up to 2 parts of speech, 1 definition each
                 for meaning in entry.get("meanings", [])[:2]:
                     for defn in meaning.get("definitions", [])[:1]:
-                        result["definitions"].append({
+                        definitions.append({
                             "part_of_speech": meaning.get("partOfSpeech", ""),
-                            "definition": defn.get("definition", ""),
-                            "example": defn.get("example", ""),
+                            "definition":     defn.get("definition", ""),
+                            "example":        defn.get("example", ""),
                         })
-
-                result["source"] = "online"
     except Exception:
         pass
 
-    # ── 2. Auto-image disabled ────────────────────────────────────────
-    # Wikipedia and Wikimedia Commons have no SafeSearch — not appropriate
-    # for a kids product. Image association is a parent-initiated action
-    # via the image search panel, which requires a configured API key
-    # (Pixabay or Google) with SafeSearch enforced. image_url stays None.
+    if definitions:
+        svc.cache_word(word, phonetic, audio_url, definitions)
+        return jsonify({
+            "word":        word,
+            "phonetic":    phonetic,
+            "audio_url":   audio_url or None,
+            "image_url":   None,
+            "definitions": definitions,
+            "source":      "online",
+        })
 
-    # ── Offline fallback ──────────────────────────────────────────────
-    if not result["definitions"]:
-        result["definitions"] = [{
-            "part_of_speech": "",
-            "definition": "Definition unavailable offline. A local dictionary is coming in the next build.",
-            "example": "",
-        }]
-
-    return jsonify(result)
+    # ── 4. Stub ───────────────────────────────────────────────────────
+    return jsonify({
+        "word":        word,
+        "phonetic":    "",
+        "audio_url":   None,
+        "image_url":   None,
+        "definitions": [{"part_of_speech": "", "definition": "No definition found. Connect to the internet to look this word up.", "example": ""}],
+        "source":      "offline_stub",
+    })
 
 
 @bp.route("/api/progress", methods=["POST"])
