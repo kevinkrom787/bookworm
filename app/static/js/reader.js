@@ -284,8 +284,8 @@ function changeFontSize(delta) {
 }
 
 // ── Theme toggle ──────────────────────────────────────────────────────────────
-const THEMES = ["light", "dark", "redlight"];
-let themeIndex = THEMES.indexOf(window.ATLAS?.theme || "light");
+const THEMES = ["light", "redlight"];
+let themeIndex = Math.max(0, THEMES.indexOf(window.ATLAS?.theme || "light"));
 
 function toggleTheme() {
   themeIndex = (themeIndex + 1) % THEMES.length;
