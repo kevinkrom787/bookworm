@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% block title %}{{ meta.title }} — Atlas{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/reader.css') }}" />
+{% endblock %}
+
+{% block body %}
+<div class="reader-shell" id="readerShell" data-theme="{{ theme }}" data-band="{{ age_band }}">
+
+  <!-- ── Top bar ─────────────────────────────────────────── -->
+  <header class="reader-topbar" id="topbar">
+    <a class="back-btn" href="/library/" aria-label="Back to library">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <polyline points="15 18 9 12 15 6"/>
+      </svg>
+    </a>
+    <div class="reader-title-wrap">
+      <span class="reader-book-title">{{ meta.title }}</span>
+      <span class="reader-chapter-title" id="chapterLabel">{{ chapter.title }}</span>
+    </div>
+    <div class="topbar-actions">
+      <button class="icon-btn" id="fontDecBtn" aria-label="Smaller text">A−</button>
+      <button class="icon-btn" id="fontIncBtn" aria-label="Larger text">A+</button>
+      <button class="icon-btn" id="themeBtn" aria-label="Toggle night mode">🌙</button>
+    </div>
+  </header>
+
+  <!-- ── Reading area ────────────────────────────────────── -->
+  <div class="reader-stage" id="readerStage">
+    <div class="reader-content" id="readerContent" role="main" aria-live="polite">
+      <!-- Words injected here by reader.js -->
+      <div class="reader-loading" id="readerLoading">
+        <div class="loading-spinner"></div>
+        <p>Opening book…</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Bottom bar ──────────────────────────────────────── -->
+  <footer class="reader-bottombar" id="bottombar">
+    <div class="page-nav">
+      <button class="nav-btn" id="prevChapterBtn" aria-label="Previous chapter"
+        {% if chapter_index == 0 %}disabled{% endif %}>❮ Ch</button>
+      <button class="nav-btn" id="prevPageBtn" aria-label="Previous page">❮</button>
+      <span class="page-indicator" id="pageIndicator">— / —</span>
+      <button class="nav-btn" id="nextPageBtn" aria-label="Next page">❯</button>
+      <button class="nav-btn" id="nextChapterBtn" aria-label="Next chapter"
+        {% if chapter_index >= total_chapters - 1 %}disabled{% endif %}>Ch ❯</button>
+    </div>
+
+    <button class="tts-btn" id="ttsBtn" aria-label="Read aloud">
+      <svg class="tts-icon" width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+        <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" stroke="currentColor" stroke-width="2" fill="none"/>
+      </svg>
+      <span id="ttsBtnLabel">Read Aloud</span>
+      {% if not tts_available %}
+      <span class="tts-stub-badge" title="Install kokoro-onnx for real audio">stub</span>
+      {% endif %}
+    </button>
+  </footer>
+
+  <!-- ── Tap zones (left/right sides of screen for page turns) ── -->
+  <div class="tap-zone tap-left" id="tapLeft" role="button" aria-label="Previous page"></div>
+  <div class="tap-zone tap-right" id="tapRight" role="button" aria-label="Next page"></div>
+
+</div>
+
+<!-- ── Word definition popover ──────────────────────────────── -->
+<div class="popover" id="defPopover" hidden role="dialog" aria-label="Word definition">
+  <button class="popover-close" id="popoverClose" aria-label="Close">✕</button>
+
+  <!-- Word image -->
+  <div class="popover-image-wrap" id="popoverImage" hidden>
+    <img class="popover-image" id="popoverImg" src="" alt="Word illustration" />
+    <div class="image-overlay-btns">
+      <button class="change-image-btn" id="changeImageBtn" title="Find a different image">🔍 Change</button>
+      <button class="clear-image-btn" id="clearImageBtn" title="Remove image">✕</button>
+    </div>
+  </div>
+  <!-- Show this when there's no image yet -->
+  <button class="find-image-btn" id="findImageBtn" hidden>🔍 Find an image</button>
+
+  <div class="popover-word" id="popoverWord"></div>
+  <div class="popover-phonetic" id="popoverPhonetic"></div>
+  <div class="popover-defs" id="popoverDefs"></div>
+
+  <!-- Image search panel (hidden until user opens it) -->
+  <div class="image-search-panel" id="imageSearchPanel" hidden>
+    <form class="image-search-form" id="imageSearchForm">
+      <input class="image-search-input" id="imageSearchInput" type="text" placeholder="Search for an image…" />
+      <button class="image-search-go" type="submit">Go</button>
+    </form>
+    <div class="image-search-grid" id="imageSearchGrid"></div>
+  </div>
+
+  <button class="popover-add-vocab" id="addVocabBtn">+ Add to Vocabulary</button>
+</div>
+<div class="popover-backdrop" id="popoverBackdrop" hidden></div>
+
+<!-- ── Chapter data for JavaScript ─────────────────────────── -->
+<script>
+window.ATLAS = {
+  bookId:        {{ meta.id }},
+  bookTitle:     {{ meta.title | tojson }},
+  bookAuthor:    {{ (meta.authors[0] if meta.authors else '') | tojson }},
+  bookCover:     {{ (meta.cover_url or '') | tojson }},
+  chapterIndex:  {{ chapter_index }},
+  chapterTitle:  {{ chapter.title | tojson }},
+  totalChapters: {{ total_chapters }},
+  fontSize:      {{ font_size }},
+  theme:         "{{ theme }}",
+  ageBand:       "{{ age_band }}",
+  ttsAvailable:  {{ 'true' if tts_available else 'false' }},
+  words: {{ chapter.words | map(attribute='text') | list | tojson }},
+};
+</script>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/reader.js') }}"></script>
+<script src="{{ url_for('static', filename='js/tts.js') }}"></script>
+{% endblock %}

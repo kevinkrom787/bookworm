@@ -1,0 +1,16 @@
+# Atlas — Kids Reading Device
+# All packages are Apache 2.0 / BSD / MIT licensed
+
+Flask>=3.0.0
+requests>=2.31.0
+python-dotenv>=1.0.0
+
+# TTS — install when ready (on Pi or Mac with enough RAM)
+# pip install kokoro-onnx soundfile
+# Weights (~80MB) download automatically on first use
+
+# Future — add as pillars are built:
+# SQLAlchemy>=2.0.0    (ORM, MIT)
+# alembic>=1.13.0      (migrations, MIT)
+# APScheduler>=3.10.0  (background jobs, MIT)
+# bcrypt>=4.0.0        (PIN hashing, Apache 2.0)

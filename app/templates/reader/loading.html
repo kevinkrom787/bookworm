@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Opening {{ meta.title }} — Atlas{% endblock %}
+
+{% block body %}
+<div style="
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  gap: 24px;
+  padding: 2rem;
+  text-align: center;
+  font-family: var(--font-ui);
+  background: var(--color-bg);
+  color: var(--color-text);
+">
+  <!-- Book cover -->
+  {% if meta.cover_url %}
+  <img src="{{ meta.cover_url }}"
+       alt="Cover of {{ meta.title }}"
+       style="width: 100px; border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.2);"
+       onerror="this.style.display='none'" />
+  {% endif %}
+
+  <div>
+    <div style="font-family: var(--font-reading); font-size: 1.25rem; font-weight: 700; margin-bottom: 4px;">
+      {{ meta.title }}
+    </div>
+    <div style="color: var(--color-text-3); font-size: 0.9rem;">
+      {{ meta.authors[0] if meta.authors else '' }}
+    </div>
+  </div>
+
+  <!-- Animated progress bar -->
+  <div style="width: 240px; height: 6px; background: var(--color-border); border-radius: 3px; overflow: hidden;">
+    <div id="progressBar" style="
+      height: 100%;
+      width: 0%;
+      background: var(--color-accent);
+      border-radius: 3px;
+      transition: width 0.4s ease;
+    "></div>
+  </div>
+
+  <p id="statusMsg" style="color: var(--color-text-3); font-size: 0.9rem;">
+    Downloading book for the first time…
+  </p>
+
+  <a href="/library/" style="
+    color: var(--color-text-3);
+    font-size: 0.85rem;
+    text-decoration: none;
+    border-bottom: 1px solid var(--color-border);
+  ">← Back to library</a>
+</div>
+
+<script>
+(async function () {
+  const bar    = document.getElementById("progressBar");
+  const msg    = document.getElementById("statusMsg");
+  const bookId = {{ book_id }};
+  const dest   = `/read/{{ book_id }}?chapter={{ chapter_index }}&band={{ age_band }}&font_size={{ font_size }}&theme={{ theme }}`;
+
+  // Animate the bar to ~80% while waiting (we don't have real progress events)
+  let pct = 0;
+  const ticker = setInterval(() => {
+    pct = Math.min(pct + Math.random() * 4, 80);
+    bar.style.width = pct + "%";
+  }, 400);
+
+  try {
+    const resp = await fetch(`/api/book/${bookId}/download`, { method: "POST" });
+    const data = await resp.json();
+
+    clearInterval(ticker);
+
+    if (data.status === "ready") {
+      bar.style.width = "100%";
+      msg.textContent = "Ready! Opening…";
+      setTimeout(() => { window.location.href = dest; }, 300);
+    } else {
+      msg.textContent = "Error: " + (data.message || "Download failed.");
+      bar.style.background = "#c0392b";
+    }
+  } catch (e) {
+    clearInterval(ticker);
+    msg.textContent = "Network error — make sure you're connected to the internet for first-time downloads.";
+    bar.style.background = "#c0392b";
+  }
+})();
+</script>
+{% endblock %}

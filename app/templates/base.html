@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html
+  lang="en"
+  data-theme="{{ theme | default('light') }}"
+  data-band="{{ age_band | default('explorers') }}"
+>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <!-- Disable tap highlight on touchscreens -->
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+
+  <title>{% block title %}Atlas{% endblock %}</title>
+
+  <!-- Apply saved theme before CSS renders to prevent flash -->
+  <script>(function(){var t=localStorage.getItem("atlas:theme")||"light";document.documentElement.dataset.theme=t;}());</script>
+
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/atlas.css') }}" />
+  <link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='css/themes/' + (age_band | default('explorers')) + '.css') }}"
+  />
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+  {% block body %}{% endblock %}
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

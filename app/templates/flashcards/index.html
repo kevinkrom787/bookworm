@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Atlas — Flashcards{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/flashcards.css') }}" />
+{% endblock %}
+
+{% block body %}
+<div class="fc-shell">
+
+  <header class="fc-header">
+    <a class="back-btn" href="/" aria-label="Back to home">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <polyline points="15 18 9 12 15 6"/>
+      </svg>
+    </a>
+    <div class="fc-title">Flashcards</div>
+  </header>
+
+  <main class="fc-main">
+
+    <div class="fc-type-grid" id="typeGrid">
+
+      <a class="fc-type-tile" data-type="number"
+         href="/flashcards/quiz?band={{ age_band }}&type=number">
+        <div class="fc-type-icon">🔢</div>
+        <div class="fc-type-name">Numbers</div>
+        <div class="fc-type-meta" id="metaNumber">
+          {{ stats.by_type.get('number', 0) }} cards
+        </div>
+      </a>
+
+      <a class="fc-type-tile" data-type="vocabulary"
+         href="/flashcards/quiz?band={{ age_band }}&type=vocabulary">
+        <div class="fc-type-icon">📖</div>
+        <div class="fc-type-name">Vocabulary</div>
+        <div class="fc-type-meta" id="metaVocab">
+          {{ stats.by_type.get('vocabulary', 0) }} cards
+        </div>
+      </a>
+
+      <a class="fc-type-tile" data-type="book_quiz"
+         href="/flashcards/quiz?band={{ age_band }}&type=book_quiz">
+        <div class="fc-type-icon">🏆</div>
+        <div class="fc-type-name">Book Quiz</div>
+        <div class="fc-type-meta" id="metaQuiz">
+          {{ stats.by_type.get('book_quiz', 0) }} cards
+        </div>
+      </a>
+
+      <div class="fc-type-tile is-soon">
+        <div class="fc-type-icon">➕</div>
+        <div class="fc-type-name">Math</div>
+        <div class="fc-type-meta">Coming soon</div>
+      </div>
+
+    </div>
+
+  </main>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+"use strict";
+// Disable tiles with 0 cards
+document.querySelectorAll(".fc-type-tile[data-type]").forEach(tile => {
+  const meta = tile.querySelector(".fc-type-meta");
+  if (meta && meta.textContent.trim().startsWith("0")) {
+    tile.classList.add("is-empty");
+  }
+});
+</script>
+{% endblock %}

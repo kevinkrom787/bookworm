@@ -1,0 +1,425 @@
+{% extends "base.html" %}
+{% block title %}Atlas — Review{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/flashcards.css') }}" />
+{% endblock %}
+
+{% block body %}
+<div class="fc-review-shell">
+
+  <!-- ── Header ────────────────────────────────────────────────── -->
+  <header class="fc-review-header">
+    <a class="back-btn" id="backBtn" href="/flashcards/?band={{ age_band }}" aria-label="Back">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <polyline points="15 18 9 12 15 6"/>
+      </svg>
+    </a>
+    <div class="fc-progress-wrap">
+      <div class="fc-progress-label" id="progressLabel">Loading…</div>
+      <div class="fc-progress-bar">
+        <div class="fc-progress-fill" id="progressFill" style="width:0%"></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── Review body ───────────────────────────────────────────── -->
+  <div class="fc-review-body" id="reviewBody">
+
+    <!-- Card scene -->
+    <div class="fc-card-scene" id="cardScene">
+      <div class="fc-card-wrap" id="cardWrap">
+        <div class="fc-card-face fc-card-front" id="cardFront"><!-- JS --></div>
+        <div class="fc-card-face fc-card-back"  id="cardBack"><!-- JS --></div>
+      </div>
+    </div>
+
+    <!-- Flip hint -->
+    <div class="fc-flip-hint" id="flipHint">Tap card to reveal answer</div>
+
+    <!-- Score buttons (hidden until card is flipped) -->
+    <div class="fc-score-row" id="scoreRow">
+      <button class="fc-score-btn" data-rating="1">Maybe next time</button>
+      <button class="fc-score-btn" data-rating="3">Aced it! 🎉</button>
+    </div>
+
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+"use strict";
+const AGE_BAND    = "{{ age_band }}";
+const FILTER_TYPE = "{{ filter_type | e }}";
+const FILTER_BOOK = "{{ filter_book | e }}";
+const SINGLE_CARD = {{ single_card_id | tojson }};
+const SET_MIN     = {{ set_min | tojson }};
+const SET_MAX     = {{ set_max | tojson }};
+const SET_LABEL   = "{{ set_label | e }}";
+const QUIZ_COUNT  = {{ quiz_count | tojson }};
+const QUIZ_MODE   = SET_MIN !== null || QUIZ_COUNT !== null;
+
+
+// ── Card renderers ────────────────────────────────────────────────────────────
+const CARD_RENDERERS = {
+
+  vocabulary: {
+    front(card) {
+      const f = card.front_data;
+      const word = f.word || '—';
+      return `
+        <div class="fc-card-eyebrow">Vocabulary</div>
+        <div class="fc-vocab-front-body">
+          ${f.image_url
+            ? `<img class="fc-vocab-img" src="${esc(f.image_url)}" alt="" onerror="this.style.display='none'">`
+            : ''}
+          <div>
+            <div class="fc-vocab-word">${esc(word)}</div>
+            ${f.phonetic ? `<div class="fc-vocab-phonetic">${esc(f.phonetic)}</div>` : ''}
+          </div>
+        </div>
+        <div class="fc-card-footer">
+          <span class="fc-card-source">${esc(f.source_book || '')}${f.source_chapter ? ` · ${esc(f.source_chapter)}` : ''}</span>
+          <button class="fc-speak-btn" data-speak="${esc(word)}">🔊</button>
+        </div>`;
+    },
+    back(card) {
+      const f = card.front_data;
+      const b = card.back_data;
+      return `
+        <div class="fc-card-eyebrow">Definition</div>
+        <div class="fc-vocab-word" style="font-size:1.4rem">${esc(f.word || '—')}</div>
+        <div class="fc-vocab-def">${esc(b.definition || '—')}</div>
+        ${b.example_sentence
+          ? `<div class="fc-vocab-example">"${esc(b.example_sentence)}"</div>`
+          : ''}`;
+    },
+  },
+
+  number: {
+    front(card) {
+      const f = card.front_data;
+      const n = parseInt(f.digit, 10);
+      const emoji = f.emoji || '●';
+      const word  = card.back_data?.word_form || String(f.digit);
+
+      let emojiHtml = '';
+      if (n === 0) {
+        emojiHtml = `<div class="fc-number-emoji-zero">∅</div>`;
+      } else {
+        const row1 = emoji.repeat(Math.min(n, 10));
+        const row2 = n > 10 ? emoji.repeat(n - 10) : '';
+        emojiHtml = `<div class="fc-number-emoji-row">${row1}</div>
+          ${row2 ? `<div class="fc-number-emoji-row">${row2}</div>` : ''}`;
+      }
+      return `
+        <div class="fc-number-digit">${esc(String(f.digit ?? '?'))}</div>
+        <div class="fc-number-emoji-wrap">${emojiHtml}</div>
+        <div class="fc-card-footer">
+          <span></span>
+          <button class="fc-speak-btn" data-speak="${esc(word)}">🔊</button>
+        </div>`;
+    },
+    back(card) {
+      const f = card.front_data;
+      const b = card.back_data;
+      const word = b.word_form || String(f.digit);
+      const examples = Array.isArray(b.examples) ? b.examples : [];
+      return `
+        <div class="fc-card-eyebrow">How to say it</div>
+        <div class="fc-number-word-row">
+          <div class="fc-number-word">${esc(word)}</div>
+          <button class="fc-speak-btn" data-speak="${esc(word)}">🔊</button>
+        </div>
+        ${examples.length
+          ? `<ul class="fc-number-examples">${examples.map(e => `<li>${esc(e)}</li>`).join('')}</ul>`
+          : ''}`;
+    },
+  },
+
+  book_quiz: {
+    front(card) {
+      const f = card.front_data;
+      return `
+        <div class="fc-card-eyebrow">${esc(f.source_chapter || 'Book Quiz')}</div>
+        <div class="fc-quiz-question">${esc(f.question || '—')}</div>
+        <div class="fc-card-footer">
+          <span class="fc-card-source">${esc(f.source_book || '')}</span>
+        </div>`;
+    },
+    back(card) {
+      const b = card.back_data;
+      const choices  = Array.isArray(b.choices) ? b.choices : [];
+      const correctI = b.correct_index ?? 0;
+      return `
+        <div class="fc-card-eyebrow">Answer</div>
+        <div class="fc-quiz-choices">
+          ${choices.map((c, i) =>
+            `<div class="fc-quiz-choice ${i === correctI ? 'is-correct' : ''}">${esc(c)}</div>`
+          ).join('')}
+        </div>
+        ${b.explanation
+          ? `<div class="fc-quiz-explanation">${esc(b.explanation)}</div>`
+          : ''}`;
+    },
+  },
+
+};
+
+function renderFallback(card, side) {
+  const data = side === 'front' ? card.front_data : card.back_data;
+  return `<div style="font-size:.85rem;color:var(--color-text-2);overflow:auto">${esc(JSON.stringify(data, null, 2))}</div>`;
+}
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let queue   = [];
+let idx     = 0;
+let flipped = false;
+let correct = 0;   // quiz mode: number of "Aced it" responses
+
+// ── DOM refs ──────────────────────────────────────────────────────────────────
+const cardWrap      = document.getElementById("cardWrap");
+const cardFront     = document.getElementById("cardFront");
+const cardBack      = document.getElementById("cardBack");
+const scoreRow      = document.getElementById("scoreRow");
+const flipHint      = document.getElementById("flipHint");
+const progressLabel = document.getElementById("progressLabel");
+const progressFill  = document.getElementById("progressFill");
+const reviewBody    = document.getElementById("reviewBody");
+
+// In quiz mode, back button returns to quiz setup
+if (QUIZ_MODE) {
+  const backBtn = document.getElementById("backBtn");
+  if (backBtn) backBtn.href = `/flashcards/quiz?band=${AGE_BAND}&type=${encodeURIComponent(FILTER_TYPE || 'number')}`;
+}
+
+// ── Load queue ────────────────────────────────────────────────────────────────
+async function loadQueue() {
+  try {
+    let cards;
+    if (SINGLE_CARD) {
+      const resp = await fetch(`/flashcards/api/cards`);
+      const data = await resp.json();
+      cards = (data.cards || []).filter(c => c.id === SINGLE_CARD);
+    } else {
+      const params = new URLSearchParams({ limit: "500" });
+      if (FILTER_TYPE) params.set("type", FILTER_TYPE);
+      if (FILTER_BOOK) params.set("book", FILTER_BOOK);
+      // Quiz mode: fetch all cards in the set, not just due ones
+      if (!QUIZ_MODE) params.set("due_only", "1");
+
+      const resp = await fetch(`/flashcards/api/cards?${params}`);
+      const data = await resp.json();
+      cards = data.cards || [];
+
+      // Filter by digit range for number quizzes
+      if (SET_MIN !== null && SET_MAX !== null) {
+        cards = cards.filter(c => {
+          const d = c.front_data?.digit;
+          return d !== undefined && d >= SET_MIN && d <= SET_MAX;
+        });
+      }
+    }
+
+    // Shuffle
+    queue = cards.sort(() => Math.random() - 0.5);
+
+    // Limit to requested count
+    if (QUIZ_COUNT && QUIZ_COUNT > 0 && queue.length > QUIZ_COUNT) {
+      queue = queue.slice(0, QUIZ_COUNT);
+    }
+
+    if (queue.length === 0) { showDone(true); return; }
+    showCard(0);
+  } catch(e) {
+    showError();
+  }
+}
+
+// ── Render card ───────────────────────────────────────────────────────────────
+function showCard(i) {
+  const card = queue[i];
+  if (!card) { showDone(false); return; }
+
+  flipped = false;
+  cardWrap.classList.remove("is-flipped");
+  scoreRow.classList.remove("is-visible");
+  scoreRow.style.pointerEvents = "";
+  flipHint.classList.remove("is-hidden");
+
+  cardWrap.dataset.cardType = card.card_type;
+
+  const renderer = CARD_RENDERERS[card.card_type];
+  cardFront.innerHTML = renderer ? renderer.front(card) : renderFallback(card, 'front');
+  cardBack.innerHTML  = renderer ? renderer.back(card)  : renderFallback(card, 'back');
+
+  updateProgress(i, queue.length);
+}
+
+function updateProgress(i, total) {
+  const pct = total > 0 ? Math.round((i / total) * 100) : 0;
+  progressFill.style.width = pct + "%";
+  if (QUIZ_MODE && SET_LABEL) {
+    progressLabel.textContent = `${SET_LABEL} · ${i + 1} / ${total}`;
+  } else {
+    progressLabel.textContent = `${i + 1} of ${total}`;
+  }
+}
+
+// ── Flip ──────────────────────────────────────────────────────────────────────
+function flipCard() {
+  if (flipped) return;
+  flipped = true;
+  cardWrap.classList.add("is-flipped");
+  flipHint.classList.add("is-hidden");
+  setTimeout(() => scoreRow.classList.add("is-visible"), 200);
+}
+
+// ── Score ─────────────────────────────────────────────────────────────────────
+async function submitScore(rating) {
+  const card = queue[idx];
+  scoreRow.style.pointerEvents = "none";
+
+  if (rating >= 3) correct++;
+
+  try {
+    await fetch(`/flashcards/api/cards/${card.id}/review`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ rating }),
+    });
+  } catch(e) { /* offline — continue */ }
+
+  idx++;
+  if (idx >= queue.length) {
+    await finishSession();
+  } else {
+    showCard(idx);
+  }
+}
+
+async function finishSession() {
+  if (QUIZ_MODE && queue.length > 0) {
+    try {
+      await fetch("/flashcards/api/quiz-sessions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          card_type: FILTER_TYPE || "number",
+          set_label: SET_LABEL || "All",
+          questions_total: queue.length,
+          questions_correct: correct,
+        }),
+      });
+    } catch(e) { /* offline — skip */ }
+  }
+  showDone(false);
+}
+
+// ── Done screen ───────────────────────────────────────────────────────────────
+function showDone(allCaughtUp) {
+  const backParams = new URLSearchParams({ band: AGE_BAND });
+  const setupUrl   = `/flashcards/quiz?band=${AGE_BAND}&type=${encodeURIComponent(FILTER_TYPE || 'number')}`;
+
+  let icon, title, body, actions;
+
+  if (allCaughtUp) {
+    icon  = '🎉';
+    title = 'All caught up!';
+    body  = 'No cards are due right now. Come back later to keep your streak going.';
+    actions = `
+      <a class="fc-done-btn primary"   href="${esc(setupUrl)}">Play again</a>
+      <a class="fc-done-btn secondary" href="/">Home</a>`;
+
+  } else if (QUIZ_MODE) {
+    const pct   = queue.length > 0 ? Math.round(correct / queue.length * 100) : 0;
+    const emoji = pct === 100 ? '🏆' : pct >= 80 ? '⭐' : pct >= 60 ? '✅' : '💪';
+    icon  = emoji;
+    title = 'Quiz complete!';
+    body  = `
+      <div class="fc-done-score">
+        <span class="fc-done-score-num">${correct}</span>
+        <span class="fc-done-score-sep">/</span>
+        <span class="fc-done-score-total">${queue.length}</span>
+      </div>
+      <div class="fc-done-pct">${pct}% correct${SET_LABEL ? ' · ' + esc(SET_LABEL) : ''}</div>`;
+    actions = `
+      <a class="fc-done-btn primary"   href="${esc(setupUrl)}">Play again</a>
+      <a class="fc-done-btn secondary" href="/flashcards/?${backParams}">All cards</a>`;
+
+  } else {
+    icon  = '✅';
+    title = 'Session complete';
+    body  = `You reviewed ${queue.length} card${queue.length !== 1 ? 's' : ''}. Great work!`;
+    actions = `
+      <a class="fc-done-btn primary"   href="${esc(setupUrl)}">Play again</a>
+      <a class="fc-done-btn secondary" href="/">Home</a>`;
+  }
+
+  reviewBody.innerHTML = `
+    <div class="fc-done">
+      <div class="fc-done-icon">${icon}</div>
+      <div class="fc-done-title">${title}</div>
+      <div class="fc-done-body">${body}</div>
+      <div class="fc-done-actions">${actions}</div>
+    </div>`;
+}
+
+function showError() {
+  reviewBody.innerHTML = `
+    <div class="fc-done">
+      <div class="fc-done-icon">⚠️</div>
+      <div class="fc-done-title">Couldn't load cards</div>
+      <div class="fc-done-body">Check your connection and try again.</div>
+      <div class="fc-done-actions">
+        <a class="fc-done-btn primary" href="/flashcards/">Back</a>
+      </div>
+    </div>`;
+}
+
+// ── Speech ────────────────────────────────────────────────────────────────────
+function speak(text) {
+  if (!text || !window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const utt = new SpeechSynthesisUtterance(text);
+  utt.rate = 0.85;
+  utt.pitch = 1.1;
+  window.speechSynthesis.speak(utt);
+}
+
+// ── Events ────────────────────────────────────────────────────────────────────
+document.getElementById("cardScene").addEventListener("click", e => {
+  if (e.target.closest(".fc-speak-btn")) return;
+  flipCard();
+});
+
+document.addEventListener("click", e => {
+  const btn = e.target.closest(".fc-speak-btn");
+  if (btn) speak(btn.dataset.speak);
+});
+
+document.getElementById("scoreRow").addEventListener("click", e => {
+  const btn = e.target.closest(".fc-score-btn");
+  if (!btn) return;
+  submitScore(parseInt(btn.dataset.rating, 10));
+});
+
+document.addEventListener("keydown", e => {
+  if (e.key === " " || e.key === "Enter") {
+    e.preventDefault();
+    if (!flipped) flipCard();
+    else submitScore(3);
+  }
+  if (flipped && (e.key === "Escape" || e.key === "Backspace")) submitScore(1);
+});
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+document.addEventListener("DOMContentLoaded", loadQueue);
+
+function esc(s) {
+  return (s == null ? "" : String(s))
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+</script>
+{% endblock %}

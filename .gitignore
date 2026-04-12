@@ -1,0 +1,15 @@
+cache/
+__pycache__/
+*.pyc
+*.pyo
+.env
+*.egg-info/
+dist/
+.venv/
+venv/
+*.onnx
+*.bin
+instance/
+*.db
+*.db-shm
+*.db-wal

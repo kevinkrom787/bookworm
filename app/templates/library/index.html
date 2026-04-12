@@ -1,0 +1,298 @@
+{% extends "base.html" %}
+{% block title %}Atlas — My Library{% endblock %}
+
+{% block body %}
+<div class="library-shell">
+
+  <!-- ── Header ───────────────────────────────────────────── -->
+  <header class="library-header">
+    <a class="back-btn" href="/" aria-label="Back to home">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <polyline points="15 18 9 12 15 6"/>
+      </svg>
+    </a>
+    <div class="atlas-wordmark">
+      <span class="atlas-icon">📖</span>
+      <span class="atlas-name">Atlas</span>
+    </div>
+
+    <form class="search-form" id="searchForm" autocomplete="off">
+      <input
+        class="search-input"
+        id="searchInput"
+        type="search"
+        name="q"
+        placeholder="Search for a book…"
+        aria-label="Search books"
+      />
+      <button class="search-btn" type="submit" aria-label="Search">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <circle cx="11" cy="11" r="7"/>
+          <line x1="16.5" y1="16.5" x2="22" y2="22"/>
+        </svg>
+      </button>
+    </form>
+
+    <div class="header-actions">
+      <button class="band-toggle" id="bandToggle" title="Switch reading level">
+        <span id="bandLabel">{{ age_band | capitalize }}</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ── Main ─────────────────────────────────────────────── -->
+  <main class="library-main">
+
+    <!-- Search results (hidden until search) -->
+    <section class="results-section" id="resultsSection" hidden>
+      <h2 class="section-title" id="resultsTitle">Results</h2>
+      <div class="book-grid" id="resultsGrid"></div>
+      <div class="load-more-wrap" id="loadMoreWrap" hidden>
+        <button class="load-more-btn" id="loadMoreBtn">Load more</button>
+      </div>
+    </section>
+
+    <!-- Featured books -->
+    <section class="featured-section" id="featuredSection">
+      <h2 class="section-title">
+        <span class="section-icon">⭐</span> <span id="greatStoriesTitle">Great Stories</span>
+      </h2>
+      <div class="book-grid" id="featuredGrid">
+        <!-- Skeleton placeholders while loading -->
+        {% for _ in range(6) %}
+        <div class="book-card skeleton">
+          <div class="book-cover skeleton-cover"></div>
+          <div class="skeleton-text"></div>
+          <div class="skeleton-text short"></div>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+
+  </main>
+
+</div>
+
+<!-- ── Word-definition popover (shared) ───────────────────── -->
+<div class="popover" id="defPopover" hidden role="dialog" aria-label="Word definition">
+  <button class="popover-close" id="popoverClose" aria-label="Close">✕</button>
+  <div class="popover-word" id="popoverWord"></div>
+  <div class="popover-phonetic" id="popoverPhonetic"></div>
+  <div class="popover-defs" id="popoverDefs"></div>
+</div>
+<div class="popover-backdrop" id="popoverBackdrop" hidden></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ── Current state ────────────────────────────────────────────────────────────
+let currentBand = "{{ age_band }}";
+let searchPage = 1;
+let lastQuery = "";
+
+// ── Text effects ─────────────────────────────────────────────────────────────
+const _GLYPHS = '!<>-_/[]=+*^?#@$%~|'.split('');
+const _rg     = () => _GLYPHS[Math.random() * _GLYPHS.length | 0];
+const _noMo   = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function decodeText(el, dur = 900, onDone) {
+  if (_noMo()) { if (onDone) onDone(); return; }
+  const orig = el.textContent;
+  const N    = orig.length;
+  const t0   = performance.now();
+  (function step(now) {
+    const p     = Math.min((now - t0) / dur, 1);
+    const eased = 1 - Math.pow(1 - p, 3);
+    const pivot = Math.floor(eased * N);
+    let html = '';
+    for (let i = 0; i < N; i++) {
+      if (i < pivot) { html += orig[i]; continue; }
+      const d = i - pivot;
+      if (d < 8) {
+        const op = (0.50 - d * 0.055).toFixed(2);
+        html += `<span style="opacity:${op};color:currentColor;font-family:monospace">${_rg()}</span>`;
+      } else {
+        html += `<span style="opacity:0">${orig[i]}</span>`;
+      }
+    }
+    el.innerHTML = html;
+    if (p < 1) requestAnimationFrame(step);
+    else { el.textContent = orig; if (onDone) onDone(); }
+  })(t0);
+}
+
+function hookGlitch(el) {
+  if (_noMo()) return;
+  const snap = el.textContent;
+  let tid;
+  el.addEventListener('mouseenter', () => {
+    let n = 0;
+    clearInterval(tid);
+    tid = setInterval(() => {
+      if (++n > 7) { clearInterval(tid); el.textContent = snap; return; }
+      const chars = snap.split('');
+      const kill  = new Set();
+      while (kill.size < 2 + (Math.random() * 3 | 0)) kill.add(Math.random() * chars.length | 0);
+      el.innerHTML = chars.map((c, i) =>
+        kill.has(i)
+          ? `<span style="opacity:.60;color:currentColor;font-family:monospace">${_rg()}</span>`
+          : c
+      ).join('');
+    }, 55);
+  });
+  el.addEventListener('mouseleave', () => { clearInterval(tid); el.textContent = snap; });
+}
+
+// ── Boot ─────────────────────────────────────────────────────────────────────
+document.addEventListener("DOMContentLoaded", () => {
+  const wordmark = document.querySelector(".atlas-name");
+  if (wordmark) decodeText(wordmark, 900, () => hookGlitch(wordmark));
+  const titleEl = document.getElementById("greatStoriesTitle");
+  if (titleEl) decodeText(titleEl, 700, () => hookGlitch(titleEl));
+  loadFeatured();
+  setupSearch();
+  setupBandToggle();
+});
+
+// ── Featured books ────────────────────────────────────────────────────────────
+async function loadFeatured() {
+  const grid = document.getElementById("featuredGrid");
+  try {
+    const resp = await fetch("/library/api/featured");
+    const data = await resp.json();
+    grid.innerHTML = "";
+    if (data.books && data.books.length > 0) {
+      data.books.forEach(book => grid.appendChild(makeCard(book)));
+    } else {
+      grid.innerHTML = '<p class="empty-state">Could not load books. Make sure you\'re connected to the internet for the first load.</p>';
+    }
+  } catch (e) {
+    grid.innerHTML = '<p class="empty-state">Network unavailable — books load from your local library once you\'ve opened them before.</p>';
+  }
+}
+
+// ── Search ────────────────────────────────────────────────────────────────────
+function setupSearch() {
+  const form = document.getElementById("searchForm");
+  const input = document.getElementById("searchInput");
+  const resultsSection = document.getElementById("resultsSection");
+  const featuredSection = document.getElementById("featuredSection");
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const q = input.value.trim();
+    if (!q) return;
+    lastQuery = q;
+    searchPage = 1;
+    resultsSection.hidden = false;
+    featuredSection.hidden = true;
+    document.getElementById("resultsTitle").textContent = `Results for "${q}"`;
+    document.getElementById("resultsGrid").innerHTML = skeletons(4);
+    await runSearch(q, 1, true);
+  });
+
+  // Clear search on empty
+  input.addEventListener("input", () => {
+    if (!input.value.trim()) {
+      resultsSection.hidden = true;
+      featuredSection.hidden = false;
+    }
+  });
+
+  // Load more
+  document.getElementById("loadMoreBtn").addEventListener("click", async () => {
+    searchPage++;
+    await runSearch(lastQuery, searchPage, false);
+  });
+}
+
+async function runSearch(q, page, replace) {
+  const grid = document.getElementById("resultsGrid");
+  const loadMoreWrap = document.getElementById("loadMoreWrap");
+  try {
+    const resp = await fetch(`/library/api/search?q=${encodeURIComponent(q)}&page=${page}`);
+    const data = await resp.json();
+    if (replace) grid.innerHTML = "";
+    if (data.books && data.books.length > 0) {
+      data.books.forEach(book => grid.appendChild(makeCard(book)));
+      loadMoreWrap.hidden = !data.next_page;
+    } else if (replace) {
+      grid.innerHTML = '<p class="empty-state">No books found. Try a different title or author.</p>';
+      loadMoreWrap.hidden = true;
+    }
+  } catch (e) {
+    if (replace) grid.innerHTML = '<p class="empty-state">Search unavailable offline.</p>';
+  }
+}
+
+// ── Book card ─────────────────────────────────────────────────────────────────
+function makeCard(book) {
+  const card = document.createElement("div");
+  card.className = "book-card";
+  card.setAttribute("role", "button");
+  card.setAttribute("tabindex", "0");
+  card.setAttribute("aria-label", `${book.title} by ${book.authors.join(", ")}`);
+
+  const coverSrc = book.cover_url
+    ? book.cover_url
+    : `https://covers.openlibrary.org/b/id/0-M.jpg`; // fallback placeholder
+
+  card.innerHTML = `
+    <div class="book-cover-wrap">
+      <img class="book-cover" src="${escHtml(book.cover_url || '')}" alt="Cover of ${escHtml(book.title)}"
+           onerror="this.src='data:image/svg+xml,${encodeURIComponent(svgCover(book.title))}'"
+           loading="lazy" />
+    </div>
+    <div class="book-info">
+      <div class="book-title">${escHtml(book.title)}</div>
+      <div class="book-author">${escHtml(book.authors.slice(0,1).join(""))}</div>
+    </div>
+  `;
+
+  const open = () => {
+    // Restore the chapter the reader last had open for this book
+    const lastChapter = localStorage.getItem(`atlas:chapter:${book.id}`) || "0";
+    window.location.href = `/read/${book.id}?chapter=${lastChapter}&band=${currentBand}`;
+  };
+  card.addEventListener("click", open);
+  card.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") open(); });
+  return card;
+}
+
+function svgCover(title) {
+  const letter = (title || "?")[0].toUpperCase();
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="120" height="160" viewBox="0 0 120 160">
+    <rect width="120" height="160" rx="4" fill="#3D6B4F"/>
+    <text x="60" y="90" font-family="Georgia,serif" font-size="48" fill="#FAF8F5" text-anchor="middle" dominant-baseline="middle">${letter}</text>
+  </svg>`;
+}
+
+// ── Band toggle ───────────────────────────────────────────────────────────────
+function setupBandToggle() {
+  const bands = ["seedlings", "explorers", "adventurers"];
+  const btn = document.getElementById("bandToggle");
+  btn.addEventListener("click", () => {
+    const idx = bands.indexOf(currentBand);
+    currentBand = bands[(idx + 1) % bands.length];
+    document.getElementById("bandLabel").textContent =
+      currentBand.charAt(0).toUpperCase() + currentBand.slice(1);
+    document.documentElement.dataset.band = currentBand;
+    // Swap theme CSS
+    document.querySelector('link[rel=stylesheet][href*="themes/"]').href =
+      `/static/css/themes/${currentBand}.css`;
+  });
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function skeletons(n) {
+  return Array.from({ length: n }, () =>
+    `<div class="book-card skeleton"><div class="book-cover skeleton-cover"></div>
+     <div class="skeleton-text"></div><div class="skeleton-text short"></div></div>`
+  ).join("");
+}
+
+function escHtml(str) {
+  return (str || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+</script>
+{% endblock %}

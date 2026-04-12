@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Atlas — Oops{% endblock %}
+
+{% block body %}
+<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;padding:2rem;text-align:center;font-family:system-ui,sans-serif;">
+  <div style="font-size:4rem;margin-bottom:1rem;">📚</div>
+  <h1 style="font-size:1.5rem;margin-bottom:0.5rem;">Something went wrong</h1>
+  <p style="color:#666;max-width:400px;margin-bottom:2rem;">{{ error }}</p>
+  <a href="/library/" style="background:#3D6B4F;color:white;padding:0.75rem 1.5rem;border-radius:2rem;text-decoration:none;font-weight:600;">
+    ← Back to Library
+  </a>
+  {% if book_id %}
+  <p style="margin-top:1rem;font-size:0.85rem;color:#999;">Book ID: {{ book_id }}</p>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,43 @@
+/* ── Adventurers theme — Ages 10–12 ─────────────────────────────
+   Elegant. Book-like. Respects the reader's growing sophistication.
+   Closer to a real printed book in feel.
+──────────────────────────────────────────────────────────────── */
+[data-band="adventurers"] {
+  --color-accent:    #5B4A8A;       /* deep purple — curious, smart */
+  --color-accent-lt: #EEE9F7;
+  --color-bg:        #F0EBE1;       /* aged parchment */
+  --color-surface:   #EAE4D8;
+  --color-surface-2: #DDD7CB;
+  --color-border:    #C8C0AE;
+  --color-text:      #1A1814;
+  --color-highlight: #C9B8FF;
+  --color-highlight-border: #5B4A8A;
+
+  --font-size-base: 15px;
+}
+
+[data-band="adventurers"] .reader-content {
+  font-size: 18px !important;
+  line-height: 1.8;
+  max-width: 640px;  /* slightly narrower = more book-like */
+}
+
+[data-band="adventurers"] .atlas-name {
+  color: #5B4A8A;
+}
+
+/* Tighter grid — more books visible */
+[data-band="adventurers"] .book-grid {
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 12px;
+}
+
+/* Smaller nav buttons — less toy-like */
+[data-band="adventurers"] .nav-btn {
+  font-size: 0.75rem;
+}
+
+/* More book-spine-like book cards */
+[data-band="adventurers"] .book-cover-wrap {
+  box-shadow: 2px 3px 10px rgba(0,0,0,0.18), inset -2px 0 4px rgba(0,0,0,0.08);
+}

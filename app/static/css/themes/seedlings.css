@@ -1,0 +1,51 @@
+/* ── Seedlings theme — Ages 4–6 ──────────────────────────────────
+   Big, friendly, colorful. Reading is an adventure, not a task.
+   Everything is oversized for small fingers and new readers.
+──────────────────────────────────────────────────────────────── */
+[data-band="seedlings"] {
+  --color-accent:    #FF6B35;       /* warm orange */
+  --color-accent-lt: #FFF0E8;
+  --color-bg:        #FFFDE8;       /* warm sunny */
+  --color-surface:   #FFF8D6;
+  --color-surface-2: #FFF0B0;
+  --color-border:    #F0D890;
+  --color-highlight: #FFC947;
+
+  /* Larger everything */
+  --font-size-base: 18px;
+  --topbar-h: 64px;
+  --bottombar-h: 64px;
+  --radius-md: 20px;
+  --radius-lg: 28px;
+}
+
+/* Larger reading text for early readers */
+[data-band="seedlings"] .reader-content {
+  font-size: 26px !important;
+  line-height: 2.0;
+  letter-spacing: 0.02em;
+}
+
+/* Bigger book cards */
+[data-band="seedlings"] .book-grid {
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 20px;
+}
+
+/* Chunkier nav buttons */
+[data-band="seedlings"] .nav-btn {
+  min-width: 48px;
+  height: 48px;
+  font-size: 1.1rem;
+}
+
+/* Bigger TTS button */
+[data-band="seedlings"] .tts-btn {
+  padding: 10px 20px;
+  font-size: 1rem;
+}
+
+/* Wordmark gets a little playful */
+[data-band="seedlings"] .atlas-name {
+  color: #FF6B35;
+}

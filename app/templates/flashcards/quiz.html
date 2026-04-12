@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}Atlas — Quiz{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/flashcards.css') }}" />
+{% endblock %}
+
+{% block body %}
+<div class="fc-quiz-setup-shell">
+
+  <header class="fc-review-header">
+    <a class="back-btn" href="/" aria-label="Back to home">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <polyline points="15 18 9 12 15 6"/>
+      </svg>
+    </a>
+    <div class="fc-progress-label" style="font-size:1rem;font-weight:700;color:var(--color-text)">Quiz</div>
+  </header>
+
+  <main class="fc-quiz-setup-body">
+
+    <div class="fc-setup-section">
+      <div class="fc-setup-label">How many questions?</div>
+      <div class="fc-count-row" id="countRow">
+        <button class="fc-count-btn" data-count="5">5</button>
+        <button class="fc-count-btn is-active" data-count="10">10</button>
+        <button class="fc-count-btn" data-count="15">15</button>
+        <button class="fc-count-btn" data-count="20">20</button>
+        <button class="fc-count-btn" data-count="0">All</button>
+      </div>
+    </div>
+
+    <button class="fc-start-btn" id="startBtn">Start Quiz</button>
+
+  </main>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+"use strict";
+const AGE_BAND  = "{{ age_band }}";
+const CARD_TYPE = "{{ card_type | e }}";
+
+let selectedCount = 10;
+let totalCards    = 0;
+
+// ── Load card count and clamp options ────────────────────────────────────────
+async function loadCardCount() {
+  try {
+    const params = new URLSearchParams({ limit: "500" });
+    if (CARD_TYPE) params.set("type", CARD_TYPE);
+    const resp = await fetch(`/flashcards/api/cards?${params}`);
+    const data = await resp.json();
+    totalCards = (data.cards || []).length;
+
+    // Disable count options that exceed available cards
+    document.querySelectorAll(".fc-count-btn").forEach(btn => {
+      const v = parseInt(btn.dataset.count, 10);
+      if (btn.dataset.count !== "0" && v > totalCards) {
+        btn.disabled = true;
+        btn.classList.remove("is-active");
+      }
+    });
+
+    // Ensure a valid option is active
+    const anyActive = [...document.querySelectorAll(".fc-count-btn.is-active")].some(b => !b.disabled);
+    if (!anyActive) {
+      // Default to 10 if available, otherwise All
+      const fallback = totalCards >= 10
+        ? document.querySelector('.fc-count-btn[data-count="10"]')
+        : document.querySelector('.fc-count-btn[data-count="0"]');
+      if (fallback) { fallback.classList.add("is-active"); selectedCount = parseInt(fallback.dataset.count, 10); }
+    }
+  } catch(e) { /* proceed with defaults */ }
+}
+
+// ── Count selection ───────────────────────────────────────────────────────────
+document.getElementById("countRow").addEventListener("click", e => {
+  const btn = e.target.closest(".fc-count-btn");
+  if (!btn || btn.disabled) return;
+  document.querySelectorAll(".fc-count-btn").forEach(b => b.classList.remove("is-active"));
+  btn.classList.add("is-active");
+  selectedCount = parseInt(btn.dataset.count, 10);
+});
+
+// ── Start quiz ────────────────────────────────────────────────────────────────
+document.getElementById("startBtn").addEventListener("click", () => {
+  const count = selectedCount || totalCards;
+  const params = new URLSearchParams({ band: AGE_BAND, type: CARD_TYPE, count });
+  window.location.href = `/flashcards/review?${params}`;
+});
+
+document.addEventListener("DOMContentLoaded", loadCardCount);
+</script>
+{% endblock %}

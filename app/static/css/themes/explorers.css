@@ -1,0 +1,21 @@
+/* ── Explorers theme — Ages 7–9 (default) ───────────────────────
+   Balanced. Engaging. Feels like a real book but with personality.
+──────────────────────────────────────────────────────────────── */
+[data-band="explorers"] {
+  /* Uses the root defaults from atlas.css — just document them here */
+  --color-accent:    #3D6B4F;
+  --color-accent-lt: #EAF2EC;
+  --color-bg:        #FAF8F5;
+  --color-surface:   #F5F0E6;
+
+  --font-size-base: 16px;
+}
+
+[data-band="explorers"] .reader-content {
+  font-size: 20px !important;
+  line-height: 1.85;
+}
+
+[data-band="explorers"] .book-grid {
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+}

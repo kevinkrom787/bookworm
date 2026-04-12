@@ -1,0 +1,746 @@
+{% extends "base.html" %}
+{% block title %}Atlas{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}" />
+{% endblock %}
+
+{% block body %}
+<div class="home-shell" id="homeShell" data-band="{{ age_band }}">
+
+  <!-- ── Header ─────────────────────────────────────────────── -->
+  <header class="home-header">
+    <div class="home-greeting-wrap">
+      <div class="home-greeting" id="greetingText">Good morning</div>
+      <div class="streak-pill" id="streakPill" hidden>
+        <span>🔥</span>
+        <span id="streakCount"></span>
+        <span id="streakLabel"> day streak</span>
+      </div>
+    </div>
+    <button class="theme-btn" id="themeBtn" aria-label="Toggle dark mode">
+      <!-- icon swapped by JS -->
+    </button>
+  </header>
+
+  <!-- ── Content ────────────────────────────────────────────── -->
+  <div class="home-content">
+
+    <!-- Hero: Continue Reading or book picker -->
+    <section class="hero-section">
+      <div id="continueSection"></div>
+    </section>
+
+    <!-- Stats strip -->
+    <div class="stats-strip">
+      <div class="stat-chip">
+        <span class="stat-num" id="statDays">0</span>
+        <span class="stat-lbl">days read</span>
+      </div>
+      <div class="stat-chip">
+        <span class="stat-num" id="statVocab">0</span>
+        <span class="stat-lbl">words saved</span>
+      </div>
+      <div class="stat-chip stat-pending">
+        <span class="stat-num" id="statTested">0</span>
+        <span class="stat-lbl">words tested</span>
+      </div>
+      <div class="stat-chip stat-pending">
+        <span class="stat-num" id="statChars">0</span>
+        <span class="stat-lbl">characters</span>
+      </div>
+    </div>
+
+    <!-- Bento: feature modules -->
+    <div class="bento-grid" id="bentoGrid"></div>
+
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="home-toast" id="toast" hidden></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+"use strict";
+const AGE_BAND = "{{ age_band }}";
+
+// ── Module registry ────────────────────────────────────────────────────────────
+const HOME_MODULES = [
+  {
+    id:       "library",
+    label:    "My Books",
+    subtitle: "The Library",
+    href:     "/library/",
+    soon:     false,
+    cta:      "Browse collection →",
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M231.65,194.55,198.46,36.75a16,16,0,0,0-19-12.39L132.65,34.42a16.08,16.08,0,0,0-12.3,19l33.19,157.8A16,16,0,0,0,169.16,224a16.25,16.25,0,0,0,3.38-.36l46.81-10.06A16.09,16.09,0,0,0,231.65,194.55ZM136,50.15c0-.06,0-.09,0-.09l46.8-10,3.33,15.87L139.33,66Zm6.62,31.47,46.82-10.05,3.34,15.9L146,97.53Zm6.64,31.57,46.82-10.06,13.3,63.24-46.82,10.06ZM216,197.94l-46.8,10-3.33-15.87L212.67,182,216,197.85C216,197.91,216,197.94,216,197.94ZM104,32H56A16,16,0,0,0,40,48V208a16,16,0,0,0,16,16h48a16,16,0,0,0,16-16V48A16,16,0,0,0,104,32ZM56,48h48V64H56Zm0,32h48v96H56Zm48,128H56V192h48v16Z"/></svg>`,
+  },
+  {
+    id:       "think-pip",
+    label:    "Think with Pip",
+    subtitle: "Ask questions, explore ideas",
+    href:     null,
+    soon:     "Think with Pip is coming soon!",
+    cta:      null,
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M132,24A100.11,100.11,0,0,0,32,124v84a16,16,0,0,0,16,16h84a100,100,0,0,0,0-200Zm0,184H48V124a84,84,0,1,1,84,84Zm12-80a12,12,0,1,1-12-12A12,12,0,0,1,144,128Zm-44,0a12,12,0,1,1-12-12A12,12,0,0,1,100,128Zm88,0a12,12,0,1,1-12-12A12,12,0,0,1,188,128Z"/></svg>`,
+  },
+  {
+    id:       "flashcards",
+    label:    "Flashcards",
+    subtitle: "Memory Tower",
+    href:     "/flashcards/",
+    soon:     false,
+    cta:      "Start reviewing →",
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M184,72H40A16,16,0,0,0,24,88V200a16,16,0,0,0,16,16H184a16,16,0,0,0,16-16V88A16,16,0,0,0,184,72Zm0,128H40V88H184V200ZM232,56V176a8,8,0,0,1-16,0V56H64a8,8,0,0,1,0-16H216A16,16,0,0,1,232,56Z"/></svg>`,
+  },
+  {
+    id:       "story",
+    label:    "My Story",
+    subtitle: "Story Workshop",
+    href:     null,
+    soon:     "Story Workshop is coming soon!",
+    cta:      null,
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M229.66,58.34l-32-32a8,8,0,0,0-11.32,0l-96,96A8,8,0,0,0,88,128v32a8,8,0,0,0,8,8h32a8,8,0,0,0,5.66-2.34l96-96A8,8,0,0,0,229.66,58.34ZM124.69,152H104V131.31l64-64L188.69,88ZM200,76.69,179.31,56,192,43.31,212.69,64ZM224,128v80a16,16,0,0,1-16,16H48a16,16,0,0,1-16-16V48A16,16,0,0,1,48,32h80a8,8,0,0,1,0,16H48V208H208V128a8,8,0,0,1,16,0Z"/></svg>`,
+  },
+];
+
+// Rotating prompts for Think with Pip
+const PIP_PROMPTS = [
+  "Why did the fox trick the crow?",
+  "What makes a hero brave?",
+  "Could animals ever really talk?",
+  "What would you do with a magic book?",
+  "Why do stories need a villain?",
+  "What if you could fly anywhere — where first?",
+  "Why is kindness stronger than strength?",
+];
+
+// ── Theme ──────────────────────────────────────────────────────────────────────
+const MOON_SVG = `<svg viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"/>
+</svg>`;
+const SUN_SVG = `<svg viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="10" cy="10" r="3.5"/>
+  <path d="M10 1v2M10 17v2M1 10h2M17 10h2M3.22 3.22l1.42 1.42M15.36 15.36l1.42 1.42
+           M3.22 16.78l1.42-1.42M15.36 4.64l1.42-1.42"
+        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+</svg>`;
+
+function initTheme() {
+  const saved = localStorage.getItem("atlas:theme") || "dark";
+  applyTheme(saved, false);
+}
+
+function applyTheme(theme, save = true) {
+  document.documentElement.dataset.theme = theme;
+  if (save) localStorage.setItem("atlas:theme", theme);
+  const btn = document.getElementById("themeBtn");
+  if (btn) btn.innerHTML = theme === "dark" ? SUN_SVG : MOON_SVG;
+}
+
+function toggleTheme() {
+  const current = document.documentElement.dataset.theme;
+  applyTheme(current === "dark" ? "light" : "dark");
+}
+
+// ── Text effects (ported from sales-story) ────────────────────────────────────
+const _GLYPHS = '!<>-_/[]=+*^?#@$%~|'.split('');
+const _rg     = () => _GLYPHS[Math.random() * _GLYPHS.length | 0];
+const _noMo   = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// Decode: reveals text L→R with trailing random glyphs — runs once on load.
+function decodeText(el, dur = 900, onDone) {
+  if (_noMo()) { if (onDone) onDone(); return; }
+  const orig = el.textContent;
+  const N    = orig.length;
+  const t0   = performance.now();
+  (function step(now) {
+    const p     = Math.min((now - t0) / dur, 1);
+    const eased = 1 - Math.pow(1 - p, 3);
+    const pivot = Math.floor(eased * N);
+    let html = '';
+    for (let i = 0; i < N; i++) {
+      if (i < pivot) { html += orig[i]; continue; }
+      const d = i - pivot;
+      if (d < 8) {
+        const op = (0.50 - d * 0.055).toFixed(2);
+        html += `<span style="opacity:${op};color:currentColor;font-family:monospace">${_rg()}</span>`;
+      } else {
+        html += `<span style="opacity:0">${orig[i]}</span>`;
+      }
+    }
+    el.innerHTML = html;
+    if (p < 1) requestAnimationFrame(step);
+    else { el.textContent = orig; if (onDone) onDone(); }
+  })(t0);
+}
+
+// Glitch: corrupts 2–4 random chars for 7 ticks on mouseenter (runs after decode).
+function hookGlitch(el) {
+  if (_noMo()) return;
+  const snap = el.textContent;
+  let tid;
+  el.addEventListener('mouseenter', () => {
+    let n = 0;
+    clearInterval(tid);
+    tid = setInterval(() => {
+      if (++n > 7) { clearInterval(tid); el.textContent = snap; return; }
+      const chars = snap.split('');
+      const kill  = new Set();
+      while (kill.size < 2 + (Math.random() * 3 | 0)) kill.add(Math.random() * chars.length | 0);
+      el.innerHTML = chars.map((c, i) =>
+        kill.has(i)
+          ? `<span style="opacity:.60;color:currentColor;font-family:monospace">${_rg()}</span>`
+          : c
+      ).join('');
+    }, 55);
+  });
+  el.addEventListener('mouseleave', () => { clearInterval(tid); el.textContent = snap; });
+}
+
+// Scramble: hover effect — reveals text L→R with cubic ease-out, 440 ms.
+function scramble(el) {
+  if (_noMo() || el._sc) return;
+  el._sc = true;
+  const orig = el.textContent;
+  const N    = orig.length;
+  const t0   = performance.now();
+  const dur  = 440;
+  (function step(now) {
+    const p     = Math.min((now - t0) / dur, 1);
+    const eased = 1 - Math.pow(1 - p, 2.5);
+    const pivot = Math.floor(eased * N);
+    let html = '';
+    for (let i = 0; i < N; i++) {
+      if (i < pivot) { html += orig[i]; continue; }
+      const d = i - pivot;
+      html += d < 6
+        ? `<span style="opacity:${(0.42 - d * 0.065).toFixed(2)};color:currentColor;font-family:monospace">${_rg()}</span>`
+        : `<span style="opacity:0">${orig[i]}</span>`;
+    }
+    el.innerHTML = html;
+    if (p < 1) requestAnimationFrame(step);
+    else { el.textContent = orig; el._sc = false; }
+  })(t0);
+}
+
+// ── Stats & celebration ────────────────────────────────────────────────────────
+const STAT_EMOJIS = { statDays: '🔥', statVocab: '⚡', statTested: '🧠', statChars: '🎨' };
+const JACKPOT_EMOJIS = ['🔥','⚡','✨','🌟','💥','🎉','🚀','🏆'];
+
+// Color palettes for variable rewards
+const PALETTES = [
+  { color:'#FFB830', border:'rgba(255,180,40,0.55)',  glo:'rgba(255,160,20,0.35)',  lo:'12px', hi:'28px', dur:'2.6s', label:'#FFD878' },
+  { color:'#50D890', border:'rgba(60,210,120,0.50)',  glo:'rgba(40,200,100,0.30)',  lo:'12px', hi:'26px', dur:'2.8s', label:'#88EEBB' },
+  { color:'#60B8F8', border:'rgba(70,160,240,0.50)',  glo:'rgba(50,140,230,0.30)',  lo:'12px', hi:'26px', dur:'3.0s', label:'#A0D4FC' },
+  { color:'#C880F8', border:'rgba(180,80,248,0.50)',  glo:'rgba(160,60,240,0.30)',  lo:'12px', hi:'28px', dur:'2.4s', label:'#DFB0FF' },
+  { color:'#F870A8', border:'rgba(240,80,150,0.50)',  glo:'rgba(230,60,130,0.30)',  lo:'10px', hi:'24px', dur:'2.6s', label:'#FFAAD0' },
+];
+
+// Variable ratio roll — fresh each page load, no milestone tracking
+function rollReward(value) {
+  if (value <= 0) return null;
+  const r = Math.random();
+  if (r < 0.52) return null;       // 52% — nothing
+  if (r < 0.78) return 'glow';     // 26% — colored glow
+  if (r < 0.94) return 'confetti'; // 16% — glow + confetti burst
+  return 'jackpot';                 //  6% — full jackpot
+}
+
+function applyReward(chip, type, palette) {
+  if (!type || !palette) return;
+  chip.style.setProperty('--rw-color',   palette.color);
+  chip.style.setProperty('--rw-border',  palette.border);
+  chip.style.setProperty('--rw-glow',    palette.glo);
+  chip.style.setProperty('--rw-blur-lo', palette.lo);
+  chip.style.setProperty('--rw-blur-hi', palette.hi);
+  chip.style.setProperty('--rw-dur',     palette.dur);
+  chip.style.setProperty('--rw-label',   palette.label);
+  chip.classList.add(type === 'jackpot' ? 'is-jackpot' : 'has-reward');
+}
+
+// Spring count-up: overshoots target by ~8%, then settles
+function countUpSpring(el, target, dur = 880) {
+  if (!el) return;
+  if (_noMo() || target === 0) { el.textContent = 0; return; }
+  const t0 = performance.now();
+  (function step(now) {
+    const p = Math.min((now - t0) / dur, 1);
+    let v;
+    if (p < 0.82) {
+      v = (1 - Math.pow(1 - p / 0.82, 3)) * (target * 1.08);
+    } else {
+      const s = (p - 0.82) / 0.18;
+      v = target * 1.08 - target * 0.08 * s;
+    }
+    el.textContent = Math.max(0, Math.round(v));
+    if (p < 1) requestAnimationFrame(step);
+    else el.textContent = target;
+  })(t0);
+}
+
+// Canvas confetti — count and color mix randomized per call
+function burstConfetti(sourceEl, palette) {
+  if (_noMo()) return;
+  const base  = palette ? [palette.color, palette.label, '#FFFFFF'] : ['#FFD060','#50C878','#E84070','#A060E0'];
+  const bonus = ['#FFFFFF','#FFD060','#50C878','#E84070'].filter(() => Math.random() > 0.4);
+  const pool  = [...base, ...bonus];
+  const count = 40 + (Math.random() * 80 | 0);
+
+  const canvas = document.createElement('canvas');
+  canvas.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:9999';
+  canvas.width  = window.innerWidth;
+  canvas.height = window.innerHeight;
+  document.body.appendChild(canvas);
+  const ctx  = canvas.getContext('2d');
+  const rect = sourceEl.getBoundingClientRect();
+  const ox = rect.left + rect.width  / 2;
+  const oy = rect.top  + rect.height / 2;
+
+  const particles = Array.from({ length: count }, () => {
+    const angle    = Math.random() * Math.PI * 2;
+    const speed    = 3 + Math.random() * 8;
+    const isCircle = Math.random() > 0.55;
+    return {
+      x: ox, y: oy,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed - 4.5,
+      color: pool[Math.random() * pool.length | 0],
+      w: 4 + Math.random() * 5,
+      h: 3 + Math.random() * 4,
+      r: 2.5 + Math.random() * 3,
+      circle: isCircle,
+      rot: Math.random() * Math.PI * 2,
+      rotV: (Math.random() - 0.5) * 0.3,
+      life: 1,
+      decay: 0.011 + Math.random() * 0.01,
+    };
+  });
+
+  (function frame() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    let alive = false;
+    for (const p of particles) {
+      if (p.life <= 0) continue;
+      alive = true;
+      p.vy  += 0.2;
+      p.x   += p.vx; p.y += p.vy;
+      p.rot += p.rotV;
+      p.life -= p.decay;
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, p.life);
+      ctx.fillStyle   = p.color;
+      if (p.circle) {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rot);
+        ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+      }
+      ctx.restore();
+    }
+    if (alive) requestAnimationFrame(frame);
+    else canvas.remove();
+  })();
+}
+
+// Single emoji floats up from a chip
+function floatEmoji(sourceEl, emoji, xOffset = 0, delay = 0) {
+  if (_noMo()) return;
+  const rect = sourceEl.getBoundingClientRect();
+  const el   = document.createElement('span');
+  el.textContent = emoji;
+  el.style.cssText = `
+    position:fixed;
+    left:${rect.left + rect.width / 2 + xOffset}px;
+    top:${rect.top - 4}px;
+    font-size:1.5rem;
+    pointer-events:none;
+    z-index:1000;
+    animation:emojiFloat 0.95s ease-out ${delay}ms forwards;
+    transform:translateX(-50%);
+  `;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 1000 + delay);
+}
+
+// Jackpot shower — multiple emojis, staggered offsets and timing
+function emojiShower(sourceEl, emojis) {
+  if (_noMo()) return;
+  const count   = 3 + (Math.random() * 3 | 0);
+  const offsets = [-28, -14, 0, 14, 28];
+  for (let i = 0; i < count; i++) {
+    const emoji  = emojis[Math.random() * emojis.length | 0];
+    const offset = offsets[Math.random() * offsets.length | 0];
+    floatEmoji(sourceEl, emoji, offset, i * 120);
+  }
+}
+
+function loadStats() {
+  // ── Days read ──────────────────────────────────────────────
+  let daysRead = parseInt(localStorage.getItem('atlas:total_days_read') || '0');
+  try {
+    const lastDate = localStorage.getItem('atlas:last_read_date');
+    const counted  = localStorage.getItem('atlas:last_counted_day');
+    if (lastDate && lastDate !== counted) {
+      daysRead++;
+      localStorage.setItem('atlas:total_days_read', String(daysRead));
+      localStorage.setItem('atlas:last_counted_day', lastDate);
+    }
+  } catch(e) {}
+
+  // ── Vocab words saved ─────────────────────────────────────
+  let vocabCount = 0;
+  try {
+    for (let i = 0; i < localStorage.length; i++)
+      if (localStorage.key(i).startsWith('atlas:vocab_image:')) vocabCount++;
+  } catch(e) {}
+
+  // ── Render each chip ──────────────────────────────────────
+  const stats = [
+    { id: 'statDays',   value: daysRead   },
+    { id: 'statVocab',  value: vocabCount },
+    { id: 'statTested', value: 0          },
+    { id: 'statChars',  value: 0          },
+  ];
+
+  for (const s of stats) {
+    const el   = document.getElementById(s.id);
+    const chip = el?.closest('.stat-chip');
+    if (!el || !chip) continue;
+
+    if (s.value > 0) chip.classList.remove('stat-pending');
+
+    // Spring count-up, staggered
+    countUpSpring(el, s.value, 880 + stats.indexOf(s) * 80);
+
+    // Variable reward — fresh random roll, no tracking
+    const palette = PALETTES[Math.random() * PALETTES.length | 0];
+    const reward  = rollReward(s.value);
+    if (reward) {
+      applyReward(chip, reward, palette);
+      const delay = 950 + stats.indexOf(s) * 80;
+      if (reward === 'confetti' || reward === 'jackpot') {
+        setTimeout(() => burstConfetti(chip, palette), delay);
+      }
+      if (reward === 'jackpot') {
+        setTimeout(() => emojiShower(chip, JACKPOT_EMOJIS), delay + 200);
+      }
+    }
+
+    // Single emoji float on hover
+    const emoji = STAT_EMOJIS[s.id];
+    if (emoji && s.value > 0) {
+      chip.addEventListener('mouseenter', () => floatEmoji(chip, emoji), { passive: true });
+    }
+  }
+}
+
+// ── Boot ───────────────────────────────────────────────────────────────────────
+document.addEventListener("DOMContentLoaded", () => {
+  initTheme();
+  setGreeting();
+  // Decode greeting on load, then hook glitch-on-hover once revealed
+  const greetEl = document.getElementById("greetingText");
+  if (greetEl) decodeText(greetEl, 900, () => hookGlitch(greetEl));
+  loadStreak();
+  loadStats();
+  loadContinueSection();
+  renderBento();
+  document.getElementById("themeBtn")?.addEventListener("click", toggleTheme);
+});
+
+// ── Greeting ───────────────────────────────────────────────────────────────────
+const GREET = {
+  morning:   ["Good morning",   "Rise and shine"],
+  afternoon: ["Good afternoon", "Ready to read?"],
+  evening:   ["Good evening",   "One more chapter?"],
+  night:     ["Still up?",      "Reading late tonight"],
+};
+
+function setGreeting() {
+  const h      = new Date().getHours();
+  const bucket = h < 6 ? "night" : h < 12 ? "morning" : h < 17 ? "afternoon" : h < 21 ? "evening" : "night";
+  const picks  = GREET[bucket];
+  document.getElementById("greetingText").textContent =
+    picks[Math.floor(Math.random() * picks.length)];
+}
+
+// ── Streak ─────────────────────────────────────────────────────────────────────
+function loadStreak() {
+  const pill  = document.getElementById("streakPill");
+  const count = document.getElementById("streakCount");
+  const label = document.getElementById("streakLabel");
+
+  try {
+    const lastDate  = localStorage.getItem("atlas:last_read_date");
+    const streak    = parseInt(localStorage.getItem("atlas:streak") || "0");
+    const today     = new Date().toDateString();
+    const yesterday = new Date(Date.now() - 86400000).toDateString();
+
+    let current = streak;
+    if (lastDate && lastDate !== today && lastDate !== yesterday) {
+      current = 0;
+      localStorage.setItem("atlas:streak", "0");
+    }
+
+    if (current > 0) {
+      count.textContent = current;
+      label.textContent = " day streak";
+      pill.hidden = false;
+    }
+    // no streak → pill stays hidden, no nagging
+  } catch(e) {}
+}
+
+// ── Continue Reading ───────────────────────────────────────────────────────────
+function loadContinueSection() {
+  try {
+    const raw = localStorage.getItem("atlas:current_book");
+    if (raw) {
+      const book    = JSON.parse(raw);
+      const chapter = parseInt(localStorage.getItem(`atlas:chapter:${book.id}`) || "0");
+      const pct     = Math.round((chapter / Math.max(book.totalChapters - 1, 1)) * 100);
+      // Render with width:0, animate to real width after mount
+      document.getElementById("continueSection").innerHTML = makeContinueCard(book, chapter, 0);
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        const fill = document.querySelector(".continue-progress-fill");
+        if (fill) fill.style.width = pct + "%";
+        // Scramble book title on card hover
+        const card  = document.querySelector(".continue-card");
+        const title = document.querySelector(".continue-title");
+        if (card && title) card.addEventListener("mouseenter", () => scramble(title));
+      }));
+      return;
+    }
+  } catch(e) {}
+  loadSuggestedBooks();
+}
+
+function makeContinueCard(book, chapter, pct) {
+  const dest = `/read/${book.id}?chapter=${chapter}&band=${AGE_BAND}`;
+  const coverHtml = book.cover
+    ? `<img class="continue-cover" src="${esc(book.cover)}" alt="" onerror="this.style.display='none'">`
+    : `<div class="continue-cover-placeholder">${esc((book.title||'?')[0])}</div>`;
+  return `
+    <a class="continue-card" href="${esc(dest)}">
+      <div class="continue-cover-wrap">${coverHtml}</div>
+      <div class="continue-info">
+        <div class="continue-eyebrow">Continue Reading</div>
+        <div class="continue-title">${esc(book.title)}</div>
+        <div class="continue-meta">${esc(book.author || '')}</div>
+        <div class="continue-chapter">${esc(book.chapterTitle || `Chapter ${chapter + 1}`)}</div>
+        <div class="continue-progress-bar">
+          <div class="continue-progress-fill" style="width:${pct}%"></div>
+        </div>
+      </div>
+      <div class="continue-cta">›</div>
+    </a>`;
+}
+
+async function loadSuggestedBooks() {
+  const section = document.getElementById("continueSection");
+  try {
+    const resp = await fetch("/library/api/featured");
+    if (!resp.ok) throw new Error();
+    const books = await resp.json();
+    const picks = books.sort(() => Math.random() - 0.5).slice(0, 9);
+    section.innerHTML = makeSuggestedStrip(picks);
+  } catch(e) {
+    section.innerHTML = `
+      <a class="continue-card" href="/library/">
+        <div class="continue-info">
+          <div class="continue-eyebrow">Begin your adventure</div>
+          <div class="continue-title">Explore the Library</div>
+          <div class="continue-meta">Hundreds of books waiting for you</div>
+        </div>
+        <div class="continue-cta">›</div>
+      </a>`;
+  }
+}
+
+function makeSuggestedStrip(books) {
+  const cards = books.map(b => {
+    const dest = `/read/${b.id}?chapter=0&band=${AGE_BAND}`;
+    const img  = b.cover_url
+      ? `<img class="suggest-cover" src="${esc(b.cover_url)}" alt="${esc(b.title)}">`
+      : `<div class="suggest-cover-placeholder">${esc((b.title||'?')[0])}</div>`;
+    return `<a class="suggest-card" href="${esc(dest)}">${img}</a>`;
+  }).join("");
+
+  return `
+    <div class="world-empty-card">
+      <div class="empty-eyebrow">Begin your adventure — pick a book</div>
+      <div class="suggested-scroll">${cards}</div>
+      <div class="empty-footer">
+        <a class="empty-cta" href="/library/">Browse the full library →</a>
+      </div>
+    </div>`;
+}
+
+// ── Bento ──────────────────────────────────────────────────────────────────────
+function renderBento() {
+  const grid = document.getElementById("bentoGrid");
+  grid.innerHTML = HOME_MODULES.map(renderModule).join("");
+
+  grid.querySelectorAll("[data-soon]").forEach(el => {
+    el.addEventListener("click", () => showToast(el.dataset.soon));
+  });
+
+  // Scramble each card's label on mouseenter
+  grid.querySelectorAll(".bento-card").forEach(card => {
+    const label = card.querySelector(".bento-label");
+    if (label) card.addEventListener("mouseenter", () => scramble(label));
+  });
+
+  enrichTiles();
+}
+
+function renderModule(m) {
+  const tag      = (m.href && !m.soon) ? "a" : "button";
+  const hrefAttr = (m.href && !m.soon) ? `href="${esc(m.href)}"` : "";
+  const soonAttr = m.soon ? `data-soon="${esc(m.soon)}"` : "";
+  const soonBadge = m.soon ? `<span class="bento-soon">Soon</span>` : "";
+
+  if (m.id === "library") {
+    return `
+      <${tag} class="bento-card" data-dest="library" ${hrefAttr}>
+        <div class="bento-icon-wrap">${m.icon}</div>
+        <div class="bento-label">${esc(m.label)}</div>
+        <div class="bento-subtitle">${esc(m.subtitle)}</div>
+        <div class="bento-content-slot" id="libraryCovers"></div>
+        <div class="bento-spacer"></div>
+        <div class="bento-cta">${esc(m.cta)}</div>
+      </${tag}>`;
+  }
+
+  if (m.id === "think-pip") {
+    return `
+      <${tag} class="bento-card" data-dest="think-pip" ${soonAttr}>
+        <div class="bento-icon-wrap">${m.icon}</div>
+        <div class="bento-text">
+          <div class="bento-label">${esc(m.label)}</div>
+          <div class="bento-subtitle">${esc(m.subtitle)}</div>
+          <div class="bento-prompt" id="pipPrompt"></div>
+        </div>
+        ${soonBadge}
+        <span class="bento-pip-mark" aria-hidden="true">🦉</span>
+      </${tag}>`;
+  }
+
+  if (m.id === "flashcards") {
+    return `
+      <${tag} class="bento-card" data-dest="flashcards" ${hrefAttr} ${soonAttr}>
+        <div class="bento-icon-wrap">${m.icon}</div>
+        <div class="bento-label">${esc(m.label)}</div>
+        <div class="bento-info-line" id="flashcardInfo">Tap words while reading to build your deck</div>
+        ${soonBadge}
+      </${tag}>`;
+  }
+
+  if (m.id === "story") {
+    return `
+      <${tag} class="bento-card" data-dest="story" ${hrefAttr} ${soonAttr}>
+        <div class="bento-icon-wrap">${m.icon}</div>
+        <div class="bento-label">${esc(m.label)}</div>
+        <div class="bento-info-line" id="storyInfo">Write your first story with Pip</div>
+        ${soonBadge}
+      </${tag}>`;
+  }
+
+  // generic fallback
+  return `
+    <${tag} class="bento-card" data-dest="${m.id}" ${hrefAttr} ${soonAttr}>
+      <div class="bento-icon-wrap">${m.icon}</div>
+      <div class="bento-label">${esc(m.label)}</div>
+      <div class="bento-subtitle">${esc(m.subtitle)}</div>
+      ${soonBadge}
+    </${tag}>`;
+}
+
+// ── Tile enrichment ────────────────────────────────────────────────────────────
+async function enrichTiles() {
+  // Think with Pip — rotating example prompt
+  const pipEl = document.getElementById("pipPrompt");
+  if (pipEl) {
+    pipEl.textContent = `"${PIP_PROMPTS[Math.floor(Math.random() * PIP_PROMPTS.length)]}"`;
+  }
+
+  // Flashcards — saved word count from localStorage
+  const flashEl = document.getElementById("flashcardInfo");
+  if (flashEl) {
+    try {
+      let n = 0;
+      for (let i = 0; i < localStorage.length; i++) {
+        if (localStorage.key(i).startsWith("atlas:vocab_image:")) n++;
+      }
+      flashEl.textContent = n > 0
+        ? `${n} word${n === 1 ? "" : "s"} saved from reading`
+        : "Tap words while reading to build your deck";
+    } catch(e) {}
+  }
+
+  // Library — pull covers from featured API
+  const libEl = document.getElementById("libraryCovers");
+  if (!libEl) return;
+
+  const covers = [];
+
+  // Include current book cover first if available
+  try {
+    const raw = localStorage.getItem("atlas:current_book");
+    if (raw) {
+      const book = JSON.parse(raw);
+      if (book.cover) covers.push({ src: book.cover, title: book.title });
+    }
+  } catch(e) {}
+
+  // Fill remaining slots from featured API
+  try {
+    const resp = await fetch("/library/api/featured");
+    if (resp.ok) {
+      const books  = await resp.json();
+      const shuffled = books.sort(() => Math.random() - 0.5);
+      for (const b of shuffled) {
+        if (covers.length >= 3) break;
+        if (b.cover_url && !covers.some(c => c.src === b.cover_url)) {
+          covers.push({ src: b.cover_url, title: b.title });
+        }
+      }
+    }
+  } catch(e) {}
+
+  if (covers.length > 0) {
+    libEl.innerHTML = `
+      <div class="bento-book-covers">
+        ${covers.slice(0, 3).map(c =>
+          `<img class="bento-book-cover" src="${esc(c.src)}" alt=""
+                onerror="this.style.display='none'">`
+        ).join("")}
+      </div>`;
+  } else {
+    libEl.innerHTML = `<div class="bento-meta-tag">Hundreds of books waiting</div>`;
+  }
+}
+
+// ── Toast ──────────────────────────────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.hidden = false;
+  t.classList.add("toast-in");
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => {
+    t.classList.remove("toast-in");
+    setTimeout(() => { t.hidden = true; }, 300);
+  }, 2200);
+}
+
+function esc(s) {
+  return (s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+</script>
+{% endblock %}
