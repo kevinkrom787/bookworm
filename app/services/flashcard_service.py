@@ -68,6 +68,15 @@ CREATE TABLE IF NOT EXISTS vocab_words (
     category    TEXT    NOT NULL DEFAULT 'sight_words'
 );
 CREATE UNIQUE INDEX IF NOT EXISTS idx_vocab_words_word_band ON vocab_words (word, age_band);
+
+CREATE TABLE IF NOT EXISTS reading_progress (
+    user_id       TEXT    NOT NULL DEFAULT 'default',
+    book_id       INTEGER NOT NULL,
+    chapter_index INTEGER NOT NULL DEFAULT 0,
+    word_index    INTEGER NOT NULL DEFAULT 0,
+    updated_at    TEXT    NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (user_id, book_id)
+);
 """
 
 
@@ -626,6 +635,40 @@ class FlashcardService:
                 (date.today().isoformat(), card_id, user_id),
             )
         return cur.rowcount > 0
+
+    # ── Reading progress ──────────────────────────────────────────────────────
+
+    def save_reading_progress(
+        self,
+        book_id: int,
+        chapter_index: int,
+        word_index: int,
+        user_id: str = "default",
+    ) -> None:
+        with self._connect() as conn:
+            conn.execute(
+                """INSERT INTO reading_progress (user_id, book_id, chapter_index, word_index, updated_at)
+                   VALUES (?, ?, ?, ?, datetime('now'))
+                   ON CONFLICT(user_id, book_id) DO UPDATE SET
+                       chapter_index = excluded.chapter_index,
+                       word_index    = excluded.word_index,
+                       updated_at    = excluded.updated_at""",
+                (user_id, book_id, chapter_index, word_index),
+            )
+
+    def get_reading_progress(
+        self,
+        book_id: int,
+        user_id: str = "default",
+    ) -> Optional[dict]:
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT chapter_index, word_index FROM reading_progress WHERE user_id=? AND book_id=?",
+                (user_id, book_id),
+            ).fetchone()
+        if not row:
+            return None
+        return {"chapter_index": row["chapter_index"], "word_index": row["word_index"]}
 
     def submit_review(
         self,

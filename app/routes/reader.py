@@ -31,10 +31,20 @@ def home():
 
 @bp.route("/read/<int:book_id>")
 def read(book_id: int):
-    chapter_index = max(0, int(request.args.get("chapter", 0)))
-    age_band = request.args.get("band", current_app.config["DEFAULT_AGE_BAND"])
+    from app.services.flashcard_service import FlashcardService
+    age_band  = request.args.get("band",      current_app.config["DEFAULT_AGE_BAND"])
     font_size = int(request.args.get("font_size", current_app.config["DEFAULT_FONT_SIZE"]))
-    theme = request.args.get("theme", current_app.config["DEFAULT_THEME"])
+    theme     = request.args.get("theme",     current_app.config["DEFAULT_THEME"])
+
+    # If the caller didn't specify a chapter, restore from DB progress
+    progress_svc = FlashcardService(current_app.config["DB_PATH"])
+    if "chapter" not in request.args:
+        saved = progress_svc.get_reading_progress(book_id)
+        chapter_index = saved["chapter_index"] if saved else 0
+        saved_word    = saved["word_index"]    if saved else 0
+    else:
+        chapter_index = max(0, int(request.args["chapter"]))
+        saved_word    = 0  # explicit navigation — start from top of chapter
 
     try:
         svc = _gutenberg()
@@ -85,6 +95,7 @@ def read(book_id: int):
             font_size=font_size,
             theme=theme,
             tts_available=_get_tts().is_available,
+            saved_word=saved_word,
         )
     except Exception as e:
         return render_template("reader/error.html", error=str(e), book_id=book_id), 500
@@ -218,6 +229,24 @@ def vocab_define():
         }]
 
     return jsonify(result)
+
+
+@bp.route("/api/progress", methods=["POST"])
+def save_progress():
+    """Save reading position. Called fire-and-forget on every page turn."""
+    from app.services.flashcard_service import FlashcardService
+    data = request.get_json(silent=True) or {}
+    book_id       = data.get("book_id")
+    chapter_index = data.get("chapter_index")
+    word_index    = data.get("word_index", 0)
+    if book_id is None or chapter_index is None:
+        return jsonify({"error": "book_id and chapter_index required"}), 400
+    FlashcardService(current_app.config["DB_PATH"]).save_reading_progress(
+        book_id=int(book_id),
+        chapter_index=int(chapter_index),
+        word_index=int(word_index),
+    )
+    return jsonify({"saved": True})
 
 
 @bp.route("/api/vocab/save", methods=["POST"])

@@ -292,6 +292,7 @@ async function masterCard() {
       body:    "{}",
     });
   } catch(e) { /* offline — continue */ }
+  correct++;
   idx++;
   if (idx >= queue.length) await finishSession();
   else showCard(idx);

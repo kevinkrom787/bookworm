@@ -254,6 +254,8 @@ function navigateChapter(delta) {
   const atlas  = window.ATLAS;
   const newIdx = atlas.chapterIndex + delta;
   if (newIdx < 0 || newIdx >= atlas.totalChapters) return;
+  // Save current position before leaving so the DB is up to date
+  savePosition();
   window.location.href =
     `/read/${atlas.bookId}?chapter=${newIdx}&band=${atlas.ageBand}&font_size=${state.fontSize}&theme=${atlas.theme}`;
 }
@@ -325,17 +327,32 @@ function _saveCurrentBook() {
 
 function savePosition() {
   const firstWord = state.pages[state.currentPage]?.start ?? 0;
+  // Write-through: localStorage for instant reads, DB for durability
   try {
     localStorage.setItem(_posKey(),     String(firstWord));
     localStorage.setItem(_chapterKey(), String(window.ATLAS.chapterIndex));
-  } catch (e) { /* storage full or private mode — ignore */ }
+  } catch (e) {}
+  // Fire-and-forget POST — don't await, never block the UI
+  fetch("/api/progress", {
+    method:  "POST",
+    headers: {"Content-Type": "application/json"},
+    body:    JSON.stringify({
+      book_id:       window.ATLAS.bookId,
+      chapter_index: window.ATLAS.chapterIndex,
+      word_index:    firstWord,
+    }),
+  }).catch(() => {});  // offline or error — localStorage already has it
 }
 
 function _savedPageIndex() {
-  // Returns the page index for the stored word position, or 0 if none saved.
-  // Called before showPage() so we never overwrite a good saved position.
+  // Prefer the server-injected word index (from DB) over localStorage.
+  // The server value is set once on page load; localStorage is the live cache.
   try {
-    const savedWord = parseInt(localStorage.getItem(_posKey()) || "0", 10);
+    const serverWord = parseInt(window.ATLAS?.savedWordIndex ?? "0", 10);
+    const localWord  = parseInt(localStorage.getItem(_posKey()) || "0", 10);
+    // Server wins if it has a position; otherwise fall back to localStorage.
+    // Both default to 0 (start of chapter) if nothing is stored.
+    const savedWord  = serverWord > 0 ? serverWord : localWord;
     if (savedWord <= 0) return 0;
     const page = state.pages.findIndex(p => p.end >= savedWord);
     return page >= 0 ? page : 0;

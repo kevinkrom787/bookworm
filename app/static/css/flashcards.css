@@ -594,6 +594,20 @@
   border-left: 2px solid var(--fc-vocab-color);
 }
 
+/* Dark mode: explicit contrast overrides for warm-dark card backgrounds */
+[data-theme="dark"] .fc-card-wrap[data-card-type="vocabulary"] .fc-vocab-def {
+  color: #F0E0C0;
+}
+[data-theme="dark"] .fc-card-wrap[data-card-type="vocabulary"] .fc-vocab-example {
+  color: #C8A870;
+}
+[data-theme="dark"] .fc-card-wrap[data-card-type="vocabulary"] .fc-vocab-phonetic {
+  color: #9A8060;
+}
+[data-theme="dark"] .fc-card-wrap[data-card-type="vocabulary"] .fc-card-eyebrow {
+  color: #C8A870;
+}
+
 /* Number front */
 .fc-number-top {
   display: flex;

@@ -112,8 +112,9 @@ window.ATLAS = {
   theme:         "{{ theme }}",
   ageBand:       "{{ age_band }}",
   ttsAvailable:  {{ 'true' if tts_available else 'false' }},
-  words:      {{ chapter.words | map(attribute='text') | list | tojson }},
-  paragraphs: {{ chapter.paragraphs | tojson }},
+  words:         {{ chapter.words | map(attribute='text') | list | tojson }},
+  paragraphs:    {{ chapter.paragraphs | tojson }},
+  savedWordIndex: {{ saved_word }},
 };
 </script>
 {% endblock %}
