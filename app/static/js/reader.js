@@ -290,8 +290,10 @@ let themeIndex = THEMES.indexOf(window.ATLAS?.theme || "light");
 function toggleTheme() {
   themeIndex = (themeIndex + 1) % THEMES.length;
   const theme = THEMES[themeIndex];
+  document.documentElement.dataset.theme = theme;          // apply globally on <html>
   document.getElementById("readerShell").dataset.theme = theme;
   window.ATLAS.theme = theme;
+  try { localStorage.setItem("atlas:theme", theme); } catch(e) {}  // persist across sessions
 }
 
 // ── Reading position persistence ──────────────────────────────────────────────
