@@ -17,7 +17,6 @@
 }
 
 [data-band="adventurers"] .reader-content {
-  font-size: 18px !important;
   line-height: 1.8;
   max-width: 640px;  /* slightly narrower = more book-like */
 }

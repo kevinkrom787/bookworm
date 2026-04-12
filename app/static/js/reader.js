@@ -33,7 +33,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   applyFontSize(state.fontSize);
   _saveCurrentBook();
-  buildDOM(words);
+  buildDOM(words, window.ATLAS?.paragraphs || []);
   // Wait two frames: first for DOM to paint, second for layout to settle
   requestAnimationFrame(() => requestAnimationFrame(() => {
     paginate();
@@ -43,41 +43,46 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // skipSave=true on the initial render so we don't clobber the stored position
     showPage(startPage, "none", true);
-    document.getElementById("readerLoading").hidden = true;
+    // Loading indicator was already removed by buildDOM()
   }));
 
   bindControls();
 });
 
 // ── DOM construction ─────────────────────────────────────────────────────────
-function buildDOM(words) {
+function buildDOM(words, paragraphs) {
   const content = document.getElementById("readerContent");
+  document.getElementById("readerLoading")?.remove();
 
-  // Remove the loading indicator first
-  const loading = document.getElementById("readerLoading");
-  loading?.remove();
+  // Fallback: if no paragraph data, treat entire chapter as one paragraph
+  const paras = (paragraphs && paragraphs.length > 0)
+    ? paragraphs
+    : (words.length > 0 ? [[0, words.length - 1]] : []);
 
   const fragment = document.createDocumentFragment();
-  words.forEach((text, i) => {
-    const span = document.createElement("span");
-    span.className = "word";
-    span.dataset.index = i;
-    span.textContent = text;
 
-    // Tap/click → show definition
-    span.addEventListener("pointerdown", onWordTap, { passive: true });
+  paras.forEach(([start, end]) => {
+    const p = document.createElement("p");
+    p.className = "reading-para";
 
-    fragment.appendChild(span);
-    // Space between words — use a text node (not a span) so it stays invisible
-    // when the word is hidden. We handle this in showPage().
-    fragment.appendChild(document.createTextNode(" "));
+    for (let i = start; i <= end; i++) {
+      if (i >= words.length) break;
+      const span = document.createElement("span");
+      span.className = "word";
+      span.dataset.index = i;
+      span.textContent = words[i];
+      span.addEventListener("pointerdown", onWordTap, { passive: true });
+      p.appendChild(span);
+      if (i < end) p.appendChild(document.createTextNode(" "));
+      state.words.push({ text: words[i], domEl: span });
+    }
 
-    state.words.push({ text, domEl: span });
+    fragment.appendChild(p);
   });
 
   content.appendChild(fragment);
 
-  // Add progress bar
+  // Progress bar (position:absolute — doesn't affect text flow)
   const bar = document.createElement("div");
   bar.className = "reader-progress";
   bar.id = "readerProgress";
@@ -90,64 +95,60 @@ function paginate() {
   const content = document.getElementById("readerContent");
   const stage   = document.getElementById("readerStage");
 
-  // Available height = stage height minus content padding
   const contentStyle  = getComputedStyle(content);
   const paddingTop    = parseFloat(contentStyle.paddingTop);
   const paddingBottom = parseFloat(contentStyle.paddingBottom);
   const maxHeight     = stage.clientHeight - paddingTop - paddingBottom;
 
-  // Hidden measurement container that mirrors reader-content styles
   const measure = content.cloneNode(false);
-  measure.style.cssText = `
-    position: absolute;
-    visibility: hidden;
-    pointer-events: none;
-    top: 0; left: 0;
-    width: ${content.clientWidth}px;
-    max-height: none;
-    overflow: visible;
-    padding: ${paddingTop}px ${contentStyle.paddingRight} ${paddingBottom}px ${contentStyle.paddingLeft};
-  `;
+  measure.style.cssText =
+    `position:absolute;visibility:hidden;pointer-events:none;top:0;left:0;` +
+    `width:${content.clientWidth}px;max-height:none;overflow:visible;` +
+    `padding:${paddingTop}px ${contentStyle.paddingRight} ${paddingBottom}px ${contentStyle.paddingLeft};`;
 
-  // Insert ALL word spans in one batch — this triggers exactly one layout reflow,
-  // vs the old approach which triggered one reflow per word (O(N) reflows).
-  const spans = [];
-  const frag = document.createDocumentFragment();
-  state.words.forEach(({ text }) => {
-    const span = document.createElement("span");
-    span.className = "word";
-    span.textContent = text + " ";
-    frag.appendChild(span);
-    spans.push(span);
+  // Build measurement DOM with <p> structure so paragraph margins are included
+  // in the height calculation. All DOM writes happen before any reads — one reflow.
+  const atlasParagraphs = (window.ATLAS?.paragraphs?.length > 0)
+    ? window.ATLAS.paragraphs
+    : (state.words.length > 0 ? [[0, state.words.length - 1]] : []);
+
+  const spans = new Array(state.words.length);  // indexed by word position
+  const frag  = document.createDocumentFragment();
+
+  atlasParagraphs.forEach(([paraStart, paraEnd]) => {
+    const p = document.createElement("p");
+    p.className = "reading-para";
+    for (let i = paraStart; i <= paraEnd && i < state.words.length; i++) {
+      const span = document.createElement("span");
+      span.className = "word";
+      span.textContent = state.words[i].text + " ";
+      p.appendChild(span);
+      spans[i] = span;
+    }
+    frag.appendChild(p);
   });
+
   measure.appendChild(frag);
   document.body.appendChild(measure);
 
-  // Read all rects in one sequential pass. Because there are no DOM writes
-  // between reads, the browser reuses the single computed layout for all of
-  // them — no additional reflows after the first getBoundingClientRect() call.
-  //
-  // Correctness: a page break fires when a word's bottom edge exceeds the
-  // available height. The browser only increases container height when a word
-  // wraps to a NEW line, so the word that triggers the break is always the
-  // FIRST word on that new line. Page 2 therefore starts at the same x-origin
-  // as in continuous flow, making subsequent word-wrap identical.
+  // Read all rects in one sequential pass — no DOM writes between reads,
+  // so the browser reuses the single computed layout for all measurements.
   state.pages = [];
   let pageStart = 0;
-  let pageTop   = null;  // continuous-flow top of the first word on the current page
+  let pageTop   = null;
 
   spans.forEach((span, i) => {
+    if (!span) return;
     const rect = span.getBoundingClientRect();
     if (pageTop === null) pageTop = rect.top;
 
     if (rect.bottom - pageTop > maxHeight && i > pageStart) {
       state.pages.push({ start: pageStart, end: i - 1 });
       pageStart = i;
-      pageTop   = rect.top;  // new page starts here; text will wrap identically
+      pageTop   = rect.top;
     }
   });
 
-  // Last (or only) page
   state.pages.push({ start: pageStart, end: state.words.length - 1 });
   document.body.removeChild(measure);
 }
@@ -183,21 +184,50 @@ function showPage(pageIndex, direction = "none", skipSave = false) {
 }
 
 function _renderWords(start, end) {
-  // Show only words in [start, end], hide the rest
-  // We also need to toggle the surrounding text-node spaces
+  // Words now live inside <p class="reading-para"> elements.
+  // Strategy:
+  //   • Paragraphs entirely outside [start, end] → display:none  (fast path)
+  //   • Paragraphs fully inside [start, end]     → display:"", all words shown (fast path)
+  //   • Paragraphs that straddle a boundary      → word-level toggle
   const content = document.getElementById("readerContent");
-  const childNodes = Array.from(content.childNodes);
 
-  let wordIdx = 0;
-  childNodes.forEach(node => {
-    if (node.nodeType === Node.ELEMENT_NODE && node.classList.contains("word")) {
-      const inPage = wordIdx >= start && wordIdx <= end;
-      node.style.display = inPage ? "inline" : "none";
-      wordIdx++;
-    } else if (node.nodeType === Node.TEXT_NODE) {
-      // The space after a word — show only if the preceding word is visible
-      node.textContent = wordIdx > start && wordIdx <= end + 1 ? " " : "";
+  content.querySelectorAll(".reading-para").forEach(para => {
+    const spans = para.querySelectorAll(".word");
+    if (!spans.length) { para.style.display = "none"; return; }
+
+    const firstIdx = parseInt(spans[0].dataset.index, 10);
+    const lastIdx  = parseInt(spans[spans.length - 1].dataset.index, 10);
+
+    // Fast path: paragraph entirely outside visible range
+    if (lastIdx < start || firstIdx > end) {
+      para.style.display = "none";
+      return;
     }
+
+    para.style.display = "";
+
+    // Fast path: paragraph fully inside visible range
+    if (firstIdx >= start && lastIdx <= end) {
+      spans.forEach(s => { s.style.display = "inline"; });
+      para.childNodes.forEach(node => {
+        if (node.nodeType === Node.TEXT_NODE) node.textContent = " ";
+      });
+      return;
+    }
+
+    // Straddles a boundary — toggle word by word
+    para.childNodes.forEach(node => {
+      if (node.nodeType === Node.ELEMENT_NODE && node.classList.contains("word")) {
+        const idx = parseInt(node.dataset.index, 10);
+        node.style.display = (idx >= start && idx <= end) ? "inline" : "none";
+      } else if (node.nodeType === Node.TEXT_NODE) {
+        const prev = node.previousSibling;
+        if (prev && prev.classList?.contains("word")) {
+          const prevIdx = parseInt(prev.dataset.index, 10);
+          node.textContent = (prevIdx >= start && prevIdx < end) ? " " : "";
+        }
+      }
+    });
   });
 }
 
