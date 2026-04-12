@@ -52,6 +52,14 @@
       </div>
     </section>
 
+    <!-- On this device (hidden until downloads confirmed) -->
+    <section class="featured-section" id="myBooksSection" hidden>
+      <h2 class="section-title">
+        <span class="section-icon">📚</span> On This Device
+      </h2>
+      <div class="book-grid" id="myBooksGrid"></div>
+    </section>
+
     <!-- Featured books -->
     <section class="featured-section" id="featuredSection">
       <h2 class="section-title">
@@ -149,10 +157,28 @@ document.addEventListener("DOMContentLoaded", () => {
   if (wordmark) decodeText(wordmark, 900, () => hookGlitch(wordmark));
   const titleEl = document.getElementById("greatStoriesTitle");
   if (titleEl) decodeText(titleEl, 700, () => hookGlitch(titleEl));
+  loadMyBooks();
   loadFeatured();
   setupSearch();
   setupBandToggle();
 });
+
+// ── My Books (on this device) ─────────────────────────────────────────────────
+async function loadMyBooks() {
+  try {
+    const resp = await fetch("/library/api/my-books");
+    const data = await resp.json();
+    if (!data.books || data.books.length === 0) return;
+
+    const section = document.getElementById("myBooksSection");
+    const grid    = document.getElementById("myBooksGrid");
+    grid.innerHTML = "";
+    data.books.forEach(book => grid.appendChild(makeCard(book, book.progress)));
+    section.hidden = false;
+  } catch (e) {
+    // Offline or error — section stays hidden, no harm done
+  }
+}
 
 // ── Featured books ────────────────────────────────────────────────────────────
 async function loadFeatured() {
@@ -226,22 +252,24 @@ async function runSearch(q, page, replace) {
 }
 
 // ── Book card ─────────────────────────────────────────────────────────────────
-function makeCard(book) {
+function makeCard(book, progress) {
   const card = document.createElement("div");
   card.className = "book-card";
   card.setAttribute("role", "button");
   card.setAttribute("tabindex", "0");
   card.setAttribute("aria-label", `${book.title} by ${book.authors.join(", ")}`);
 
-  const coverSrc = book.cover_url
-    ? book.cover_url
-    : `https://covers.openlibrary.org/b/id/0-M.jpg`; // fallback placeholder
+  // Progress badge — only shown when there's a saved position
+  const badgeHtml = progress
+    ? `<div class="book-progress-badge">Ch. ${progress.chapter_index + 1}</div>`
+    : "";
 
   card.innerHTML = `
     <div class="book-cover-wrap">
       <img class="book-cover" src="${escHtml(book.cover_url || '')}" alt="Cover of ${escHtml(book.title)}"
            onerror="this.src='data:image/svg+xml,${encodeURIComponent(svgCover(book.title))}'"
            loading="lazy" />
+      ${badgeHtml}
     </div>
     <div class="book-info">
       <div class="book-title">${escHtml(book.title)}</div>
@@ -250,9 +278,8 @@ function makeCard(book) {
   `;
 
   const open = () => {
-    // Restore the chapter the reader last had open for this book
-    const lastChapter = localStorage.getItem(`atlas:chapter:${book.id}`) || "0";
-    window.location.href = `/read/${book.id}?chapter=${lastChapter}&band=${currentBand}`;
+    // No ?chapter= param — server restores progress from DB automatically
+    window.location.href = `/read/${book.id}?band=${currentBand}`;
   };
   card.addEventListener("click", open);
   card.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") open(); });

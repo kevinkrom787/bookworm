@@ -242,8 +242,25 @@ body {
   overflow: hidden;
   background: var(--color-surface);
   box-shadow: 0 2px 8px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.08);
+  position: relative;
 }
 .book-cover { width: 100%; height: 100%; object-fit: cover; }
+
+/* Chapter progress badge — bottom-right corner of cover */
+.book-progress-badge {
+  position: absolute;
+  bottom: 5px;
+  right: 5px;
+  background: rgba(0,0,0,0.65);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: var(--radius-pill);
+  backdrop-filter: blur(4px);
+  pointer-events: none;
+  letter-spacing: 0.02em;
+}
 
 .book-info { padding: 0 2px; }
 .book-title {
