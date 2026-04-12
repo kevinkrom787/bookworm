@@ -187,95 +187,182 @@ def _sm2(
     return new_ef, new_interval, repetitions + 1
 
 
-# ── Seedlings vocabulary seed data ────────────────────────────────────────────
+# ── Vocabulary seed data ──────────────────────────────────────────────────────
 # Tuples: (word, phonetic, definition, example, level, category)
+# level 1 = Adjectives, level 2 = Verbs, level 3 = Nouns (all bands)
 
 _SEEDLINGS_WORDS: list[tuple] = [
-    # ── Level 1 — Beginner (pre-primer sight words + core vocabulary) ──────────
-    ("a",      "/eɪ/",       "Used before a thing you talk about",                  "A cat is soft.",                        1, "sight_words"),
-    ("and",    "/ænd/",      "Connects two things together",                         "I like cats and dogs.",                 1, "sight_words"),
-    ("big",    "/bɪɡ/",      "Very large in size",                                   "The elephant is big.",                  1, "describing"),
-    ("can",    "/kæn/",      "Being able to do something",                           "I can jump very high!",                 1, "sight_words"),
-    ("cat",    "/kæt/",      "A furry animal that says meow",                        "The cat is soft and fluffy.",           1, "animals"),
-    ("come",   "/kʌm/",      "To move toward someone or something",                  "Come here, please!",                    1, "sight_words"),
-    ("dog",    "/dɔɡ/",      "A furry animal that says woof",                        "My dog likes to fetch.",                1, "animals"),
-    ("go",     "/ɡoʊ/",      "To move somewhere",                                    "Let's go to the park!",                 1, "sight_words"),
-    ("I",      "/aɪ/",       "Yourself — the person who is talking!",                "I love to read books.",                 1, "sight_words"),
-    ("in",     "/ɪn/",       "Inside something",                                     "The cat is in the box.",                1, "sight_words"),
-    ("is",     "/ɪz/",       "Shows what something is right now",                    "The sky is blue.",                      1, "sight_words"),
-    ("it",     "/ɪt/",       "A thing you are talking about",                        "It is raining outside.",                1, "sight_words"),
-    ("jump",   "/dʒʌmp/",    "To push off the ground with your legs",                "I can jump so high!",                   1, "actions"),
-    ("little", "/ˈlɪt.əl/",  "Very small in size",                                   "A little mouse hid away.",              1, "describing"),
-    ("look",   "/lʊk/",      "To use your eyes to see something",                    "Look at that butterfly!",               1, "sight_words"),
-    ("me",     "/miː/",      "Yourself — same as I!",                                "Give the toy to me, please.",           1, "sight_words"),
-    ("my",     "/maɪ/",      "Something that belongs to you",                        "That is my ball.",                      1, "sight_words"),
-    ("not",    "/nɑt/",      "The opposite of something",                            "I am not sleepy.",                      1, "sight_words"),
-    ("play",   "/pleɪ/",     "To have fun and enjoy yourself",                       "Let's play in the yard!",               1, "actions"),
-    ("red",    "/rɛd/",      "A bright color like a fire truck or an apple",         "The apple is red.",                     1, "colors"),
-    ("run",    "/rʌn/",      "To move very fast on your feet",                       "I can run really fast!",                1, "actions"),
-    ("see",    "/siː/",      "To look at something with your eyes",                  "I see a rainbow!",                      1, "sight_words"),
-    ("the",    "/ðə/",       "Points to a specific thing",                           "The dog is so cute!",                   1, "sight_words"),
-    ("to",     "/tuː/",      "Moving toward a place or thing",                       "Let's go to the park!",                 1, "sight_words"),
-    ("up",     "/ʌp/",       "Higher, toward the sky",                               "The bird flew up high.",                1, "sight_words"),
-    ("we",     "/wiː/",      "You and other people together",                        "We love to play!",                      1, "sight_words"),
-    ("yes",    "/jɛs/",      "Agreeing that something is true",                      "Yes, I want to play!",                  1, "sight_words"),
-    ("you",    "/juː/",      "The person you are talking to",                        "I like playing with you!",              1, "sight_words"),
+    # ── Level 1 — Adjectives ──────────────────────────────────────────────────
+    ("big",    "/bɪɡ/",         "Large in size.",                               "The elephant is big.",                      1, "adjectives"),
+    ("small",  "/smɔːl/",       "Little in size.",                              "A mouse is small.",                         1, "adjectives"),
+    ("happy",  "/ˈhæp.i/",      "Feeling good and joyful.",                     "I feel happy on my birthday!",              1, "adjectives"),
+    ("sad",    "/sæd/",          "Feeling unhappy.",                             "She was sad when it rained.",               1, "adjectives"),
+    ("fast",   "/fæst/",         "Moving quickly.",                              "The cheetah is very fast.",                 1, "adjectives"),
+    ("slow",   "/sloʊ/",         "Moving without speed.",                        "A turtle moves slow.",                      1, "adjectives"),
+    ("hot",    "/hɑt/",          "Having a high temperature.",                   "The soup is too hot to eat.",               1, "adjectives"),
+    ("cold",   "/koʊld/",        "Having a low temperature.",                    "The ice cream is cold.",                    1, "adjectives"),
+    ("soft",   "/sɔːft/",        "Easy to touch, not hard.",                     "The bunny feels soft.",                     1, "adjectives"),
+    ("hard",   "/hɑːrd/",        "Firm and not soft.",                           "The rock is very hard.",                    1, "adjectives"),
+    ("loud",   "/laʊd/",         "Making a big sound.",                          "The drum is loud!",                         1, "adjectives"),
+    ("quiet",  "/ˈkwaɪ.ət/",     "Making little or no sound.",                   "The library is very quiet.",                1, "adjectives"),
+    ("bright", "/braɪt/",        "Full of light.",                               "The sun is bright today.",                  1, "adjectives"),
+    ("dark",   "/dɑːrk/",        "With little or no light.",                     "It gets dark at night.",                    1, "adjectives"),
+    ("clean",  "/kliːn/",        "Not dirty.",                                   "My hands are clean now.",                   1, "adjectives"),
+    ("dirty",  "/ˈdɜːr.ti/",     "Not clean.",                                   "His boots were dirty from the mud.",        1, "adjectives"),
+    ("sweet",  "/swiːt/",        "Tasting like sugar.",                          "This mango is sweet!",                      1, "adjectives"),
+    ("sour",   "/saʊər/",        "Having a sharp taste.",                        "Lemons are sour.",                          1, "adjectives"),
+    ("heavy",  "/ˈhɛv.i/",       "Hard to lift.",                                "That box is too heavy for me.",             1, "adjectives"),
+    ("light",  "/laɪt/",         "Easy to lift.",                                "A feather is very light.",                  1, "adjectives"),
 
-    # ── Level 2 — Growing (primer sight words + thematic vocabulary) ───────────
-    ("all",    "/ɔːl/",      "Every single one of something",                        "I ate all my vegetables.",              2, "sight_words"),
-    ("ate",    "/eɪt/",      "Ate food — this already happened",                     "She ate all her dinner.",               2, "actions"),
-    ("ball",   "/bɔːl/",     "A round toy you can throw and catch",                  "I threw the ball high!",                2, "things"),
-    ("bird",   "/bɜːrd/",    "An animal with wings and feathers that can fly",       "A little bird sang to me.",             2, "animals"),
-    ("blue",   "/bluː/",     "A color like the sky or the ocean",                    "My favorite shirt is blue.",            2, "colors"),
-    ("book",   "/bʊk/",      "Pages with words and pictures to read",                "I love reading books!",                 2, "things"),
-    ("did",    "/dɪd/",      "Something that already happened",                      "Did you brush your teeth?",             2, "sight_words"),
-    ("do",     "/duː/",      "To make something happen",                             "Can you do a cartwheel?",               2, "sight_words"),
-    ("eat",    "/iːt/",      "To put food in your mouth and swallow it",             "I love to eat pizza!",                  2, "actions"),
-    ("fish",   "/fɪʃ/",      "An animal that swims in water",                        "The fish swims so fast!",               2, "animals"),
-    ("get",    "/ɡɛt/",      "To receive something or go bring it back",             "Can you get your shoes?",               2, "sight_words"),
-    ("good",   "/ɡʊd/",      "Something nice, helpful, or done well",                "You did a good job!",                   2, "describing"),
-    ("green",  "/ɡriːn/",    "A color like grass and leaves",                        "Frogs are often green.",                2, "colors"),
-    ("have",   "/hæv/",      "To own something",                                     "I have a toy car.",                     2, "sight_words"),
-    ("he",     "/hiː/",      "Used when talking about a boy or man",                 "He is my best friend.",                 2, "sight_words"),
-    ("like",   "/laɪk/",     "To enjoy something",                                   "I like sunny warm days!",               2, "sight_words"),
-    ("no",     "/noʊ/",      "The opposite of yes",                                  "No, that is not mine.",                 2, "sight_words"),
-    ("on",     "/ɑn/",       "On top of or touching something",                      "The cup is on the table.",              2, "sight_words"),
-    ("out",    "/aʊt/",      "Outside or away from inside",                          "Let's go out and play!",                2, "sight_words"),
-    ("rain",   "/reɪn/",     "Water drops falling from clouds",                      "The rain made big puddles.",            2, "world"),
-    ("said",   "/sɛd/",      "Words that someone spoke out loud",                    "She said hello to me.",                 2, "sight_words"),
-    ("she",    "/ʃiː/",      "Used when talking about a girl or woman",              "She has a red hat.",                    2, "sight_words"),
-    ("so",     "/soʊ/",      "Very much, or because of that",                        "I am so happy today!",                  2, "sight_words"),
-    ("sun",    "/sʌn/",      "The big bright star in the sky",                       "The sun keeps us warm.",                2, "world"),
-    ("that",   "/ðæt/",      "A thing a little far from you",                        "Look at that butterfly!",               2, "sight_words"),
-    ("they",   "/ðeɪ/",      "More than one person or thing",                        "They are playing tag.",                 2, "sight_words"),
-    ("tree",   "/triː/",     "A tall plant with a trunk and branches",               "I climbed the big tree.",               2, "world"),
-    ("was",    "/wɑz/",      "How something was in the past",                        "I was so happy yesterday.",             2, "sight_words"),
+    # ── Level 2 — Verbs ───────────────────────────────────────────────────────
+    ("run",    "/rʌn/",          "To move fast on your feet.",                   "I love to run at the park!",                2, "verbs"),
+    ("jump",   "/dʒʌmp/",        "To push off the ground into the air.",         "Can you jump over the puddle?",             2, "verbs"),
+    ("eat",    "/iːt/",          "To put food in your mouth and swallow it.",    "I love to eat apples!",                     2, "verbs"),
+    ("drink",  "/drɪŋk/",        "To swallow liquid.",                           "Remember to drink your water.",             2, "verbs"),
+    ("sleep",  "/sliːp/",        "To rest with your eyes closed.",               "I sleep with my teddy bear.",               2, "verbs"),
+    ("wake",   "/weɪk/",         "To stop sleeping.",                            "I wake up when the sun rises.",             2, "verbs"),
+    ("play",   "/pleɪ/",         "To have fun with toys or games.",              "Let's play in the yard!",                   2, "verbs"),
+    ("walk",   "/wɔːk/",         "To move on your feet slowly.",                 "We walk to school together.",               2, "verbs"),
+    ("sit",    "/sɪt/",          "To rest on your bottom.",                      "Please sit down for storytime.",            2, "verbs"),
+    ("stand",  "/stænd/",        "To be on your feet.",                          "Stand up tall like a tree!",                2, "verbs"),
+    ("clap",   "/klæp/",         "To hit your hands together.",                  "Clap your hands to the music!",             2, "verbs"),
+    ("laugh",  "/læf/",          "To make a happy sound when something is funny.", "The joke made me laugh.",                 2, "verbs"),
+    ("cry",    "/kraɪ/",         "To make sounds when you are sad or hurt.",     "She started to cry when she fell.",         2, "verbs"),
+    ("look",   "/lʊk/",          "To use your eyes to see.",                     "Look at that rainbow!",                     2, "verbs"),
+    ("listen", "/ˈlɪs.ən/",      "To pay attention to sounds.",                  "Listen to the birds singing.",              2, "verbs"),
+    ("build",  "/bɪld/",         "To make something by putting parts together.", "We can build a tower with blocks!",         2, "verbs"),
 
-    # ── Level 3 — Blooming (grade 1 sight words + richer vocabulary) ──────────
-    ("again",  "/əˈɡɛn/",    "One more time",                                        "Read it to me again, please!",          3, "sight_words"),
-    ("could",  "/kʊd/",      "Might be able to do something",                        "I could hear the music.",               3, "sight_words"),
-    ("every",  "/ˈɛv.ri/",   "Each one — all of them",                               "I brush my teeth every night.",         3, "sight_words"),
-    ("friend", "/frɛnd/",    "Someone you like and love spending time with",          "You are my best friend!",               3, "people"),
-    ("from",   "/frʌm/",     "Where something started or came from",                 "This letter is from grandma.",          3, "sight_words"),
-    ("funny",  "/ˈfʌn.i/",   "Something that makes you laugh",                       "That joke was so funny!",               3, "describing"),
-    ("give",   "/ɡɪv/",      "To hand something to someone else",                    "Please give me a hug!",                 3, "sight_words"),
-    ("happy",  "/ˈhæp.i/",   "Feeling joyful and glad inside",                       "I feel happy on my birthday!",          3, "feelings"),
-    ("help",   "/hɛlp/",     "To make things easier for someone",                    "Can you help me, please?",              3, "sight_words"),
-    ("how",    "/haʊ/",      "The way something is done",                            "How did you do that?",                  3, "sight_words"),
-    ("just",   "/dʒʌst/",    "Only, or a very short time ago",                       "I just brushed my teeth.",              3, "sight_words"),
-    ("know",   "/noʊ/",      "To have information in your mind",                     "I know how to tie my shoes!",           3, "sight_words"),
-    ("mom",    "/mɑm/",      "Your mother — the woman who takes care of you",        "My mom gives the best hugs.",           3, "people"),
-    ("once",   "/wʌns/",     "One single time",                                      "I rode a horse once!",                  3, "sight_words"),
-    ("open",   "/ˈoʊ.pən/",  "Not closed, or to make something open",                "Open the present!",                     3, "sight_words"),
-    ("over",   "/ˈoʊ.vər/",  "Above something, or all done",                         "The rainbow arched over the hill.",     3, "sight_words"),
-    ("please", "/pliːz/",    "A polite word when asking for something",              "Please pass the crackers.",             3, "sight_words"),
-    ("some",   "/sʌm/",      "A few of something, but not all",                      "I want some of your cookies.",          3, "sight_words"),
-    ("stop",   "/stɑp/",     "To not move or not do something anymore",              "Stop and look both ways.",              3, "sight_words"),
-    ("take",   "/teɪk/",     "To pick something up and bring it with you",           "Take an umbrella for the rain.",        3, "sight_words"),
-    ("thank",  "/θæŋk/",     "To show you are grateful for something",               "Thank you so much!",                    3, "sight_words"),
-    ("walk",   "/wɔːk/",     "To move on your feet at a normal speed",               "Let's walk to the park.",               3, "actions"),
-    ("went",   "/wɛnt/",     "Moved to somewhere in the past",                       "We went to the beach.",                 3, "sight_words"),
-    ("when",   "/wɛn/",      "At the time something happens",                        "When does dinner start?",               3, "sight_words"),
+    # ── Level 3 — Nouns ───────────────────────────────────────────────────────
+    ("dog",    "/dɔɡ/",          "An animal that barks and can be a pet.",       "My dog wags his tail.",                     3, "nouns"),
+    ("cat",    "/kæt/",          "A small animal that meows.",                   "The cat sat on the mat.",                   3, "nouns"),
+    ("house",  "/haʊs/",         "A place where people live.",                   "Our house has a red door.",                 3, "nouns"),
+    ("car",    "/kɑːr/",         "A vehicle that people drive.",                 "Dad drives a blue car.",                    3, "nouns"),
+    ("ball",   "/bɔːl/",         "A round object used in games.",                "Kick the ball to me!",                      3, "nouns"),
+    ("tree",   "/triː/",         "A tall plant with a trunk and leaves.",        "I climbed the big tree.",                   3, "nouns"),
+    ("sun",    "/sʌn/",          "The bright star in the sky that gives light.", "The sun warms our faces.",                  3, "nouns"),
+    ("moon",   "/muːn/",         "The object that shines at night.",             "The moon glows in the dark sky.",           3, "nouns"),
+    ("water",  "/ˈwɔː.tər/",     "A clear liquid we drink.",                     "I drink water every day.",                  3, "nouns"),
+    ("food",   "/fuːd/",         "Things we eat to live.",                       "My favorite food is pasta.",                3, "nouns"),
+    ("friend", "/frɛnd/",        "Someone you like and play with.",              "She is my best friend.",                    3, "nouns"),
+    ("family", "/ˈfæm.ɪ.li/",    "People who live with you or care for you.",   "I love spending time with my family.",      3, "nouns"),
+    ("toy",    "/tɔɪ/",          "Something you play with.",                     "My favorite toy is a train.",               3, "nouns"),
+    ("book",   "/bʊk/",          "Pages with words or pictures to read.",        "I read a book before bed.",                 3, "nouns"),
+]
+
+_EXPLORERS_WORDS: list[tuple] = [
+    # ── Level 1 — Adjectives ──────────────────────────────────────────────────
+    ("careful",   "/ˈkɛr.fəl/",     "Paying attention to avoid mistakes.",         "Be careful on the slippery path.",          1, "adjectives"),
+    ("helpful",   "/ˈhɛlp.fəl/",    "Giving help to others.",                      "It's kind to be helpful.",                  1, "adjectives"),
+    ("honest",    "/ˈɒn.ɪst/",      "Telling the truth.",                          "Always be honest with your friends.",       1, "adjectives"),
+    ("fair",      "/fɛr/",           "Treating people equally.",                    "Taking turns is fair.",                     1, "adjectives"),
+    ("proud",     "/praʊd/",         "Feeling good about something you did.",       "I felt proud after finishing the race.",    1, "adjectives"),
+    ("nervous",   "/ˈnɜːr.vəs/",    "Feeling worried or unsure.",                  "I was nervous before the big test.",        1, "adjectives"),
+    ("excited",   "/ɪkˈsaɪ.tɪd/",   "Feeling very happy and eager.",               "She was excited to open her present.",      1, "adjectives"),
+    ("bored",     "/bɔːrd/",         "Feeling tired of something.",                 "He was bored on a rainy afternoon.",        1, "adjectives"),
+    ("strong",    "/strɔŋ/",         "Having power or strength.",                   "You have to be strong to carry that.",      1, "adjectives"),
+    ("weak",      "/wiːk/",          "Not strong.",                                 "He felt weak after being sick.",            1, "adjectives"),
+    ("early",     "/ˈɜːr.li/",       "Before the usual time.",                      "She arrived early to save a seat.",         1, "adjectives"),
+    ("late",      "/leɪt/",          "After the expected time.",                    "The bus was late this morning.",            1, "adjectives"),
+    ("simple",    "/ˈsɪm.pəl/",      "Easy to understand.",                         "The instructions were simple.",             1, "adjectives"),
+    ("difficult", "/ˈdɪf.ɪ.kəlt/",  "Hard to do or understand.",                   "The puzzle was difficult.",                 1, "adjectives"),
+    ("important", "/ɪmˈpɔːr.tənt/", "Having great value or meaning.",              "Eating breakfast is important.",            1, "adjectives"),
+
+    # ── Level 2 — Verbs ───────────────────────────────────────────────────────
+    ("explain",   "/ɪkˈspleɪn/",    "To make something clear by describing it.",   "Can you explain how it works?",             2, "verbs"),
+    ("discover",  "/dɪˈskʌv.ər/",   "To find something for the first time.",       "Scientists discover new stars.",            2, "verbs"),
+    ("create",    "/kriˈeɪt/",       "To make something new.",                      "She loves to create artwork.",              2, "verbs"),
+    ("decide",    "/dɪˈsaɪd/",       "To choose after thinking.",                   "I had to decide which book to read.",       2, "verbs"),
+    ("improve",   "/ɪmˈpruːv/",      "To make something better.",                   "Practice can improve your skills.",         2, "verbs"),
+    ("solve",     "/sɑlv/",           "To find an answer to a problem.",             "We worked together to solve the puzzle.",   2, "verbs"),
+    ("remember",  "/rɪˈmɛm.bər/",   "To keep something in your mind.",             "Remember to bring your lunch!",             2, "verbs"),
+    ("forget",    "/fərˈɡɛt/",       "To not remember something.",                  "Don't forget your umbrella.",               2, "verbs"),
+    ("imagine",   "/ɪˈmædʒ.ɪn/",    "To form ideas or pictures in your mind.",     "Imagine you're on a tropical island.",      2, "verbs"),
+    ("measure",   "/ˈmɛʒ.ər/",       "To find the size or amount of something.",    "We used a ruler to measure the desk.",      2, "verbs"),
+    ("collect",   "/kəˈlɛkt/",       "To gather things together.",                  "She likes to collect rocks.",               2, "verbs"),
+    ("organize",  "/ˈɔːr.ɡə.naɪz/", "To arrange things in order.",                "Let's organize the books on the shelf.",    2, "verbs"),
+    ("practice",  "/ˈpræk.tɪs/",    "To do something again to get better.",        "Practice makes perfect.",                   2, "verbs"),
+    ("notice",    "/ˈnoʊ.tɪs/",      "To see or become aware of something.",        "Did you notice the bird outside?",          2, "verbs"),
+    ("describe",  "/dɪˈskraɪb/",    "To tell what something is like.",             "Can you describe what you saw?",            2, "verbs"),
+    ("predict",   "/prɪˈdɪkt/",      "To say what will happen next.",               "Can you predict the weather?",              2, "verbs"),
+    ("compare",   "/kəmˈpɛr/",       "To look for similarities and differences.",   "Compare the two pictures.",                 2, "verbs"),
+    ("protect",   "/prəˈtɛkt/",      "To keep safe.",                               "Sunscreen helps protect your skin.",        2, "verbs"),
+
+    # ── Level 3 — Nouns ───────────────────────────────────────────────────────
+    ("problem",   "/ˈprɒb.ləm/",    "Something that needs a solution.",            "We need to solve this problem together.",   3, "nouns"),
+    ("answer",    "/ˈæn.sər/",       "A response or solution.",                     "What is the answer to question three?",    3, "nouns"),
+    ("idea",      "/aɪˈdɪə/",        "A thought or plan.",                          "I had a great idea for the project.",       3, "nouns"),
+    ("plan",      "/plæn/",           "A way to do something.",                      "What's your plan for the weekend?",         3, "nouns"),
+    ("team",      "/tiːm/",           "A group working together.",                   "Our team won the game!",                    3, "nouns"),
+    ("goal",      "/ɡoʊl/",           "Something you want to achieve.",              "My goal is to read ten books this year.",   3, "nouns"),
+    ("rule",      "/ruːl/",           "A guide for how to act.",                     "The rule is to raise your hand first.",     3, "nouns"),
+    ("habit",     "/ˈhæb.ɪt/",       "Something you do often.",                     "Reading before bed is a good habit.",       3, "nouns"),
+    ("skill",     "/skɪl/",           "Something you are good at doing.",            "Drawing is a skill you can learn.",         3, "nouns"),
+    ("effort",    "/ˈɛf.ərt/",        "Trying hard to do something.",                "Her effort on the project was great.",      3, "nouns"),
+    ("result",    "/rɪˈzʌlt/",        "What happens in the end.",                    "The result of the experiment surprised us.", 3, "nouns"),
+    ("example",   "/ɪɡˈzæm.pəl/",   "Something that shows what something is like.", "Can you give me an example?",              3, "nouns"),
+    ("pattern",   "/ˈpæt.ərn/",      "Something that repeats.",                     "The wallpaper has a flower pattern.",       3, "nouns"),
+    ("choice",    "/tʃɔɪs/",          "A decision between options.",                 "It was a difficult choice.",                3, "nouns"),
+    ("reason",    "/ˈriː.zən/",       "Why something happens.",                      "What is your reason for being late?",       3, "nouns"),
+    ("energy",    "/ˈɛn.ər.dʒi/",    "The ability to do work or move.",             "The sun gives off lots of energy.",         3, "nouns"),
+    ("solution",  "/səˈluː.ʃən/",    "The answer to a problem.",                    "We found a solution to the problem.",       3, "nouns"),
+]
+
+_ADVENTURERS_WORDS: list[tuple] = [
+    # ── Level 1 — Adjectives ──────────────────────────────────────────────────
+    ("accurate",    "/ˈæk.jʊ.rɪt/",      "Correct and exact.",                       "The measurement was accurate.",             1, "adjectives"),
+    ("relevant",    "/ˈrɛl.ɪ.vənt/",     "Related to the topic.",                    "Only add relevant information.",            1, "adjectives"),
+    ("significant", "/sɪɡˈnɪf.ɪ.kənt/", "Important or meaningful.",                 "The discovery was significant.",            1, "adjectives"),
+    ("complex",     "/ˈkɒm.plɛks/",      "Made of many parts.",                      "The puzzle was complex.",                   1, "adjectives"),
+    ("efficient",   "/ɪˈfɪʃ.ənt/",       "Working well with little waste.",           "An efficient engine uses less fuel.",       1, "adjectives"),
+    ("logical",     "/ˈlɒdʒ.ɪ.kəl/",    "Based on clear reasoning.",                "Her argument was logical.",                 1, "adjectives"),
+    ("consistent",  "/kənˈsɪs.tənt/",    "Staying the same over time.",              "He was consistent in his efforts.",         1, "adjectives"),
+    ("reliable",    "/rɪˈlaɪ.ə.bəl/",   "Able to be trusted.",                      "She was a reliable teammate.",              1, "adjectives"),
+    ("flexible",    "/ˈflɛk.sɪ.bəl/",   "Able to change easily.",                   "Be flexible when plans change.",            1, "adjectives"),
+    ("independent", "/ˌɪn.dɪˈpɛn.dənt/","Not relying on others.",                   "He was independent in his work.",           1, "adjectives"),
+    ("critical",    "/ˈkrɪt.ɪ.kəl/",    "Involving careful judgment.",              "Critical thinking helps solve problems.",   1, "adjectives"),
+    ("creative",    "/kriˈeɪ.tɪv/",      "Using imagination to make new ideas.",     "She gave a creative solution.",             1, "adjectives"),
+    ("objective",   "/əbˈdʒɛk.tɪv/",    "Based on facts, not feelings.",            "Try to be objective in your review.",       1, "adjectives"),
+    ("subjective",  "/səbˈdʒɛk.tɪv/",   "Based on personal opinions.",              "Taste in music is subjective.",             1, "adjectives"),
+    ("precise",     "/prɪˈsaɪs/",        "Exact and accurate.",                      "The scientist was precise with measurements.", 1, "adjectives"),
+
+    # ── Level 2 — Verbs ───────────────────────────────────────────────────────
+    ("analyze",     "/ˈæn.ə.laɪz/",     "To study something carefully in parts.",    "We will analyze the data.",                 2, "verbs"),
+    ("evaluate",    "/ɪˈvæl.jʊ.eɪt/",  "To judge the value or quality of something.", "Evaluate the pros and cons.",             2, "verbs"),
+    ("interpret",   "/ɪnˈtɜːr.prɪt/",  "To explain the meaning of something.",      "How do you interpret this graph?",          2, "verbs"),
+    ("summarize",   "/ˈsʌm.ə.raɪz/",   "To give the main points briefly.",          "Can you summarize the chapter?",            2, "verbs"),
+    ("justify",     "/ˈdʒʌs.tɪ.faɪ/",  "To give reasons for something.",            "Justify your answer with evidence.",        2, "verbs"),
+    ("demonstrate", "/ˈdɛm.ən.streɪt/", "To show how something works.",              "She will demonstrate the experiment.",      2, "verbs"),
+    ("investigate", "/ɪnˈvɛs.tɪ.ɡeɪt/","To look into something carefully.",         "Scientists investigate new medicines.",     2, "verbs"),
+    ("construct",   "/kənˈstrʌkt/",     "To build or form something.",               "They will construct a model bridge.",       2, "verbs"),
+    ("generate",    "/ˈdʒɛn.ər.eɪt/",  "To produce or create.",                     "Solar panels generate electricity.",        2, "verbs"),
+    ("transform",   "/trænsˈfɔːrm/",   "To change form.",                           "Heat can transform ice into water.",        2, "verbs"),
+    ("maintain",    "/meɪnˈteɪn/",      "To keep something in good condition.",      "We must maintain the park's cleanliness.",  2, "verbs"),
+    ("adapt",       "/əˈdæpt/",         "To adjust to new conditions.",              "Animals adapt to their environments.",      2, "verbs"),
+    ("contrast",    "/ˈkɒn.træst/",     "To show differences.",                      "Contrast the two characters in the story.", 2, "verbs"),
+    ("classify",    "/ˈklæs.ɪ.faɪ/",   "To group by type.",                         "We can classify animals by what they eat.", 2, "verbs"),
+    ("conclude",    "/kənˈkluːd/",      "To decide based on evidence.",              "What can we conclude from this data?",      2, "verbs"),
+    ("infer",       "/ɪnˈfɜːr/",        "To figure out using clues and reasoning.",  "What can you infer from the passage?",      2, "verbs"),
+
+    # ── Level 3 — Nouns ───────────────────────────────────────────────────────
+    ("evidence",    "/ˈɛv.ɪ.dəns/",    "Facts that support a claim.",               "What evidence supports your theory?",       3, "nouns"),
+    ("argument",    "/ˈɑːr.ɡjʊ.mənt/", "A claim supported by reasons.",             "Build a strong argument for your position.", 3, "nouns"),
+    ("conclusion",  "/kənˈkluː.ʒən/",  "A final decision or judgment.",             "What is your conclusion?",                  3, "nouns"),
+    ("theory",      "/ˈθɪər.i/",        "An explanation based on evidence.",         "Darwin's theory changed how we see life.",  3, "nouns"),
+    ("process",     "/ˈprɒ.sɛs/",       "A series of steps.",                        "Explain the process step by step.",         3, "nouns"),
+    ("system",      "/ˈsɪs.təm/",       "Parts working together.",                   "The solar system has eight planets.",       3, "nouns"),
+    ("concept",     "/ˈkɒn.sɛpt/",      "An idea or general understanding.",         "Gravity is a scientific concept.",          3, "nouns"),
+    ("factor",      "/ˈfæk.tər/",       "Something that affects a result.",          "Weather is a factor in the game.",          3, "nouns"),
+    ("impact",      "/ˈɪm.pækt/",       "A strong effect or influence.",             "Technology has a big impact on our lives.", 3, "nouns"),
+    ("structure",   "/ˈstrʌk.tʃər/",   "How something is arranged.",               "Study the structure of the poem.",          3, "nouns"),
+    ("function",    "/ˈfʌŋk.ʃən/",     "The purpose of something.",                "What is the function of the heart?",        3, "nouns"),
+    ("data",        "/ˈdeɪ.tə/",        "Information collected for study.",          "The data showed a clear pattern.",          3, "nouns"),
+    ("method",      "/ˈmɛθ.əd/",        "A way of doing something.",                 "Which method will you use?",                3, "nouns"),
+    ("context",     "/ˈkɒn.tɛkst/",    "The situation around something.",           "Always read words in context.",             3, "nouns"),
+    ("variable",    "/ˈvɛr.i.ə.bəl/",  "Something that can change.",               "Change one variable at a time in tests.",   3, "nouns"),
+    ("consequence", "/ˈkɒn.sɪ.kwəns/", "A result of an action.",                   "Think about the consequences first.",       3, "nouns"),
+    ("motivation",  "/ˌmoʊ.tɪˈveɪ.ʃən/","The reason for doing something.",          "What is your motivation for this project?", 3, "nouns"),
+    ("assumption",  "/əˈsʌmp.ʃən/",    "Something believed without proof.",         "Don't make assumptions without checking.",  3, "nouns"),
+    ("perspective", "/pərˈspɛk.tɪv/",  "A way of thinking about something.",        "Each person has a different perspective.",  3, "nouns"),
 ]
 
 
@@ -305,6 +392,18 @@ class FlashcardService:
                 )
             except Exception:
                 pass  # column already exists
+            # Migration: replace old Dolch-based word list with new curated lists
+            try:
+                old_seed = conn.execute(
+                    "SELECT id FROM vocab_words WHERE word='a' AND age_band='seedlings'"
+                ).fetchone()
+                if old_seed:
+                    conn.execute("DELETE FROM vocab_words")
+                    conn.execute(
+                        "DELETE FROM cards WHERE card_type='vocabulary' AND source_book IS NULL"
+                    )
+            except Exception:
+                pass
         self._seed_numbers()
         self._seed_vocab_words()
 
@@ -360,23 +459,28 @@ class FlashcardService:
             self.create_card("number", front, back)
 
     def _seed_vocab_words(self) -> None:
-        """Populate vocab_words for Seedlings on first run. Idempotent."""
-        with self._connect() as conn:
-            existing = conn.execute(
-                "SELECT COUNT(*) FROM vocab_words WHERE age_band='seedlings'"
-            ).fetchone()[0]
-        if existing > 0:
-            return
-        with self._connect() as conn:
-            conn.executemany(
-                """INSERT OR IGNORE INTO vocab_words
-                       (word, phonetic, definition, example, age_band, level, category)
-                   VALUES (?,?,?,?,?,?,?)""",
-                [
-                    (word, phonetic, defn, example, "seedlings", level, category)
-                    for word, phonetic, defn, example, level, category in _SEEDLINGS_WORDS
-                ],
-            )
+        """Populate vocab_words for all age bands on first run. Idempotent."""
+        for band, words in [
+            ("seedlings",   _SEEDLINGS_WORDS),
+            ("explorers",   _EXPLORERS_WORDS),
+            ("adventurers", _ADVENTURERS_WORDS),
+        ]:
+            with self._connect() as conn:
+                existing = conn.execute(
+                    "SELECT COUNT(*) FROM vocab_words WHERE age_band=?", (band,)
+                ).fetchone()[0]
+            if existing > 0:
+                continue
+            with self._connect() as conn:
+                conn.executemany(
+                    """INSERT OR IGNORE INTO vocab_words
+                           (word, phonetic, definition, example, age_band, level, category)
+                       VALUES (?,?,?,?,?,?,?)""",
+                    [
+                        (word, phonetic, defn, example, band, level, category)
+                        for word, phonetic, defn, example, level, category in words
+                    ],
+                )
 
     def _row_to_card(self, row: sqlite3.Row) -> Card:
         return Card(
@@ -729,6 +833,73 @@ class FlashcardService:
         if not row:
             return None
         return {"chapter_index": row["chapter_index"], "word_index": row["word_index"]}
+
+    def get_all_reading_progress(self, user_id: str = "default") -> list[dict]:
+        """All books with saved progress, most-recently-read first."""
+        with self._connect() as conn:
+            rows = conn.execute(
+                """SELECT book_id, chapter_index, word_index, updated_at
+                   FROM reading_progress WHERE user_id=? ORDER BY updated_at DESC""",
+                (user_id,),
+            ).fetchall()
+        return [dict(r) for r in rows]
+
+    def get_parent_summary(self, user_id: str = "default") -> dict:
+        """All stats needed for the parent dashboard in one DB round-trip."""
+        with self._connect() as conn:
+            # Vocab card breakdown
+            card_rows = conn.execute(
+                """SELECT card_type,
+                          COUNT(*)                                        AS total,
+                          SUM(CASE WHEN mastered=1 THEN 1 ELSE 0 END)    AS mastered,
+                          SUM(CASE WHEN date_added >= date('now','-7 days')
+                                   THEN 1 ELSE 0 END)                    AS added_week,
+                          SUM(CASE WHEN source_book IS NOT NULL
+                                   THEN 1 ELSE 0 END)                    AS from_books
+                   FROM cards WHERE user_id=? GROUP BY card_type""",
+                (user_id,),
+            ).fetchall()
+
+            # Quiz sessions — last 5 + 30-day average
+            recent_quizzes = conn.execute(
+                """SELECT card_type, set_label, questions_total, questions_correct,
+                          score_pct, completed_at
+                   FROM quiz_sessions WHERE user_id=? ORDER BY completed_at DESC LIMIT 5""",
+                (user_id,),
+            ).fetchall()
+            avg_row = conn.execute(
+                """SELECT AVG(score_pct) AS avg, COUNT(*) AS n
+                   FROM quiz_sessions
+                   WHERE user_id=? AND completed_at >= date('now','-30 days')""",
+                (user_id,),
+            ).fetchone()
+
+            # Words ever looked up
+            lookup_count = conn.execute(
+                "SELECT COUNT(*) AS n FROM word_cache"
+            ).fetchone()["n"]
+
+        # Aggregate card stats
+        vocab = {"total": 0, "mastered": 0, "added_week": 0, "from_books": 0, "by_type": {}}
+        for r in card_rows:
+            vocab["total"]      += r["total"]
+            vocab["mastered"]   += r["mastered"] or 0
+            vocab["added_week"] += r["added_week"] or 0
+            vocab["from_books"] += r["from_books"] or 0
+            vocab["by_type"][r["card_type"]] = {
+                "total":    r["total"],
+                "mastered": r["mastered"] or 0,
+            }
+
+        return {
+            "vocab": vocab,
+            "quizzes": {
+                "recent":        [dict(r) for r in recent_quizzes],
+                "avg_score_30d": round(avg_row["avg"], 1) if avg_row["avg"] else None,
+                "total_30d":     avg_row["n"],
+            },
+            "words_looked_up": lookup_count,
+        }
 
     def submit_review(
         self,

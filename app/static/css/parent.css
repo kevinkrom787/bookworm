@@ -1,0 +1,254 @@
+/* ═══════════════════════════════════════════════════════════════
+   Parent Dashboard — /parent
+═══════════════════════════════════════════════════════════════ */
+
+.par-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: var(--color-bg);
+}
+
+/* ── Header ──────────────────────────────────────────────────── */
+.par-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px;
+  height: var(--topbar-h);
+  background: var(--color-bg);
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+.par-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+/* ── Main scroll area ────────────────────────────────────────── */
+.par-main {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 16px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+/* ── Stat strip ──────────────────────────────────────────────── */
+.par-stat-strip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+.par-stat {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 14px 10px;
+  text-align: center;
+}
+.par-stat-num {
+  font-family: var(--font-reading);
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--color-accent);
+  line-height: 1;
+}
+.par-stat-label {
+  font-size: 0.68rem;
+  color: var(--color-text-3);
+  margin-top: 4px;
+  line-height: 1.2;
+}
+
+/* ── Section ─────────────────────────────────────────────────── */
+.par-section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.par-section-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-3);
+}
+.par-empty {
+  font-size: 0.875rem;
+  color: var(--color-text-3);
+  padding: 8px 0;
+}
+
+/* ── Book list ───────────────────────────────────────────────── */
+.par-book-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.par-book-row {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  text-decoration: none;
+  color: inherit;
+  transition: background var(--dur-fast);
+}
+.par-book-row:active { background: var(--color-surface-2); }
+.par-book-cover {
+  width: 44px;
+  height: 66px;
+  object-fit: cover;
+  border-radius: 3px;
+  flex-shrink: 0;
+  background: var(--color-surface-2);
+}
+.par-book-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.par-book-title {
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.par-book-author {
+  font-size: 0.75rem;
+  color: var(--color-text-2);
+}
+.par-book-progress {
+  font-size: 0.75rem;
+  color: var(--color-text-3);
+  margin-top: 4px;
+}
+.par-dot { margin: 0 4px; }
+
+.par-progress-track {
+  height: 4px;
+  background: var(--color-surface-2);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+  margin-top: 6px;
+}
+.par-progress-fill {
+  height: 100%;
+  background: var(--color-accent);
+  border-radius: var(--radius-pill);
+  transition: width 0.4s var(--ease-out);
+  min-width: 4px;
+}
+
+/* ── Vocabulary grid ─────────────────────────────────────────── */
+.par-vocab-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+.par-vocab-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 12px 8px;
+  text-align: center;
+}
+.par-vocab-num {
+  font-family: var(--font-reading);
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--color-text);
+  line-height: 1;
+}
+.par-vocab-label {
+  font-size: 0.65rem;
+  color: var(--color-text-3);
+  margin-top: 4px;
+  line-height: 1.2;
+}
+
+.par-mastery-bar-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.par-mastery-label {
+  font-size: 0.78rem;
+  color: var(--color-text-2);
+}
+.par-mastery-track {
+  height: 8px;
+  background: var(--color-surface-2);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+}
+.par-mastery-fill {
+  height: 100%;
+  background: var(--color-accent);
+  border-radius: var(--radius-pill);
+  min-width: 4px;
+}
+
+/* ── Quiz average ────────────────────────────────────────────── */
+.par-quiz-avg {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.par-quiz-avg-num {
+  font-family: var(--font-reading);
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--color-accent);
+  line-height: 1;
+}
+.par-quiz-avg-label {
+  font-size: 0.78rem;
+  color: var(--color-text-3);
+}
+
+/* ── Quiz table ──────────────────────────────────────────────── */
+.par-quiz-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+.par-quiz-table th {
+  text-align: left;
+  padding: 6px 10px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-3);
+  border-bottom: 1px solid var(--color-border);
+}
+.par-quiz-table td {
+  padding: 10px 10px;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text);
+  vertical-align: middle;
+}
+.par-quiz-table tr:last-child td { border-bottom: none; }
+
+.par-score-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  font-weight: 700;
+  font-size: 0.78rem;
+}
+.par-score-badge.good { background: #D4F0DE; color: #1A6B3A; }
+.par-score-badge.ok   { background: #FFF3CC; color: #7A5A00; }
+.par-score-badge.low  { background: #FFE0DF; color: #9B1C1C; }

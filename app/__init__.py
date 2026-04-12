@@ -8,10 +8,11 @@ def create_app(config_class=Config):
     config_class.ensure_dirs()
 
     # Register route blueprints
-    from app.routes import library, reader, flashcards
+    from app.routes import library, reader, flashcards, parent
     app.register_blueprint(library.bp)
     app.register_blueprint(reader.bp)
     app.register_blueprint(flashcards.bp)
+    app.register_blueprint(parent.bp)
 
     # Cache static assets for 1 hour in the browser
     @app.after_request
