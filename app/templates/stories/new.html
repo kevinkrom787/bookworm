@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+{% block title %}Atlas — New Story{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/stories.css') }}"/>
+{% endblock %}
+
+{% block body %}
+<div class="sn-shell" id="snShell">
+
+  <!-- ── State: Pick theme ──────────────────────────────────────── -->
+  <div class="sn-state" id="statePick">
+    <header class="sn-header">
+      <a class="back-btn" href="/stories/" aria-label="Back">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+      </a>
+      <div class="sn-header-title">New Story</div>
+    </header>
+
+    <div class="sn-hero">
+      <div class="sn-avatar" style="background: {{ profile.avatar_color }}">
+        {{ profile.avatar_emoji }}
+      </div>
+      <h1 class="sn-greeting">What kind of story<br>do you want, <span class="sn-name">{{ profile.name }}</span>?</h1>
+    </div>
+
+    <div class="sn-theme-grid" id="themeGrid">
+      {% for t in themes %}
+      <button class="sn-theme-btn" data-theme="{{ t.key }}">
+        <span class="sn-theme-emoji">{{ t.emoji }}</span>
+        <span class="sn-theme-label">{{ t.label }}</span>
+      </button>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- ── State: Generating ─────────────────────────────────────── -->
+  <div class="sn-state" id="stateGenerating" hidden>
+    <div class="sn-loading-wrap">
+      <div class="sn-loading-avatar" id="loadingAvatar" style="background: {{ profile.avatar_color }}">
+        {{ profile.avatar_emoji }}
+      </div>
+      <div class="sn-loading-title">Writing your story…</div>
+      <div class="sn-loading-msg" id="loadingMsg">Sharpening pencils… ✏️</div>
+      <div class="sn-loading-bar">
+        <div class="sn-loading-fill" id="loadingFill"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── State: Error ───────────────────────────────────────────── -->
+  <div class="sn-state" id="stateError" hidden>
+    <div class="sn-error-wrap">
+      <div class="sn-error-icon">😬</div>
+      <div class="sn-error-title">Oops, something went wrong</div>
+      <div class="sn-error-msg" id="errorMsg">Please try again.</div>
+      <button class="sn-retry-btn" id="retryBtn">Try again</button>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+"use strict";
+
+const VOCAB_WORDS = {{ vocab_words | tojson }};
+
+const LOADING_MSGS = [
+  "Sharpening pencils… ✏️",
+  "Thinking of adventures… 🤔",
+  "Adding exciting twists… 🌀",
+  "Consulting the story dragons… 🐉",
+  "Picking just the right words… 📖",
+  "Making it extra fun… ⚡",
+  "Almost ready… 🎉",
+];
+
+let selectedTheme = null;
+let msgInterval   = null;
+let fillInterval  = null;
+
+// ── Theme selection ───────────────────────────────────────────────────────────
+document.querySelectorAll(".sn-theme-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    selectedTheme = btn.dataset.theme;
+    generate();
+  });
+});
+
+// ── Generate ──────────────────────────────────────────────────────────────────
+function showState(id) {
+  document.querySelectorAll(".sn-state").forEach(s => s.hidden = true);
+  document.getElementById(id).hidden = false;
+}
+
+function startLoadingAnimation() {
+  let i = 0;
+  const msgEl  = document.getElementById("loadingMsg");
+  const fillEl = document.getElementById("loadingFill");
+
+  msgEl.textContent = LOADING_MSGS[0];
+  fillEl.style.width = "5%";
+
+  msgInterval = setInterval(() => {
+    i = (i + 1) % LOADING_MSGS.length;
+    msgEl.textContent = LOADING_MSGS[i];
+  }, 2200);
+
+  // Fake progress bar (creeps toward 90%, never reaches 100 until done)
+  let pct = 5;
+  fillInterval = setInterval(() => {
+    const step = pct < 60 ? 3 : pct < 80 ? 1.5 : 0.4;
+    pct = Math.min(pct + step, 90);
+    fillEl.style.width = pct + "%";
+  }, 400);
+}
+
+function stopLoadingAnimation() {
+  clearInterval(msgInterval);
+  clearInterval(fillInterval);
+  document.getElementById("loadingFill").style.width = "100%";
+}
+
+async function generate() {
+  showState("stateGenerating");
+  startLoadingAnimation();
+
+  try {
+    const resp = await fetch("/stories/api/generate", {
+      method:  "POST",
+      headers: {"Content-Type": "application/json"},
+      body:    JSON.stringify({ theme: selectedTheme, vocab_words: VOCAB_WORDS }),
+    });
+
+    stopLoadingAnimation();
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      throw new Error(err.error || "Generation failed");
+    }
+
+    const data = await resp.json();
+    window.location.href = "/stories/" + data.story_id;
+
+  } catch(e) {
+    stopLoadingAnimation();
+    document.getElementById("errorMsg").textContent = e.message || "Please try again.";
+    showState("stateError");
+  }
+}
+
+document.getElementById("retryBtn").addEventListener("click", () => {
+  showState("statePick");
+});
+</script>
+{% endblock %}

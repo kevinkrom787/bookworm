@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
+  <title>Atlas — Who's reading?</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/atlas.css') }}"/>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/profiles.css') }}"/>
+  <script>(function(){var t=localStorage.getItem("atlas:theme")||"light";document.documentElement.dataset.theme=t;}());</script>
+</head>
+<body>
+<div class="ps-shell">
+  <div class="ps-header">
+    <div class="ps-title">Who's reading today?</div>
+  </div>
+
+  <div class="ps-grid" id="profileGrid">
+    {% for p in profiles %}
+    <button class="ps-card" data-profile-id="{{ p.id }}" style="--card-color: {{ p.avatar_color }}">
+      <div class="ps-avatar">{{ p.avatar_emoji }}</div>
+      <div class="ps-name">{{ p.name }}</div>
+      <div class="ps-band">{{ {"seedlings": "Ages 4–6", "explorers": "Ages 7–9", "adventurers": "Ages 10+"}.get(p.age_band, p.age_band) }}</div>
+    </button>
+    {% endfor %}
+
+    <a class="ps-card ps-card--add" href="{{ url_for('profiles.new') }}">
+      <div class="ps-avatar ps-avatar--add">+</div>
+      <div class="ps-name">Add reader</div>
+    </a>
+  </div>
+
+  <div class="ps-footer">
+    <a href="{{ url_for('profiles.new') }}" class="ps-manage-link">Manage profiles</a>
+  </div>
+</div>
+
+<script>
+"use strict";
+document.querySelectorAll(".ps-card[data-profile-id]").forEach(card => {
+  card.addEventListener("click", async () => {
+    card.classList.add("is-loading");
+    const id = card.dataset.profileId;
+    await fetch(`/profiles/api/${id}/activate`, { method: "POST" });
+    window.location.href = "/";
+  });
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+{% block title %}My Story{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/story.css') }}" />
+{% endblock %}
+
+{% block body %}
+<div class="setup-shell">
+
+  <header class="setup-header">
+    <a class="back-btn" href="/" aria-label="Home">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <polyline points="15 18 9 12 15 6"/>
+      </svg>
+    </a>
+    <span class="setup-header-title">My Story</span>
+  </header>
+
+  {% if error %}
+  <div class="setup-error-banner">{{ error }}</div>
+  {% endif %}
+
+  <form class="setup-form" method="POST" action="{{ url_for('stories.start') }}" id="setupForm">
+
+    <!-- ── Row 1: Who's in it? ──────────────────────────────────── -->
+    <section class="setup-section">
+      <div class="setup-section-label">Who's in it?</div>
+      <div class="setup-chars-scroll" id="charScroll">
+
+        {% for char in characters %}
+        <button type="button"
+                class="char-card {% if char.character_id == preselected_char_id %}char-card--selected{% endif %}"
+                data-char-id="{{ char.character_id }}"
+                aria-pressed="{{ 'true' if char.character_id == preselected_char_id else 'false' }}">
+          <div class="char-card-avatar">{{ char.avatar_emoji }}</div>
+          <div class="char-card-name">{{ char.name }}</div>
+          <div class="char-card-check">✓</div>
+        </button>
+        {% endfor %}
+
+        <button type="button" class="char-card char-card--add" id="addCharBtn">
+          <div class="char-card-avatar">＋</div>
+          <div class="char-card-name">Someone new</div>
+        </button>
+
+      </div>
+    </section>
+
+    <!-- ── Row 2: What kind? ────────────────────────────────────── -->
+    <section class="setup-section">
+      <div class="setup-section-label">What kind?</div>
+      <div class="setup-type-row">
+        {% for t in story_types %}
+        <button type="button"
+                class="type-tile {% if t.key == preselected_type %}type-tile--selected{% endif %}"
+                data-type="{{ t.key }}"
+                aria-pressed="{{ 'true' if t.key == preselected_type else 'false' }}">
+          <span class="type-tile-emoji">{{ t.emoji }}</span>
+          <span class="type-tile-label">{{ t.label }}</span>
+        </button>
+        {% endfor %}
+      </div>
+    </section>
+
+    <!-- ── Row 3: How long? ─────────────────────────────────────── -->
+    <section class="setup-section">
+      <div class="setup-section-label">How long?</div>
+      <div class="setup-length-row">
+        {% for key, info in length_buckets.items() %}
+        <button type="button"
+                class="length-pill {% if key == 'medium' %}length-pill--selected{% endif %}"
+                data-length="{{ key }}"
+                aria-pressed="{{ 'true' if key == 'medium' else 'false' }}">
+          {{ info.label }}
+        </button>
+        {% endfor %}
+      </div>
+    </section>
+
+    <!-- Hidden inputs written by JS -->
+    <input type="hidden" name="story_type"   id="inputType"   value="{{ preselected_type }}">
+    <input type="hidden" name="length_bucket" id="inputLength" value="medium">
+    <!-- character_ids appended dynamically as multiple hidden inputs -->
+
+    <div class="setup-footer">
+      <button type="submit" class="setup-start-btn" id="startBtn">
+        Start
+      </button>
+    </div>
+
+  </form>
+
+</div>
+
+<!-- Add character modal -->
+<div class="add-char-modal" id="addCharModal" hidden>
+  <div class="add-char-modal-box">
+    <div class="add-char-modal-title">Who is it?</div>
+    <input class="add-char-input" type="text" id="newCharName" placeholder="Name" maxlength="30" autocomplete="off">
+    <input class="add-char-input" type="text" id="newCharDesc" placeholder="What do they look like? (optional)" maxlength="120" autocomplete="off">
+    <div class="add-char-modal-actions">
+      <button type="button" class="add-char-cancel" id="cancelAddChar">Cancel</button>
+      <button type="button" class="add-char-confirm" id="confirmAddChar">Add</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+"use strict";
+
+const MAX_CHARS = 3;
+let selectedCharIds = new Set(
+  {{ ([preselected_char_id] if preselected_char_id else []) | tojson }}
+);
+
+// ── Character selection ───────────────────────────────────────────────────────
+document.querySelectorAll(".char-card:not(.char-card--add)").forEach(card => {
+  card.addEventListener("click", () => toggleChar(card));
+});
+
+function toggleChar(card) {
+  const id = parseInt(card.dataset.charId);
+  if (selectedCharIds.has(id)) {
+    selectedCharIds.delete(id);
+    card.classList.remove("char-card--selected");
+    card.setAttribute("aria-pressed", "false");
+  } else {
+    if (selectedCharIds.size >= MAX_CHARS) {
+      // Deselect oldest
+      const oldest = [...selectedCharIds][0];
+      selectedCharIds.delete(oldest);
+      document.querySelector(`.char-card[data-char-id="${oldest}"]`)
+        ?.classList.remove("char-card--selected");
+    }
+    selectedCharIds.add(id);
+    card.classList.add("char-card--selected");
+    card.setAttribute("aria-pressed", "true");
+  }
+}
+
+// ── Story type selection ──────────────────────────────────────────────────────
+document.querySelectorAll(".type-tile").forEach(tile => {
+  tile.addEventListener("click", () => {
+    document.querySelectorAll(".type-tile").forEach(t => {
+      t.classList.remove("type-tile--selected");
+      t.setAttribute("aria-pressed", "false");
+    });
+    tile.classList.add("type-tile--selected");
+    tile.setAttribute("aria-pressed", "true");
+    document.getElementById("inputType").value = tile.dataset.type;
+  });
+});
+
+// ── Length selection ──────────────────────────────────────────────────────────
+document.querySelectorAll(".length-pill").forEach(pill => {
+  pill.addEventListener("click", () => {
+    document.querySelectorAll(".length-pill").forEach(p => {
+      p.classList.remove("length-pill--selected");
+      p.setAttribute("aria-pressed", "false");
+    });
+    pill.classList.add("length-pill--selected");
+    pill.setAttribute("aria-pressed", "true");
+    document.getElementById("inputLength").value = pill.dataset.length;
+  });
+});
+
+// ── Add character modal ───────────────────────────────────────────────────────
+document.getElementById("addCharBtn").addEventListener("click", () => {
+  document.getElementById("addCharModal").hidden = false;
+  document.getElementById("newCharName").focus();
+});
+document.getElementById("cancelAddChar").addEventListener("click", () => {
+  document.getElementById("addCharModal").hidden = true;
+});
+document.getElementById("confirmAddChar").addEventListener("click", addCharacter);
+document.getElementById("newCharName").addEventListener("keydown", e => {
+  if (e.key === "Enter") addCharacter();
+});
+
+async function addCharacter() {
+  const name = document.getElementById("newCharName").value.trim();
+  const desc = document.getElementById("newCharDesc").value.trim();
+  if (!name) return;
+
+  try {
+    const resp = await fetch("/stories/api/characters", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, canonical_description: desc, avatar_emoji: "🐾" }),
+    });
+    if (!resp.ok) throw new Error("Failed");
+    const char = await resp.json();
+
+    // Inject card before the + button
+    const scroll = document.getElementById("charScroll");
+    const addBtn = document.getElementById("addCharBtn");
+    const card   = document.createElement("button");
+    card.type    = "button";
+    card.className = "char-card";
+    card.dataset.charId = char.character_id;
+    card.setAttribute("aria-pressed", "false");
+    card.innerHTML = `
+      <div class="char-card-avatar">${char.avatar_emoji}</div>
+      <div class="char-card-name">${char.name}</div>
+      <div class="char-card-check">✓</div>
+    `;
+    card.addEventListener("click", () => toggleChar(card));
+    scroll.insertBefore(card, addBtn);
+    toggleChar(card);
+
+    document.getElementById("addCharModal").hidden = true;
+    document.getElementById("newCharName").value   = "";
+    document.getElementById("newCharDesc").value   = "";
+  } catch (e) {
+    alert("Couldn't add character. Please try again.");
+  }
+}
+
+// ── Form submit — inject character_ids ───────────────────────────────────────
+document.getElementById("setupForm").addEventListener("submit", e => {
+  // Remove any old character_id inputs
+  document.querySelectorAll("input[name='character_ids']").forEach(el => el.remove());
+  const form = document.getElementById("setupForm");
+  selectedCharIds.forEach(id => {
+    const inp  = document.createElement("input");
+    inp.type   = "hidden";
+    inp.name   = "character_ids";
+    inp.value  = id;
+    form.appendChild(inp);
+  });
+});
+</script>
+{% endblock %}

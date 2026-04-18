@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/story.css') }}" />
+{% endblock %}
+
+{% block body %}
+<div class="recap-shell" id="recapShell">
+
+  <!-- Section 1: The End -->
+  <div class="recap-the-end">The End.</div>
+
+  {% if lesson %}
+  <!-- Section 2: Tonight's lesson -->
+  <div class="recap-section recap-lesson">
+    <div class="recap-section-label">Tonight's lesson</div>
+    <p class="recap-lesson-text">{{ lesson }}</p>
+  </div>
+  {% endif %}
+
+  {% if talk_about_it %}
+  <!-- Section 3: Talk about it -->
+  <div class="recap-section recap-talk">
+    <div class="recap-section-label">If you want, ask each other:</div>
+    <p class="recap-talk-text">{{ talk_about_it }}</p>
+  </div>
+  {% endif %}
+
+  {% if vocab_words %}
+  <!-- Section 4: New words — mocked for v0.1 -->
+  <!-- TODO v0.2: wire to flashcard component -->
+  <div class="recap-section recap-vocab">
+    <div class="recap-section-label">New words you met</div>
+    <div class="recap-vocab-cards">
+      {% for word in vocab_words %}
+      <div class="recap-vocab-card">
+        <span class="recap-vocab-word">{{ word }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% if streak >= 2 %}
+  <!-- Section 5: Streak — only when ≥ 2 nights -->
+  <div class="recap-streak">
+    🔥 {{ streak }} nights in a row
+  </div>
+  {% endif %}
+
+  <!-- Bottom actions -->
+  <div class="recap-actions">
+    <button class="recap-btn recap-btn--save" id="saveBtn">Save this story</button>
+    <button class="recap-btn recap-btn--night" id="goodnightBtn">Goodnight</button>
+  </div>
+
+</div>
+
+<!-- Goodnight overlay -->
+<div class="goodnight-overlay" id="goodnightOverlay" hidden></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+"use strict";
+const STORY_ID = {{ story_id }};
+
+document.getElementById("saveBtn").addEventListener("click", async () => {
+  const btn = document.getElementById("saveBtn");
+  btn.disabled = true;
+  try {
+    await fetch("/stories/api/bedtime/" + STORY_ID + "/save", { method: "POST" });
+    btn.textContent = "Saved ✓";
+  } catch {
+    btn.disabled = false;
+  }
+});
+
+document.getElementById("goodnightBtn").addEventListener("click", () => {
+  const overlay = document.getElementById("goodnightOverlay");
+  overlay.hidden = false;
+  // Fade to black over 10 s, then go home
+  requestAnimationFrame(() => {
+    overlay.style.opacity = "1";
+    overlay.style.transition = "opacity 10s ease";
+  });
+  setTimeout(() => { window.location.href = "/"; }, 10500);
+});
+</script>
+{% endblock %}

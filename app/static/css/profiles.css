@@ -1,0 +1,673 @@
+/* ═══════════════════════════════════════════════════════════════
+   Atlas — Profiles
+   Profile selector (ps-*) + setup wizard (pw-*)
+   Optimized for 800×480 touchscreen; large touch targets throughout.
+═══════════════════════════════════════════════════════════════ */
+
+/* ── Shared tokens ───────────────────────────────────────────── */
+:root {
+  --ps-bg:          #0d0d14;
+  --ps-surface:     #16161f;
+  --ps-border:      rgba(255,255,255,0.08);
+  --ps-text:        #f0eeff;
+  --ps-text-dim:    rgba(240,238,255,0.5);
+  --ps-glow-str:    0.35;
+
+  --pw-bg:          #faf8f5;
+  --pw-surface:     #ffffff;
+  --pw-border:      #e5e0d8;
+  --pw-text:        #1a1612;
+  --pw-text-2:      #6b5f4f;
+  --pw-accent:      #3d6b4f;
+  --pw-accent-lt:   #eaf2ec;
+  --pw-radius:      20px;
+  --pw-radius-sm:   12px;
+}
+
+[data-theme="dark"] {
+  --pw-bg:          #1a1a24;
+  --pw-surface:     #24243a;
+  --pw-border:      rgba(255,255,255,0.1);
+  --pw-text:        #f0eeff;
+  --pw-text-2:      rgba(240,238,255,0.6);
+  --pw-accent:      #6bcb77;
+  --pw-accent-lt:   rgba(107,203,119,0.15);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   PROFILE SELECTOR  (ps-*)
+   Dark, dramatic, Apple-TV-style user picker.
+══════════════════════════════════════════════════════════════ */
+
+.ps-shell {
+  min-height: 100dvh;
+  background: var(--ps-bg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px 32px;
+  font-family: var(--font-ui);
+  /* Subtle radial glow from center */
+  background-image: radial-gradient(
+    ellipse 70% 55% at 50% 45%,
+    rgba(108,142,245,0.12) 0%,
+    transparent 70%
+  );
+}
+
+/* Header */
+.ps-header {
+  text-align: center;
+  margin-bottom: 36px;
+}
+
+.ps-title {
+  font-size: clamp(1.4rem, 4vw, 2rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ps-text);
+}
+
+/* Grid of profile cards */
+.ps-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  justify-content: center;
+  max-width: 760px;
+  width: 100%;
+}
+
+/* Individual profile card */
+.ps-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 20px 16px 18px;
+  min-width: 120px;
+  width: 140px;
+  background: var(--ps-surface);
+  border: 1.5px solid var(--ps-border);
+  border-radius: 20px;
+  cursor: pointer;
+  transition:
+    transform 180ms var(--ease-spring, cubic-bezier(0.34,1.56,0.64,1)),
+    box-shadow 180ms ease,
+    border-color 180ms ease;
+  text-decoration: none;
+  color: var(--ps-text);
+  -webkit-tap-highlight-color: transparent;
+  /* Subtle colored glow driven by --card-color */
+  box-shadow:
+    0 0 0 0 transparent,
+    0 4px 24px rgba(0,0,0,0.5);
+}
+
+.ps-card:hover,
+.ps-card:focus-visible {
+  transform: translateY(-4px) scale(1.04);
+  border-color: rgba(255,255,255,0.22);
+  box-shadow:
+    0 0 28px color-mix(in srgb, var(--card-color, #6C8EF5) 40%, transparent),
+    0 8px 32px rgba(0,0,0,0.6);
+  outline: none;
+}
+
+.ps-card:active {
+  transform: scale(0.96);
+  transition-duration: 80ms;
+}
+
+.ps-card.is-loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* Avatar circle */
+.ps-avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: var(--card-color, #6C8EF5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36px;
+  line-height: 1;
+  /* inner glow */
+  box-shadow: inset 0 -3px 8px rgba(0,0,0,0.2), 0 2px 8px rgba(0,0,0,0.3);
+  transition: transform 180ms var(--ease-spring, cubic-bezier(0.34,1.56,0.64,1));
+  flex-shrink: 0;
+}
+
+.ps-card:hover .ps-avatar,
+.ps-card:focus-visible .ps-avatar {
+  transform: scale(1.08) rotate(-4deg);
+}
+
+/* Add avatar — dashed ring style */
+.ps-avatar--add {
+  background: transparent;
+  border: 2.5px dashed rgba(255,255,255,0.25);
+  font-size: 30px;
+  color: rgba(255,255,255,0.45);
+  font-weight: 300;
+  box-shadow: none;
+}
+
+.ps-card--add:hover .ps-avatar--add,
+.ps-card--add:focus-visible .ps-avatar--add {
+  border-color: rgba(255,255,255,0.5);
+  color: rgba(255,255,255,0.7);
+  transform: scale(1.06) rotate(8deg);
+}
+
+.ps-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--ps-text);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 110px;
+}
+
+.ps-band {
+  font-size: 0.72rem;
+  color: var(--ps-text-dim);
+  text-align: center;
+}
+
+/* Footer */
+.ps-footer {
+  margin-top: 32px;
+}
+
+.ps-manage-link {
+  font-size: 0.85rem;
+  color: var(--ps-text-dim);
+  text-decoration: none;
+  padding: 8px 16px;
+  border-radius: 999px;
+  transition: color 150ms, background 150ms;
+}
+
+.ps-manage-link:hover {
+  color: var(--ps-text);
+  background: rgba(255,255,255,0.06);
+}
+
+
+/* ══════════════════════════════════════════════════════════════
+   SETUP WIZARD  (pw-*)
+   Clean, warm, step-by-step onboarding.
+══════════════════════════════════════════════════════════════ */
+
+.pw-shell {
+  min-height: 100dvh;
+  background: var(--pw-bg);
+  display: flex;
+  flex-direction: column;
+  font-family: var(--font-ui);
+  color: var(--pw-text);
+}
+
+/* Progress bar */
+.pw-progress {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  height: 5px;
+  background: var(--pw-border);
+  flex-shrink: 0;
+}
+
+.pw-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--pw-accent), color-mix(in srgb, var(--pw-accent) 70%, #6C8EF5));
+  border-radius: 0 3px 3px 0;
+  transition: width 350ms var(--ease-out, cubic-bezier(0.16,1,0.3,1));
+}
+
+/* Steps wrapper */
+.pw-steps {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Individual step */
+.pw-step {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 28px 20px 20px;
+  max-width: 640px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.pw-step-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 12px;
+}
+
+/* Step heading block */
+.pw-step-heading {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.pw-step-heading h1 {
+  font-size: clamp(1.4rem, 5vw, 1.9rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--pw-text);
+  line-height: 1.15;
+}
+
+.pw-step-heading p {
+  font-size: 0.95rem;
+  color: var(--pw-text-2);
+}
+
+/* Step emoji (large greeting / avatar preview in later steps) */
+.pw-step-emoji {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  background: var(--pw-accent-lt);
+  transition: background 200ms, transform 200ms var(--ease-spring, cubic-bezier(0.34,1.56,0.64,1));
+}
+
+/* ── Avatar preview (large, centered) ───────────────────────── */
+.pw-avatar-preview {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 44px;
+  background: #6C8EF5;
+  box-shadow: 0 6px 24px rgba(108,142,245,0.4);
+  transition:
+    background 200ms,
+    box-shadow 200ms,
+    transform 250ms var(--ease-spring, cubic-bezier(0.34,1.56,0.64,1));
+  flex-shrink: 0;
+}
+
+/* ── Avatar grid ─────────────────────────────────────────────── */
+.pw-avatar-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 8px;
+  width: 100%;
+  max-width: 420px;
+}
+
+.pw-avatar-btn {
+  aspect-ratio: 1;
+  min-height: 44px;
+  border-radius: 50%;
+  background: var(--pw-surface);
+  border: 2px solid var(--pw-border);
+  font-size: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 150ms var(--ease-spring, cubic-bezier(0.34,1.56,0.64,1)), border-color 150ms;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.pw-avatar-btn:hover {
+  transform: scale(1.15);
+}
+
+.pw-avatar-btn.is-selected {
+  border-color: var(--pw-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--pw-accent) 30%, transparent);
+  transform: scale(1.12);
+}
+
+/* ── Color grid ──────────────────────────────────────────────── */
+.pw-color-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  max-width: 360px;
+}
+
+.pw-color-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  transition: transform 150ms var(--ease-spring, cubic-bezier(0.34,1.56,0.64,1)), box-shadow 150ms;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.pw-color-btn:hover {
+  transform: scale(1.2);
+}
+
+.pw-color-btn.is-selected {
+  border-color: var(--pw-text);
+  box-shadow: 0 0 0 2px var(--pw-bg);
+  transform: scale(1.18);
+}
+
+/* ── Name input ──────────────────────────────────────────────── */
+.pw-name-input {
+  width: 100%;
+  max-width: 360px;
+  height: 60px;
+  border-radius: var(--pw-radius-sm);
+  border: 2px solid var(--pw-border);
+  background: var(--pw-surface);
+  color: var(--pw-text);
+  font-size: 1.15rem;
+  font-family: var(--font-ui);
+  padding: 0 18px;
+  text-align: center;
+  outline: none;
+  transition: border-color 150ms, box-shadow 150ms;
+  -webkit-appearance: none;
+}
+
+.pw-name-input::placeholder {
+  color: var(--pw-text-2);
+  opacity: 0.6;
+}
+
+.pw-name-input:focus {
+  border-color: var(--pw-accent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--pw-accent) 20%, transparent);
+}
+
+/* ── Age grid ────────────────────────────────────────────────── */
+.pw-age-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+  max-width: 400px;
+}
+
+.pw-age-btn {
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  background: var(--pw-surface);
+  border: 2.5px solid var(--pw-border);
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--pw-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    transform 150ms var(--ease-spring, cubic-bezier(0.34,1.56,0.64,1)),
+    border-color 150ms,
+    background 150ms;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.pw-age-btn:hover {
+  transform: scale(1.12);
+  border-color: var(--pw-accent);
+}
+
+.pw-age-btn.is-selected {
+  background: var(--pw-accent);
+  border-color: var(--pw-accent);
+  color: #fff;
+  transform: scale(1.12);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--pw-accent) 40%, transparent);
+}
+
+/* Band label beneath age grid */
+.pw-band-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--pw-text-2);
+  background: var(--pw-accent-lt);
+  border-radius: 999px;
+  padding: 6px 18px;
+  transition: opacity 200ms;
+}
+
+/* ── Interests grid ──────────────────────────────────────────── */
+.pw-interests-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 10px;
+  width: 100%;
+}
+
+.pw-interest-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 14px 8px;
+  min-height: 82px;
+  border-radius: var(--pw-radius-sm);
+  background: var(--pw-surface);
+  border: 2px solid var(--pw-border);
+  color: var(--pw-text);
+  transition:
+    transform 140ms var(--ease-spring, cubic-bezier(0.34,1.56,0.64,1)),
+    border-color 140ms,
+    background 140ms,
+    box-shadow 140ms;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.pw-interest-btn:hover {
+  transform: translateY(-3px);
+  border-color: var(--pw-accent);
+}
+
+.pw-interest-btn.is-selected {
+  background: var(--pw-accent-lt);
+  border-color: var(--pw-accent);
+  box-shadow: 0 3px 12px color-mix(in srgb, var(--pw-accent) 25%, transparent);
+}
+
+.pw-int-emoji {
+  font-size: 26px;
+  line-height: 1;
+}
+
+.pw-int-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.2;
+  color: var(--pw-text-2);
+}
+
+.pw-interest-btn.is-selected .pw-int-label {
+  color: var(--pw-accent);
+}
+
+/* ── Fun facts form ──────────────────────────────────────────── */
+.pw-facts-form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.pw-fact-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pw-fact-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--pw-text-2);
+}
+
+.pw-fact-row {
+  display: flex;
+  gap: 8px;
+}
+
+.pw-fact-input,
+.pw-fact-select {
+  flex: 1;
+  height: 52px;
+  border-radius: var(--pw-radius-sm);
+  border: 2px solid var(--pw-border);
+  background: var(--pw-surface);
+  color: var(--pw-text);
+  font-size: 0.95rem;
+  font-family: var(--font-ui);
+  padding: 0 14px;
+  outline: none;
+  transition: border-color 150ms, box-shadow 150ms;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.pw-fact-select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b5f4f' stroke-width='1.8' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 36px;
+  cursor: pointer;
+}
+
+.pw-fact-input:focus,
+.pw-fact-select:focus {
+  border-color: var(--pw-accent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--pw-accent) 20%, transparent);
+}
+
+.pw-fact-input::placeholder {
+  color: var(--pw-text-2);
+  opacity: 0.5;
+}
+
+/* ── Navigation buttons ──────────────────────────────────────── */
+.pw-btn-row {
+  display: flex;
+  gap: 12px;
+  padding-top: 16px;
+  flex-shrink: 0;
+}
+
+.pw-next-btn,
+.pw-back-btn {
+  height: 60px;
+  border-radius: var(--pw-radius-sm);
+  font-size: 1rem;
+  font-weight: 700;
+  font-family: var(--font-ui);
+  transition: transform 140ms var(--ease-spring, cubic-bezier(0.34,1.56,0.64,1)), opacity 140ms, box-shadow 140ms;
+  -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
+}
+
+.pw-next-btn {
+  flex: 2;
+  background: var(--pw-accent);
+  color: #fff;
+  border: none;
+  box-shadow: 0 4px 18px color-mix(in srgb, var(--pw-accent) 35%, transparent);
+}
+
+.pw-next-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 22px color-mix(in srgb, var(--pw-accent) 45%, transparent);
+}
+
+.pw-next-btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.pw-next-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Step 1's next button is full-width */
+#step1 .pw-next-btn {
+  width: 100%;
+  margin-top: 16px;
+  flex: none;
+}
+
+.pw-back-btn {
+  flex: 1;
+  background: var(--pw-surface);
+  border: 2px solid var(--pw-border);
+  color: var(--pw-text-2);
+}
+
+.pw-back-btn:hover {
+  border-color: var(--pw-accent);
+  color: var(--pw-accent);
+  transform: translateY(-1px);
+}
+
+.pw-back-btn:active {
+  transform: scale(0.97);
+}
+
+/* ── Responsive tweaks ───────────────────────────────────────── */
+
+/* 800×480 landscape touchscreen sweet spot */
+@media (max-height: 520px) {
+  .ps-grid { gap: 14px; }
+  .ps-avatar { width: 60px; height: 60px; font-size: 28px; }
+  .ps-card { padding: 14px 12px 12px; min-width: 100px; width: 115px; }
+  .ps-title { font-size: 1.3rem; }
+  .ps-header { margin-bottom: 20px; }
+
+  .pw-step { padding: 16px 16px 14px; }
+  .pw-step-heading h1 { font-size: 1.3rem; }
+  .pw-step-emoji { width: 48px; height: 48px; font-size: 24px; }
+  .pw-avatar-preview { width: 68px; height: 68px; font-size: 34px; }
+  .pw-avatar-grid { grid-template-columns: repeat(8, 1fr); gap: 6px; }
+  .pw-avatar-btn { min-height: 38px; font-size: 18px; }
+  .pw-age-btn { width: 56px; height: 56px; font-size: 1.2rem; }
+  .pw-next-btn, .pw-back-btn { height: 52px; }
+}
+
+/* Wide screens: show more interest columns */
+@media (min-width: 600px) {
+  .pw-interests-grid {
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  }
+}
+
+/* Tight portrait (small phone) */
+@media (max-width: 380px) {
+  .pw-avatar-grid { grid-template-columns: repeat(4, 1fr); }
+  .ps-card { width: 110px; }
+}

@@ -1,0 +1,588 @@
+/* ═══════════════════════════════════════════════════════
+   Story CSS — My Story feature
+   All colors via atlas.css tokens; night/redlight via
+   [data-theme] selectors already defined in atlas.css.
+   Optimized for 7" 800×480 touchscreen.
+═══════════════════════════════════════════════════════ */
+
+/* ── Shared story serif ─────────────────────────────── */
+:root {
+  --font-story: Georgia, "Palatino Linotype", Palatino, serif;
+}
+
+/* ── Setup screen ───────────────────────────────────── */
+
+.setup-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: var(--color-bg);
+  overflow: hidden;
+}
+
+.setup-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px;
+  height: var(--topbar-h);
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.setup-header-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.setup-error-banner {
+  background: #fee;
+  color: #c00;
+  font-size: 0.85rem;
+  padding: 8px 16px;
+  border-bottom: 1px solid #fcc;
+}
+
+.setup-form {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 16px 0 0;
+  gap: 20px;
+}
+
+.setup-section {
+  padding: 0 16px;
+}
+
+.setup-section-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-3);
+  margin-bottom: 10px;
+}
+
+/* ── Character cards ─────────────────────────────────── */
+
+.setup-chars-scroll {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.setup-chars-scroll::-webkit-scrollbar { display: none; }
+
+.char-card {
+  flex-shrink: 0;
+  width: 88px;
+  padding: 14px 6px 10px;
+  border-radius: var(--radius-md);
+  border: 2px solid var(--color-border);
+  background: var(--color-surface);
+  text-align: center;
+  cursor: pointer;
+  transition: border-color var(--dur-mid) var(--ease-out),
+              background   var(--dur-mid) var(--ease-out),
+              transform    var(--dur-fast) var(--ease-spring);
+  position: relative;
+}
+
+.char-card:active { transform: scale(0.94); }
+
+.char-card--selected {
+  border-color: var(--color-accent);
+  background:   var(--color-accent-lt);
+}
+
+.char-card--add {
+  border-style: dashed;
+  color: var(--color-text-3);
+}
+
+.char-card-avatar {
+  font-size: 2.8rem;
+  line-height: 1;
+  margin-bottom: 6px;
+}
+
+.char-card-name {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--color-text-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.char-card-check {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  color: #fff;
+  font-size: 0.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity var(--dur-fast);
+}
+.char-card--selected .char-card-check { opacity: 1; }
+
+/* ── Story type tiles ────────────────────────────────── */
+
+.setup-type-row {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.setup-type-row::-webkit-scrollbar { display: none; }
+
+.type-tile {
+  flex-shrink: 0;
+  width: 80px;
+  padding: 10px 4px 8px;
+  border-radius: var(--radius-md);
+  border: 2px solid var(--color-border);
+  background: var(--color-surface);
+  text-align: center;
+  cursor: pointer;
+  transition: border-color var(--dur-mid) var(--ease-out),
+              background   var(--dur-mid) var(--ease-out),
+              transform    var(--dur-fast) var(--ease-spring);
+}
+.type-tile:active { transform: scale(0.94); }
+.type-tile--selected {
+  border-color: var(--color-accent);
+  background:   var(--color-accent-lt);
+}
+
+.type-tile-emoji {
+  display: block;
+  font-size: 1.6rem;
+  margin-bottom: 4px;
+}
+.type-tile-label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--color-text-2);
+}
+
+/* ── Length pills ────────────────────────────────────── */
+
+.setup-length-row {
+  display: flex;
+  gap: 8px;
+}
+
+.length-pill {
+  flex: 1;
+  padding: 10px 6px;
+  border-radius: var(--radius-pill);
+  border: 2px solid var(--color-border);
+  background: var(--color-surface);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-2);
+  text-align: center;
+  cursor: pointer;
+  transition: border-color var(--dur-mid) var(--ease-out),
+              background   var(--dur-mid) var(--ease-out),
+              transform    var(--dur-fast) var(--ease-spring);
+}
+.length-pill:active { transform: scale(0.96); }
+.length-pill--selected {
+  border-color: var(--color-accent);
+  background:   var(--color-accent-lt);
+  color:        var(--color-accent);
+}
+
+/* ── Setup footer / Start button ─────────────────────── */
+
+.setup-footer {
+  padding: 12px 16px 20px;
+  flex-shrink: 0;
+}
+
+.setup-start-btn {
+  width: 100%;
+  padding: 16px;
+  border-radius: var(--radius-lg);
+  background: var(--color-accent);
+  color: #fff;
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: opacity var(--dur-fast), transform var(--dur-fast) var(--ease-spring);
+}
+.setup-start-btn:active { transform: scale(0.97); opacity: 0.9; }
+
+/* ── Add character modal ──────────────────────────────── */
+
+.add-char-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+.add-char-modal[hidden] { display: none; }
+
+.add-char-modal-box {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  padding: 24px 20px 20px;
+  width: 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.add-char-modal-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.add-char-input {
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  color: var(--color-text);
+  padding: 10px 12px;
+  font-size: 0.9rem;
+  font-family: var(--font-ui);
+  width: 100%;
+  outline: none;
+}
+.add-char-input:focus { border-color: var(--color-accent); }
+
+.add-char-modal-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.add-char-cancel {
+  padding: 8px 16px;
+  border-radius: var(--radius-pill);
+  color: var(--color-text-2);
+  font-size: 0.85rem;
+}
+.add-char-confirm {
+  padding: 8px 20px;
+  border-radius: var(--radius-pill);
+  background: var(--color-accent);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+/* ── Generating screen ────────────────────────────────── */
+
+.gen-shell {
+  height: 100vh;
+  background: var(--color-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.gen-stage {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 32px;
+}
+
+/* Ink-bloom animation */
+.ink-bloom {
+  position: relative;
+  width: 180px;
+  height: 180px;
+}
+
+.ink-drop {
+  position: absolute;
+  border-radius: 50%;
+  background: var(--color-text-3);
+  opacity: 0;
+  animation: inkBloom 3.6s ease-in-out infinite;
+}
+
+.ink-drop--1 {
+  width: 80px; height: 80px;
+  top: 50px; left: 50px;
+  animation-delay: 0s;
+}
+.ink-drop--2 {
+  width: 120px; height: 120px;
+  top: 30px; left: 30px;
+  animation-delay: 0.6s;
+  background: var(--color-accent);
+}
+.ink-drop--3 {
+  width: 160px; height: 160px;
+  top: 10px; left: 10px;
+  animation-delay: 1.2s;
+}
+
+@keyframes inkBloom {
+  0%   { opacity: 0;    transform: scale(0.1); }
+  30%  { opacity: 0.18; transform: scale(0.6); }
+  60%  { opacity: 0.08; transform: scale(0.95); }
+  100% { opacity: 0;    transform: scale(1.1); }
+}
+
+.gen-copy {
+  font-family: var(--font-story);
+  font-size: 1.1rem;
+  color: var(--color-text-2);
+  text-align: center;
+  line-height: 1.7;
+  max-width: 260px;
+}
+.gen-copy strong { color: var(--color-text); }
+.gen-copy a { color: var(--color-accent); }
+
+/* ── Bedtime reader (Screen 3) ────────────────────────── */
+
+.btr-shell {
+  height: 100vh;
+  background: var(--color-surface);
+  overflow: hidden;
+  position: relative;
+  transition: opacity 0.4s ease;
+}
+
+.btr-controls {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 20;
+  pointer-events: none;
+}
+
+.btr-btn {
+  pointer-events: all;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-surface-2);
+  color: var(--color-text-3);
+  opacity: 0.65;
+  transition: opacity var(--dur-fast);
+}
+.btr-btn:active { opacity: 1; }
+.btr-btn[hidden] { display: none; }
+
+.btr-tap-zone {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btr-page {
+  position: absolute;
+  inset: 0;
+  padding: 60px 28px 40px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  overflow-y: auto;
+  transition: opacity 0.15s ease;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.btr-title {
+  font-family: var(--font-story);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-text);
+  line-height: 1.3;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.btr-text {
+  font-family: var(--font-story);
+  font-size: 1.15rem;
+  line-height: 1.8;
+  color: var(--color-text);
+  text-align: left;
+}
+
+.btr-image-wrap {
+  margin-bottom: 20px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  max-height: 200px;
+}
+.btr-image {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  display: block;
+}
+
+/* ── Recap screen (Screen 4) ──────────────────────────── */
+
+.recap-shell {
+  height: 100vh;
+  background: var(--color-bg);
+  overflow-y: auto;
+  padding: 40px 24px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.recap-the-end {
+  font-family: var(--font-story);
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--color-text);
+  text-align: center;
+  padding-top: 8px;
+}
+
+.recap-section-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--color-text-3);
+  margin-bottom: 8px;
+}
+
+.recap-lesson-text {
+  font-family: var(--font-story);
+  font-size: 1rem;
+  font-style: italic;
+  color: var(--color-text-2);
+  line-height: 1.6;
+}
+
+.recap-talk-text {
+  font-family: var(--font-story);
+  font-size: 1rem;
+  color: var(--color-text);
+  line-height: 1.6;
+}
+
+.recap-vocab-cards {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.recap-vocab-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 6px 14px;
+}
+
+.recap-vocab-word {
+  font-family: var(--font-story);
+  font-size: 0.9rem;
+  font-style: italic;
+  color: var(--color-text);
+}
+
+.recap-streak {
+  font-size: 0.85rem;
+  color: var(--color-text-3);
+  text-align: center;
+}
+
+.recap-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: auto;
+  padding-top: 8px;
+}
+
+.recap-btn {
+  width: 100%;
+  padding: 14px;
+  border-radius: var(--radius-lg);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity var(--dur-fast), transform var(--dur-fast) var(--ease-spring);
+}
+.recap-btn:active { transform: scale(0.97); opacity: 0.9; }
+
+.recap-btn--save {
+  background: var(--color-accent-lt);
+  color: var(--color-accent);
+  border: 1.5px solid var(--color-accent);
+}
+.recap-btn--night {
+  background: var(--color-text);
+  color: var(--color-bg);
+}
+
+/* ── Goodnight fade ──────────────────────────────────── */
+
+.goodnight-overlay {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  opacity: 0;
+  z-index: 999;
+  pointer-events: none;
+}
+.goodnight-overlay:not([hidden]) { pointer-events: all; }
+
+/* ── Dark theme overrides ────────────────────────────── */
+
+[data-theme="dark"] .btr-shell,
+[data-theme="dark"] .btr-page {
+  background: var(--color-surface);
+}
+
+[data-theme="dark"] .setup-shell,
+[data-theme="dark"] .gen-shell,
+[data-theme="dark"] .recap-shell {
+  background: var(--color-bg);
+}
+
+/* ── Red-light theme: serif inherits red text ─────────── */
+
+[data-theme="redlight"] .btr-text,
+[data-theme="redlight"] .btr-title,
+[data-theme="redlight"] .gen-copy,
+[data-theme="redlight"] .recap-the-end,
+[data-theme="redlight"] .recap-lesson-text,
+[data-theme="redlight"] .recap-talk-text {
+  color: var(--color-text);
+}

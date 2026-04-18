@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}My Story{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/story.css') }}" />
+{% endblock %}
+
+{% block body %}
+<div class="gen-shell">
+  <div class="gen-stage">
+    <div class="gen-copy">
+      Let's try a different story tomorrow.<br>
+      <a href="/" style="text-decoration:underline; font-size:0.9em;">Back home</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

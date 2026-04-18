@@ -1,20 +1,45 @@
-from flask import Flask, request
+from pathlib import Path
+from flask import Flask, request, session
 from config import Config
+
+
+def _run_migrations(db_path: Path) -> None:
+    import sqlite3
+    migrations_dir = Path(__file__).parent.parent / "migrations"
+    if not migrations_dir.exists():
+        return
+    conn = sqlite3.connect(str(db_path))
+    try:
+        for sql_file in sorted(migrations_dir.glob("*.sql")):
+            conn.executescript(sql_file.read_text(encoding="utf-8"))
+        conn.commit()
+    finally:
+        conn.close()
 
 
 def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
     config_class.ensure_dirs()
+    _run_migrations(config_class.DB_PATH)
 
     # Register route blueprints
-    from app.routes import library, reader, flashcards, parent
+    from app.routes import library, reader, flashcards, parent, profiles as profiles_bp, stories as stories_bp
     app.register_blueprint(library.bp)
     app.register_blueprint(reader.bp)
     app.register_blueprint(flashcards.bp)
     app.register_blueprint(parent.bp)
+    app.register_blueprint(profiles_bp.bp)
+    app.register_blueprint(stories_bp.bp)
 
-    # Cache static assets for 1 hour in the browser
+    @app.context_processor
+    def inject_profile():
+        return {
+            "active_profile_id":   session.get("profile_id"),
+            "active_profile_name": session.get("profile_name"),
+            "active_age_band":     session.get("age_band", config_class.DEFAULT_AGE_BAND),
+        }
+
     @app.after_request
     def add_cache_headers(response):
         if request.path.startswith("/static/"):

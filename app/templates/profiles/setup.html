@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
+  <title>Atlas — {{ "Edit" if profile else "New" }} Reader</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/atlas.css') }}"/>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/profiles.css') }}"/>
+  <script>(function(){var t=localStorage.getItem("atlas:theme")||"light";document.documentElement.dataset.theme=t;}());</script>
+</head>
+<body>
+<div class="pw-shell">
+
+  <!-- Progress bar -->
+  <div class="pw-progress">
+    <div class="pw-progress-fill" id="progressFill" style="width: 25%"></div>
+  </div>
+
+  <!-- Steps -->
+  <div class="pw-steps" id="pwSteps">
+
+    <!-- Step 1: Avatar + Name -->
+    <div class="pw-step" id="step1">
+      <div class="pw-step-content">
+        <div class="pw-step-heading">
+          <div class="pw-step-emoji">👋</div>
+          <h1>What's your name?</h1>
+          <p>Pick an avatar and tell us who you are</p>
+        </div>
+
+        <!-- Avatar picker -->
+        <div class="pw-avatar-preview" id="avatarPreview">🦁</div>
+        <div class="pw-avatar-grid" id="avatarGrid">
+          {% for emoji in avatars %}
+          <button class="pw-avatar-btn {{ 'is-selected' if profile and profile.avatar_emoji == emoji }}"
+                  data-emoji="{{ emoji }}">{{ emoji }}</button>
+          {% endfor %}
+        </div>
+
+        <!-- Color picker -->
+        <div class="pw-color-grid" id="colorGrid">
+          {% for color in colors %}
+          <button class="pw-color-btn {{ 'is-selected' if profile and profile.avatar_color == color }}"
+                  data-color="{{ color }}"
+                  style="background: {{ color }}"></button>
+          {% endfor %}
+        </div>
+
+        <!-- Name input -->
+        <input class="pw-name-input" id="nameInput" type="text"
+               placeholder="Enter name…" maxlength="30"
+               value="{{ profile.name if profile else '' }}" autocomplete="off"/>
+      </div>
+
+      <button class="pw-next-btn" id="step1Next">Next →</button>
+    </div>
+
+    <!-- Step 2: Age -->
+    <div class="pw-step" id="step2" hidden>
+      <div class="pw-step-content">
+        <div class="pw-step-heading">
+          <div class="pw-step-emoji" id="previewEmoji2">🦁</div>
+          <h1>How old are you?</h1>
+          <p>We'll pick the right words and stories</p>
+        </div>
+        <div class="pw-age-grid" id="ageGrid">
+          {% for age in range(4, 13) %}
+          <button class="pw-age-btn {{ 'is-selected' if profile and profile.age == age }}"
+                  data-age="{{ age }}">{{ age }}</button>
+          {% endfor %}
+        </div>
+        <div class="pw-band-label" id="bandLabel">Pick your age above</div>
+      </div>
+      <div class="pw-btn-row">
+        <button class="pw-back-btn" id="step2Back">← Back</button>
+        <button class="pw-next-btn" id="step2Next" disabled>Next →</button>
+      </div>
+    </div>
+
+    <!-- Step 3: Interests -->
+    <div class="pw-step" id="step3" hidden>
+      <div class="pw-step-content">
+        <div class="pw-step-heading">
+          <div class="pw-step-emoji" id="previewEmoji3">🦁</div>
+          <h1>What do you love?</h1>
+          <p>Pick as many as you like!</p>
+        </div>
+        <div class="pw-interests-grid" id="interestsGrid">
+          {% for interest in interests %}
+          <button class="pw-interest-btn {% if profile and interest.key in profile.interests %}is-selected{% endif %}"
+                  data-key="{{ interest.key }}">
+            <span class="pw-int-emoji">{{ interest.emoji }}</span>
+            <span class="pw-int-label">{{ interest.label }}</span>
+          </button>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="pw-btn-row">
+        <button class="pw-back-btn" id="step3Back">← Back</button>
+        <button class="pw-next-btn" id="step3Next">Next →</button>
+      </div>
+    </div>
+
+    <!-- Step 4: Fun facts -->
+    <div class="pw-step" id="step4" hidden>
+      <div class="pw-step-content">
+        <div class="pw-step-heading">
+          <div class="pw-step-emoji" id="previewEmoji4">🦁</div>
+          <h1>Fun stuff!</h1>
+          <p>This helps us write stories just for you</p>
+        </div>
+
+        <div class="pw-facts-form">
+          <div class="pw-fact-group">
+            <label class="pw-fact-label">🐾 Do you have a pet?</label>
+            <div class="pw-fact-row">
+              <input class="pw-fact-input" id="petName" type="text"
+                     placeholder="Pet's name (optional)" maxlength="20"
+                     value="{{ profile.fun_facts.get('pet_name', '') if profile else '' }}"/>
+              <select class="pw-fact-select" id="petType">
+                <option value="">Type…</option>
+                <option value="dog"   {% if profile and profile.fun_facts.get('pet_type') == 'dog' %}selected{% endif %}>🐕 Dog</option>
+                <option value="cat"   {% if profile and profile.fun_facts.get('pet_type') == 'cat' %}selected{% endif %}>🐈 Cat</option>
+                <option value="fish"  {% if profile and profile.fun_facts.get('pet_type') == 'fish' %}selected{% endif %}>🐠 Fish</option>
+                <option value="bird"  {% if profile and profile.fun_facts.get('pet_type') == 'bird' %}selected{% endif %}>🐦 Bird</option>
+                <option value="other" {% if profile and profile.fun_facts.get('pet_type') == 'other' %}selected{% endif %}>Other</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="pw-fact-group">
+            <label class="pw-fact-label">👨‍👩‍👧 Any brothers or sisters?</label>
+            <input class="pw-fact-input" id="siblings" type="text"
+                   placeholder="Their names, separated by commas"
+                   value="{{ profile.fun_facts.get('siblings', '') if profile else '' }}"/>
+          </div>
+
+          <div class="pw-fact-group">
+            <label class="pw-fact-label">❤️ Favorite food?</label>
+            <input class="pw-fact-input" id="favFood" type="text"
+                   placeholder="e.g. pizza, tacos…" maxlength="30"
+                   value="{{ profile.fun_facts.get('fav_food', '') if profile else '' }}"/>
+          </div>
+        </div>
+      </div>
+      <div class="pw-btn-row">
+        <button class="pw-back-btn" id="step4Back">← Back</button>
+        <button class="pw-next-btn" id="step4Save">
+          {{ "Save changes" if profile else "Let's go! 🚀" }}
+        </button>
+      </div>
+    </div>
+
+  </div><!-- /pw-steps -->
+</div>
+
+<script>
+"use strict";
+
+const IS_EDIT   = {{ 'true' if profile else 'false' }};
+const PROFILE_ID = {{ profile.id if profile else 'null' }};
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let state = {
+  avatar_emoji: "{{ profile.avatar_emoji if profile else '🦁' }}",
+  avatar_color: "{{ profile.avatar_color if profile else '#6C8EF5' }}",
+  name:         "{{ profile.name if profile else '' }}",
+  age:          {{ profile.age if profile else 'null' }},
+  interests:    {{ (profile.interests | tojson) if profile else '[]' }},
+  fun_facts:    {{ (profile.fun_facts | tojson) if profile else '{}' }},
+};
+
+// ── DOM refs ──────────────────────────────────────────────────────────────────
+const avatarPreview = document.getElementById("avatarPreview");
+const progressFill  = document.getElementById("progressFill");
+
+// ── Avatar ────────────────────────────────────────────────────────────────────
+document.querySelectorAll(".pw-avatar-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".pw-avatar-btn").forEach(b => b.classList.remove("is-selected"));
+    btn.classList.add("is-selected");
+    state.avatar_emoji = btn.dataset.emoji;
+    updateAvatarPreview();
+  });
+});
+document.querySelectorAll(".pw-color-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".pw-color-btn").forEach(b => b.classList.remove("is-selected"));
+    btn.classList.add("is-selected");
+    state.avatar_color = btn.dataset.color;
+    updateAvatarPreview();
+  });
+});
+function updateAvatarPreview() {
+  avatarPreview.textContent = state.avatar_emoji;
+  avatarPreview.style.background = state.avatar_color;
+  ["previewEmoji2","previewEmoji3","previewEmoji4"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.textContent = state.avatar_emoji; el.style.background = state.avatar_color; }
+  });
+}
+updateAvatarPreview();
+
+// ── Name ──────────────────────────────────────────────────────────────────────
+document.getElementById("nameInput").addEventListener("input", e => {
+  state.name = e.target.value.trim();
+});
+
+// ── Age ───────────────────────────────────────────────────────────────────────
+const BAND_LABELS = { seedlings: "Ages 4–6 · Seedlings 🌱", explorers: "Ages 7–9 · Explorers 🔭", adventurers: "Ages 10–12 · Adventurers 🏔️" };
+function ageToBand(age) { return age <= 6 ? "seedlings" : age <= 9 ? "explorers" : "adventurers"; }
+
+document.querySelectorAll(".pw-age-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".pw-age-btn").forEach(b => b.classList.remove("is-selected"));
+    btn.classList.add("is-selected");
+    state.age = parseInt(btn.dataset.age);
+    const band = ageToBand(state.age);
+    document.getElementById("bandLabel").textContent = BAND_LABELS[band];
+    document.getElementById("step2Next").disabled = false;
+  });
+});
+
+// ── Interests ─────────────────────────────────────────────────────────────────
+document.querySelectorAll(".pw-interest-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    btn.classList.toggle("is-selected");
+    const key = btn.dataset.key;
+    if (btn.classList.contains("is-selected")) {
+      if (!state.interests.includes(key)) state.interests.push(key);
+    } else {
+      state.interests = state.interests.filter(k => k !== key);
+    }
+  });
+});
+
+// ── Navigation ────────────────────────────────────────────────────────────────
+function goStep(from, to) {
+  document.getElementById("step" + from).hidden = true;
+  document.getElementById("step" + to).hidden = false;
+  const pct = { 1:25, 2:50, 3:75, 4:100 }[to] || 25;
+  progressFill.style.width = pct + "%";
+  window.scrollTo(0, 0);
+}
+
+document.getElementById("step1Next").addEventListener("click", () => {
+  state.name = document.getElementById("nameInput").value.trim();
+  if (!state.name) { document.getElementById("nameInput").focus(); return; }
+  goStep(1, 2);
+});
+document.getElementById("step2Back").addEventListener("click", () => goStep(2, 1));
+document.getElementById("step2Next").addEventListener("click", () => goStep(2, 3));
+document.getElementById("step3Back").addEventListener("click", () => goStep(3, 2));
+document.getElementById("step3Next").addEventListener("click", () => goStep(3, 4));
+document.getElementById("step4Back").addEventListener("click", () => goStep(4, 3));
+
+// ── Save ──────────────────────────────────────────────────────────────────────
+document.getElementById("step4Save").addEventListener("click", async () => {
+  const btn = document.getElementById("step4Save");
+  btn.disabled = true;
+  btn.textContent = "Saving…";
+
+  state.fun_facts = {
+    pet_name: document.getElementById("petName").value.trim(),
+    pet_type: document.getElementById("petType").value,
+    siblings: document.getElementById("siblings").value.trim(),
+    fav_food: document.getElementById("favFood").value.trim(),
+  };
+
+  const url    = IS_EDIT ? `/profiles/api/${PROFILE_ID}` : "/profiles/api";
+  const method = IS_EDIT ? "PUT" : "POST";
+
+  try {
+    const resp = await fetch(url, {
+      method,
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify(state),
+    });
+    if (resp.ok) {
+      window.location.href = "/";
+    } else {
+      const err = await resp.json();
+      alert(err.error || "Something went wrong");
+      btn.disabled = false;
+      btn.textContent = IS_EDIT ? "Save changes" : "Let's go! 🚀";
+    }
+  } catch(e) {
+    btn.disabled = false;
+    btn.textContent = IS_EDIT ? "Save changes" : "Let's go! 🚀";
+  }
+});
+
+// Init: pre-select saved values if editing
+if (IS_EDIT) {
+  document.querySelectorAll(".pw-avatar-btn").forEach(b => {
+    b.classList.toggle("is-selected", b.dataset.emoji === state.avatar_emoji);
+  });
+  document.querySelectorAll(".pw-color-btn").forEach(b => {
+    b.classList.toggle("is-selected", b.dataset.color === state.avatar_color);
+  });
+  if (state.age) {
+    const ageBtn = document.querySelector(`.pw-age-btn[data-age="${state.age}"]`);
+    if (ageBtn) {
+      ageBtn.classList.add("is-selected");
+      document.getElementById("step2Next").disabled = false;
+      document.getElementById("bandLabel").textContent = BAND_LABELS[ageToBand(state.age)];
+    }
+  }
+}
+</script>
+</body>
+</html>

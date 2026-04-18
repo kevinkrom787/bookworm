@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}My Story{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/story.css') }}" />
+{% endblock %}
+
+{% block body %}
+<div class="gen-shell">
+
+  <div class="gen-stage">
+    <!-- Ink bloom animation -->
+    <div class="ink-bloom" id="inkBloom" aria-hidden="true">
+      <div class="ink-drop ink-drop--1"></div>
+      <div class="ink-drop ink-drop--2"></div>
+      <div class="ink-drop ink-drop--3"></div>
+    </div>
+
+    <div class="gen-copy" id="genCopy">
+      {% if char_names %}
+        {% if char_names | length == 1 %}
+          Tonight's story stars <strong>{{ char_names[0] }}</strong>.<br>Get cozy.
+        {% elif char_names | length == 2 %}
+          Tonight's story stars <strong>{{ char_names[0] }}</strong> and <strong>{{ char_names[1] }}</strong>.<br>Get cozy.
+        {% else %}
+          Tonight's story stars <strong>{{ char_names[:-1] | join(', ') }}</strong> and <strong>{{ char_names[-1] }}</strong>.<br>Get cozy.
+        {% endif %}
+      {% else %}
+        Your story is being written.<br>Get cozy.
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+"use strict";
+const STORY_ID   = {{ story_id }};
+const READ_URL   = "/stories/bedtime/" + STORY_ID + "/read";
+const STOP_URL   = "/";
+
+let pollTimer = null;
+
+function poll() {
+  fetch("/stories/api/bedtime/" + STORY_ID + "/status")
+    .then(r => r.json())
+    .then(data => {
+      if (data.status === "ready") {
+        clearInterval(pollTimer);
+        window.location.href = READ_URL;
+      } else if (data.status === "error") {
+        clearInterval(pollTimer);
+        document.getElementById("genCopy").innerHTML =
+          "Something went wrong.<br><a href='/stories/new' style='text-decoration:underline'>Try again</a>";
+      } else if (data.status === "stopped") {
+        clearInterval(pollTimer);
+        document.getElementById("genCopy").innerHTML =
+          "Let's try a different story tomorrow.<br><a href='/' style='text-decoration:underline'>Home</a>";
+      }
+    })
+    .catch(() => {/* network hiccup — keep polling */});
+}
+
+// Poll every 2 s; safe within the 5-min cache window if generation is fast
+pollTimer = setInterval(poll, 2000);
+poll(); // immediate first check
+</script>
+{% endblock %}

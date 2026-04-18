@@ -22,6 +22,15 @@ class Config:
     # Gutenberg
     GUTENDEX_URL = "https://gutendex.com/books"
 
+    # AI story generation
+    ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
+    AI_PROVIDER       = os.environ.get("AI_PROVIDER", "claude")   # swap to "local" for on-device
+
+    # Image generation (parent configures; no default key ever shipped)
+    IMAGE_PROVIDER        = os.environ.get("IMAGE_PROVIDER", "replicate")
+    REPLICATE_API_KEY     = os.environ.get("REPLICATE_API_KEY", "")
+    MONTHLY_IMAGE_BUDGET  = float(os.environ.get("MONTHLY_IMAGE_BUDGET", "5.0"))
+
     # Default reading settings (will move to user profile in DB phase)
     DEFAULT_AGE_BAND = "explorers"  # seedlings | explorers | adventurers
     DEFAULT_FONT_SIZE = 20          # px
