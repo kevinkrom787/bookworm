@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, render_template, request, current_app
+from flask import Blueprint, jsonify, render_template, request, current_app, session
 from app.services.gutenberg import GutenbergService
 from app.services.flashcard_service import FlashcardService
 from app.routes.profiles import active_band
@@ -11,6 +11,10 @@ def _gutenberg() -> GutenbergService:
 
 def _progress() -> FlashcardService:
     return FlashcardService(current_app.config["DB_PATH"])
+
+
+def _uid() -> str:
+    return str(session.get("profile_id", "default"))
 
 
 @bp.route("/")
@@ -81,7 +85,7 @@ def my_books():
         meta = svc.get_book(book_id)
         if not meta:
             continue
-        progress = prog_svc.get_reading_progress(book_id)
+        progress = prog_svc.get_reading_progress(book_id, user_id=_uid())
         entry = _to_dict(meta)
         entry["progress"] = progress  # {chapter_index, word_index} or None
         books.append(entry)

@@ -18,6 +18,41 @@ from pathlib import Path
 from typing import Optional
 
 
+# ── Number card seed data (module-level so _ensure_number_cards can reference) ─
+
+_NUMBER_WORDS = [
+    "zero","one","two","three","four","five","six","seven","eight","nine",
+    "ten","eleven","twelve","thirteen","fourteen","fifteen","sixteen",
+    "seventeen","eighteen","nineteen","twenty",
+]
+_NUMBER_EMOJI = [
+    "🫥","⭐","👁️","🍎","🐾","🖐️","🎯","🌈","🐙","🎈",
+    "🙌","🌸","🥚","🍀","❤️","🌙","🎮","🔮","🏆","🚀","🎉",
+]
+_NUMBER_EXAMPLES = [
+    ["Zero means nothing is there", "0 cookies left"],
+    ["1 sun in the sky", "You have 1 nose"],
+    ["2 eyes on your face", "A bicycle has 2 wheels"],
+    ["3 sides on a triangle", "A tricycle has 3 wheels"],
+    ["4 legs on a dog", "A square has 4 sides"],
+    ["5 fingers on one hand", "A starfish has 5 arms"],
+    ["6 sides on a cube", "An insect has 6 legs"],
+    ["7 days in a week", "A rainbow has 7 colors"],
+    ["8 legs on a spider", "An octopus has 8 arms"],
+    ["9 planets were counted long ago", "A cat has 9 lives (they say!)"],
+    ["10 fingers on two hands", "10 toes on two feet"],
+    ["11 players on a soccer team", "11 comes after 10"],
+    ["12 months in a year", "12 eggs in a dozen"],
+    ["13 is a baker's dozen", "13 stripes on the US flag"],
+    ["14 days in two weeks", "A fortnight is 14 days"],
+    ["15 minutes in a quarter hour", "15 players on a rugby team"],
+    ["16 ounces in a pound", "Sweet sixteen birthday"],
+    ["17 comes between 16 and 18", "A prime number"],
+    ["18 holes on a golf course", "18 wheels on a big truck"],
+    ["19 comes right before 20", "A prime number"],
+    ["20 fingers and toes together", "20/20 is perfect vision"],
+]
+
 # ── Schema ─────────────────────────────────────────────────────────────────────
 
 _SCHEMA = """
@@ -408,55 +443,21 @@ class FlashcardService:
         self._seed_vocab_words()
 
     def _seed_numbers(self) -> None:
-        """Populate number cards 0–20 on first run. Idempotent."""
+        self._ensure_number_cards("default")
+
+    def _ensure_number_cards(self, user_id: str) -> None:
+        """Seed number cards 0–20 for a user on first access. Idempotent."""
         with self._connect() as conn:
             existing = conn.execute(
-                "SELECT COUNT(*) FROM cards WHERE card_type='number'"
+                "SELECT COUNT(*) FROM cards WHERE card_type='number' AND user_id=?",
+                (user_id,)
             ).fetchone()[0]
         if existing > 0:
             return
-
-        _WORDS = [
-            "zero","one","two","three","four","five","six","seven","eight","nine",
-            "ten","eleven","twelve","thirteen","fourteen","fifteen","sixteen",
-            "seventeen","eighteen","nineteen","twenty",
-        ]
-        # Emoji that naturally repeats n times to show quantity
-        _EMOJI = [
-            "🫥","⭐","👁️","🍎","🐾","🖐️","🎯","🌈","🐙","🎈",
-            "🙌","🌸","🥚","🍀","❤️","🌙","🎮","🔮","🏆","🚀","🎉",
-        ]
-        _EXAMPLES = [
-            ["Zero means nothing is there", "0 cookies left"],
-            ["1 sun in the sky", "You have 1 nose"],
-            ["2 eyes on your face", "A bicycle has 2 wheels"],
-            ["3 sides on a triangle", "A tricycle has 3 wheels"],
-            ["4 legs on a dog", "A square has 4 sides"],
-            ["5 fingers on one hand", "A starfish has 5 arms"],
-            ["6 sides on a cube", "An insect has 6 legs"],
-            ["7 days in a week", "A rainbow has 7 colors"],
-            ["8 legs on a spider", "An octopus has 8 arms"],
-            ["9 planets were counted long ago", "A cat has 9 lives (they say!)"],
-            ["10 fingers on two hands", "10 toes on two feet"],
-            ["11 players on a soccer team", "11 comes after 10"],
-            ["12 months in a year", "12 eggs in a dozen"],
-            ["13 is a baker's dozen", "13 stripes on the US flag"],
-            ["14 days in two weeks", "A fortnight is 14 days"],
-            ["15 minutes in a quarter hour", "15 players on a rugby team"],
-            ["16 ounces in a pound", "Sweet sixteen birthday"],
-            ["17 comes between 16 and 18", "A prime number"],
-            ["18 holes on a golf course", "18 wheels on a big truck"],
-            ["19 comes right before 20", "A prime number"],
-            ["20 fingers and toes together", "20/20 is perfect vision"],
-        ]
-
         for n in range(21):
-            front = {"digit": n, "emoji": _EMOJI[n]}
-            back  = {
-                "word_form": _WORDS[n],
-                "examples":  _EXAMPLES[n],
-            }
-            self.create_card("number", front, back)
+            front = {"digit": n, "emoji": _NUMBER_EMOJI[n]}
+            back  = {"word_form": _NUMBER_WORDS[n], "examples": _NUMBER_EXAMPLES[n]}
+            self.create_card("number", front, back, user_id=user_id)
 
     def _seed_vocab_words(self) -> None:
         """Populate vocab_words for all age bands on first run. Idempotent."""
@@ -513,6 +514,7 @@ class FlashcardService:
         limit: int = 200,
         offset: int = 0,
     ) -> list[Card]:
+        self._ensure_number_cards(user_id)
         clauses = ["user_id = ?"]
         params: list = [user_id]
         if card_type:
@@ -548,6 +550,7 @@ class FlashcardService:
         return self._row_to_card(row) if row else None
 
     def get_stats(self, user_id: str = "default") -> DeckStats:
+        self._ensure_number_cards(user_id)
         today = date.today().isoformat()
         with self._connect() as conn:
             # Three scalar aggregates in one pass

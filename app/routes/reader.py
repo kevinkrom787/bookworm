@@ -6,6 +6,11 @@ from app.services.tts import TTSService
 
 bp = Blueprint("reader", __name__)
 
+
+def _uid() -> str:
+    from flask import session
+    return str(session.get("profile_id", "default"))
+
 # Singleton TTS service — lazy-loaded on first request
 _tts = None  # type: TTSService
 
@@ -28,7 +33,7 @@ def home():
     if not session.get("profile_id"):
         from app.services.profile_service import ProfileService
         svc = ProfileService(current_app.config["DB_PATH"])
-        if svc.list_profiles():
+        if svc.list_profiles(family_id=session.get("family_id")):
             return redirect(url_for("profiles.select"))
         else:
             return redirect(url_for("profiles.new"))
@@ -46,7 +51,7 @@ def read(book_id: int):
     # If the caller didn't specify a chapter, restore from DB progress
     progress_svc = FlashcardService(current_app.config["DB_PATH"])
     if "chapter" not in request.args:
-        saved = progress_svc.get_reading_progress(book_id)
+        saved = progress_svc.get_reading_progress(book_id, user_id=_uid())
         chapter_index = saved["chapter_index"] if saved else 0
         saved_word    = saved["word_index"]    if saved else 0
     else:
@@ -258,6 +263,7 @@ def save_progress():
         book_id=int(book_id),
         chapter_index=int(chapter_index),
         word_index=int(word_index),
+        user_id=_uid(),
     )
     return jsonify({"saved": True})
 
@@ -274,7 +280,7 @@ def vocab_save():
     svc = FlashcardService(current_app.config["DB_PATH"])
 
     # Avoid duplicates
-    existing_id = svc.word_exists(word)
+    existing_id = svc.word_exists(word, user_id=_uid())
     if existing_id:
         return jsonify({"duplicate": True, "card_id": existing_id}), 200
 
@@ -293,6 +299,7 @@ def vocab_save():
         back_data=back_data,
         source_book=data.get("source_book") or None,
         source_chapter=data.get("source_chapter") or None,
+        user_id=_uid(),
     )
     return jsonify({"saved": True, "card_id": card.id}), 201
 

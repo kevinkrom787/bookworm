@@ -13,7 +13,7 @@ def _svc() -> FlashcardService:
 
 
 def _uid() -> str:
-    return request.args.get("user_id", "default")
+    return str(session.get("profile_id", "default"))
 
 
 # ── Page routes ───────────────────────────────────────────────────────────────
@@ -86,7 +86,7 @@ def api_create():
         back_data=back_data,
         source_book=data.get("source_book") or None,
         source_chapter=data.get("source_chapter") or None,
-        user_id=data.get("user_id", "default"),
+        user_id=_uid(),
     )
     return jsonify(card.to_dict()), 201
 
@@ -106,7 +106,7 @@ def api_review(card_id: int):
     if rating not in (1, 2, 3):
         return jsonify({"error": "rating must be 1 (Hard), 2 (Good), or 3 (Easy)"}), 400
 
-    result = _svc().submit_review(card_id, rating=rating, user_id=data.get("user_id", "default"))
+    result = _svc().submit_review(card_id, rating=rating, user_id=_uid())
     if not result:
         return jsonify({"error": "Card not found"}), 404
 
@@ -144,7 +144,7 @@ def api_save_quiz_session():
         questions_total=int(data.get("questions_total", 0)),
         questions_correct=int(data.get("questions_correct", 0)),
         set_label=data.get("set_label") or None,
-        user_id=data.get("user_id", "default"),
+        user_id=_uid(),
     )
     return jsonify({"id": session_id, "ok": True}), 201
 
@@ -185,7 +185,7 @@ def api_add_vocab_word():
         return jsonify({"error": "vocab_word_id required"}), 400
     card = _svc().add_vocab_word_to_deck(
         vocab_word_id=int(vid),
-        user_id=data.get("user_id", "default"),
+        user_id=_uid(),
     )
     if card is None:
         return jsonify({"error": "Word not found or already in deck"}), 409
@@ -200,7 +200,7 @@ def api_ensure_vocab_deck():
     result = _svc().ensure_vocab_in_deck(
         age_band=band,
         level=int(level) if level is not None else None,
-        user_id=data.get("user_id", "default"),
+        user_id=_uid(),
     )
     return jsonify(result)
 
@@ -215,7 +215,7 @@ def api_add_vocab_level():
     result = _svc().add_vocab_level_to_deck(
         age_band=band,
         level=int(level),
-        user_id=data.get("user_id", "default"),
+        user_id=_uid(),
     )
     return jsonify(result)
 
@@ -223,10 +223,9 @@ def api_add_vocab_level():
 @bp.route("/api/cards/<int:card_id>/master", methods=["POST"])
 def api_master_card(card_id: int):
     data     = request.get_json(silent=True) or {}
-    user_id  = data.get("user_id", "default")
     unmaster = bool(data.get("unmaster", False))
     svc = _svc()
-    ok  = svc.unmaster_card(card_id, user_id) if unmaster else svc.mark_card_mastered(card_id, user_id)
+    ok  = svc.unmaster_card(card_id, _uid()) if unmaster else svc.mark_card_mastered(card_id, _uid())
     if not ok:
         return jsonify({"error": "Card not found"}), 404
     return jsonify({"mastered": not unmaster})
@@ -265,7 +264,6 @@ def api_add_story_word():
     story_id    = data.get("story_id")
     story_title = data.get("story_title", "")
     age_band    = data.get("age_band") or active_band()
-    user_id     = data.get("user_id", "default")
 
     if not word or not story_id:
         return jsonify({"error": "word and story_id required"}), 400
@@ -282,7 +280,7 @@ def api_add_story_word():
         phonetic=phonetic,
         definition=definition,
         example=example,
-        user_id=user_id,
+        user_id=_uid(),
     )
     if card is None:
         return jsonify({"error": "Already in deck"}), 409
@@ -293,8 +291,7 @@ def api_add_story_word():
 def api_story_words_status():
     story_id = request.args.get("story_id", type=int)
     words    = request.args.getlist("words")
-    user_id  = request.args.get("user_id", "default")
     if not story_id:
         return jsonify({"error": "story_id required"}), 400
-    status = _svc().get_story_words_status(story_id, words, user_id)
+    status = _svc().get_story_words_status(story_id, words, _uid())
     return jsonify({"status": status})

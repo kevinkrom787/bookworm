@@ -6,7 +6,7 @@ and quiz history. PIN protection can be added later.
 """
 
 import json
-from flask import Blueprint, render_template, current_app
+from flask import Blueprint, render_template, current_app, session
 from app.services.flashcard_service import FlashcardService
 from app.services.gutenberg import GutenbergService
 
@@ -20,8 +20,10 @@ def index():
     svc       = FlashcardService(db_path)
     gutenberg = GutenbergService(cache_dir)
 
+    uid = str(session.get("profile_id", "default"))
+
     # ── Reading progress ──────────────────────────────────────────────
-    progress_rows = svc.get_all_reading_progress()
+    progress_rows = svc.get_all_reading_progress(user_id=uid)
     books = []
     for row in progress_rows:
         book_id = row["book_id"]
@@ -44,7 +46,7 @@ def index():
         })
 
     # ── Vocab + quiz summary ──────────────────────────────────────────
-    summary = svc.get_parent_summary()
+    summary = svc.get_parent_summary(user_id=uid)
 
     return render_template(
         "parent/index.html",
