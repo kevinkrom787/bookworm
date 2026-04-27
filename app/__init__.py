@@ -1,6 +1,8 @@
 from pathlib import Path
-from flask import Flask, request, session
+from flask import Flask, redirect, request, session, url_for
 from config import Config
+
+_AUTH_EXEMPT = ("/auth/", "/static/")
 
 
 def _run_migrations(db_path: Path) -> None:
@@ -11,7 +13,16 @@ def _run_migrations(db_path: Path) -> None:
     conn = sqlite3.connect(str(db_path))
     try:
         for sql_file in sorted(migrations_dir.glob("*.sql")):
-            conn.executescript(sql_file.read_text(encoding="utf-8"))
+            for stmt in sql_file.read_text(encoding="utf-8").split(";"):
+                stmt = stmt.strip()
+                if not stmt or stmt.startswith("--"):
+                    continue
+                try:
+                    conn.execute(stmt)
+                except sqlite3.OperationalError as exc:
+                    # Ignore "duplicate column name" so ALTER TABLE is idempotent
+                    if "duplicate column name" not in str(exc).lower():
+                        raise
         conn.commit()
     finally:
         conn.close()
@@ -24,7 +35,10 @@ def create_app(config_class=Config):
     _run_migrations(config_class.DB_PATH)
 
     # Register route blueprints
-    from app.routes import library, reader, flashcards, parent, profiles as profiles_bp, stories as stories_bp
+    from app.routes import (library, reader, flashcards, parent,
+                            profiles as profiles_bp, stories as stories_bp,
+                            auth as auth_bp)
+    app.register_blueprint(auth_bp.bp)
     app.register_blueprint(library.bp)
     app.register_blueprint(reader.bp)
     app.register_blueprint(flashcards.bp)
@@ -32,12 +46,20 @@ def create_app(config_class=Config):
     app.register_blueprint(profiles_bp.bp)
     app.register_blueprint(stories_bp.bp)
 
+    @app.before_request
+    def require_family_session():
+        if any(request.path.startswith(p) for p in _AUTH_EXEMPT):
+            return None
+        if "family_id" not in session:
+            return redirect(url_for("auth.login", next=request.path))
+
     @app.context_processor
     def inject_profile():
         return {
             "active_profile_id":   session.get("profile_id"),
             "active_profile_name": session.get("profile_name"),
             "active_age_band":     session.get("age_band", config_class.DEFAULT_AGE_BAND),
+            "current_family_name": session.get("family_name", ""),
         }
 
     @app.after_request

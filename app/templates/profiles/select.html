@@ -12,6 +12,9 @@
 <div class="ps-shell">
   <div class="ps-header">
     <div class="ps-title">Who's reading today?</div>
+    {% if current_family_name %}
+    <div class="ps-family">{{ current_family_name }}</div>
+    {% endif %}
   </div>
 
   <div class="ps-grid" id="profileGrid">
@@ -31,6 +34,9 @@
 
   <div class="ps-footer">
     <a href="{{ url_for('profiles.new') }}" class="ps-manage-link">Manage profiles</a>
+    <form method="POST" action="{{ url_for('auth.logout') }}" style="display:inline;">
+      <button type="submit" class="ps-signout-btn">Sign out</button>
+    </form>
   </div>
 </div>
 

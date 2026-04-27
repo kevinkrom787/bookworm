@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
+  <title>Atlas — Sign in</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/atlas.css') }}"/>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}"/>
+</head>
+<body>
+<div class="auth-shell">
+  <div class="auth-card">
+    <div class="auth-logo">📚</div>
+    <h1 class="auth-title">Welcome back</h1>
+    <p class="auth-sub">Sign in to your family account.</p>
+
+    {% if error %}
+    <div class="auth-error">{{ error }}</div>
+    {% endif %}
+
+    <form method="POST" action="{{ url_for('auth.login_post') }}{% if request.args.get('next') %}?next={{ request.args.get('next') }}{% endif %}" class="auth-form">
+      <label class="auth-label">
+        Email
+        <input class="auth-input" type="email" name="email" value="{{ email or '' }}"
+               placeholder="parent@example.com" required autofocus/>
+      </label>
+      <label class="auth-label">
+        Password
+        <input class="auth-input" type="password" name="password"
+               placeholder="Your password" required/>
+      </label>
+      <button class="auth-btn" type="submit">Sign in</button>
+    </form>
+
+    <p class="auth-switch">
+      New to Atlas? <a href="{{ url_for('auth.signup') }}">Create a family account</a>
+    </p>
+  </div>
+</div>
+</body>
+</html>

@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS child_profiles (
     avatar_color TEXT    NOT NULL DEFAULT '#6C8EF5',
     interests    TEXT    NOT NULL DEFAULT '[]',
     fun_facts    TEXT    NOT NULL DEFAULT '{}',
+    family_id    INTEGER REFERENCES families(id),
     created_at   TEXT    NOT NULL DEFAULT (datetime('now'))
 );
 """
@@ -105,17 +106,19 @@ class ProfileService:
             created_at=row["created_at"],
         )
 
-    def list_profiles(self) -> list[ChildProfile]:
+    def list_profiles(self, family_id: int) -> list:
         with self._connect() as conn:
             rows = conn.execute(
-                "SELECT * FROM child_profiles ORDER BY created_at ASC"
+                "SELECT * FROM child_profiles WHERE family_id = ? ORDER BY created_at ASC",
+                (family_id,)
             ).fetchall()
         return [self._row_to_profile(r) for r in rows]
 
-    def get_profile(self, profile_id: int) -> Optional[ChildProfile]:
+    def get_profile(self, profile_id: int, family_id: int) -> Optional[ChildProfile]:
         with self._connect() as conn:
             row = conn.execute(
-                "SELECT * FROM child_profiles WHERE id = ?", (profile_id,)
+                "SELECT * FROM child_profiles WHERE id = ? AND family_id = ?",
+                (profile_id, family_id)
             ).fetchone()
         return self._row_to_profile(row) if row else None
 
@@ -123,6 +126,7 @@ class ProfileService:
         self,
         name: str,
         age: int,
+        family_id: int,
         avatar_emoji: str = "🦁",
         avatar_color: str = "#6C8EF5",
         interests: list = None,
@@ -132,29 +136,33 @@ class ProfileService:
         with self._connect() as conn:
             cur = conn.execute(
                 """INSERT INTO child_profiles
-                       (name, age, age_band, avatar_emoji, avatar_color, interests, fun_facts)
-                   VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                       (name, age, age_band, avatar_emoji, avatar_color, interests, fun_facts, family_id)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
                 (name.strip(), age, band, avatar_emoji, avatar_color,
-                 json.dumps(interests or []), json.dumps(fun_facts or {})),
+                 json.dumps(interests or []), json.dumps(fun_facts or {}), family_id),
             )
-        return self.get_profile(cur.lastrowid)
+        return self.get_profile(cur.lastrowid, family_id)
 
     def update_profile(self, profile_id: int, name: str, age: int,
                        avatar_emoji: str, avatar_color: str,
-                       interests: list, fun_facts: dict) -> Optional[ChildProfile]:
+                       interests: list, fun_facts: dict,
+                       family_id: int) -> Optional[ChildProfile]:
         band = age_to_band(age)
         with self._connect() as conn:
             conn.execute(
                 """UPDATE child_profiles SET
                        name=?, age=?, age_band=?, avatar_emoji=?, avatar_color=?,
                        interests=?, fun_facts=?
-                   WHERE id=?""",
+                   WHERE id=? AND family_id=?""",
                 (name.strip(), age, band, avatar_emoji, avatar_color,
-                 json.dumps(interests), json.dumps(fun_facts), profile_id),
+                 json.dumps(interests), json.dumps(fun_facts), profile_id, family_id),
             )
-        return self.get_profile(profile_id)
+        return self.get_profile(profile_id, family_id)
 
-    def delete_profile(self, profile_id: int) -> bool:
+    def delete_profile(self, profile_id: int, family_id: int) -> bool:
         with self._connect() as conn:
-            cur = conn.execute("DELETE FROM child_profiles WHERE id = ?", (profile_id,))
+            cur = conn.execute(
+                "DELETE FROM child_profiles WHERE id = ? AND family_id = ?",
+                (profile_id, family_id)
+            )
         return cur.rowcount > 0

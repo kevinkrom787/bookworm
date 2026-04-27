@@ -12,6 +12,10 @@ def _svc() -> ProfileService:
     return ProfileService(current_app.config["DB_PATH"])
 
 
+def _fid() -> int:
+    return session.get("family_id")
+
+
 def active_band() -> str:
     """Return the active profile's age band, falling back to config default."""
     return session.get("age_band", current_app.config["DEFAULT_AGE_BAND"])
@@ -21,7 +25,7 @@ def active_band() -> str:
 
 @bp.route("/")
 def select():
-    profiles = _svc().list_profiles()
+    profiles = _svc().list_profiles(family_id=_fid())
     if not profiles:
         return redirect(url_for("profiles.new"))
     return render_template("profiles/select.html", profiles=profiles)
@@ -36,7 +40,7 @@ def new():
 
 @bp.route("/<int:profile_id>/edit")
 def edit(profile_id: int):
-    profile = _svc().get_profile(profile_id)
+    profile = _svc().get_profile(profile_id, family_id=_fid())
     if not profile:
         return redirect(url_for("profiles.select"))
     return render_template("profiles/setup.html",
@@ -59,6 +63,7 @@ def api_create():
         avatar_color=data.get("avatar_color", "#6C8EF5"),
         interests=data.get("interests", []),
         fun_facts=data.get("fun_facts", {}),
+        family_id=_fid(),
     )
     _set_session(profile)
     return jsonify(profile.to_dict()), 201
@@ -75,9 +80,10 @@ def api_update(profile_id: int):
         name=name,
         age=int(data.get("age", 7)),
         avatar_emoji=data.get("avatar_emoji", "🦁"),
-        avatar_color=data.get("avatar_color", "#6C8EF5"),
+        avatar_color=data.get("avatar_color", "#6C8EF6"),
         interests=data.get("interests", []),
         fun_facts=data.get("fun_facts", {}),
+        family_id=_fid(),
     )
     if not profile:
         return jsonify({"error": "Not found"}), 404
@@ -88,7 +94,7 @@ def api_update(profile_id: int):
 
 @bp.route("/api/<int:profile_id>/activate", methods=["POST"])
 def api_activate(profile_id: int):
-    profile = _svc().get_profile(profile_id)
+    profile = _svc().get_profile(profile_id, family_id=_fid())
     if not profile:
         return jsonify({"error": "Not found"}), 404
     _set_session(profile)
@@ -97,7 +103,7 @@ def api_activate(profile_id: int):
 
 @bp.route("/api/<int:profile_id>", methods=["DELETE"])
 def api_delete(profile_id: int):
-    deleted = _svc().delete_profile(profile_id)
+    deleted = _svc().delete_profile(profile_id, family_id=_fid())
     if session.get("profile_id") == profile_id:
         session.pop("profile_id", None)
         session.pop("profile_name", None)
