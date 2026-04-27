@@ -37,9 +37,9 @@
   <!-- ── Level tabs ───────────────────────────────────────────────── -->
   <div class="wl-tabs" role="tablist">
     <button class="wl-tab active" data-level="0">All</button>
-    <button class="wl-tab" data-level="1" id="tab1">Beginner</button>
-    <button class="wl-tab" data-level="2" id="tab2">Growing</button>
-    <button class="wl-tab" data-level="3" id="tab3">Blooming</button>
+    <button class="wl-tab" data-level="1" id="tab1">Adjectives</button>
+    <button class="wl-tab" data-level="2" id="tab2">Verbs</button>
+    <button class="wl-tab" data-level="3" id="tab3">Nouns</button>
     <button class="wl-add-level-btn" id="addLevelBtn" hidden>+ Add level</button>
   </div>
 
@@ -58,20 +58,20 @@
 const AGE_BAND = "{{ age_band }}";
 
 const LEVEL_NAMES = {
-  seedlings:   {1: "Beginner", 2: "Growing",  3: "Blooming"},
-  explorers:   {1: "Starter",  2: "Building", 3: "Advanced"},
-  adventurers: {1: "Foundation", 2: "Expanding", 3: "Mastery"},
+  seedlings:   {1: "Adjectives", 2: "Verbs", 3: "Nouns"},
+  explorers:   {1: "Adjectives", 2: "Verbs", 3: "Nouns"},
+  adventurers: {1: "Adjectives", 2: "Verbs", 3: "Nouns"},
 };
 
 const CATEGORY_ICONS = {
-  sight_words: "👁️", animals: "🐾", colors: "🎨",
-  actions: "⚡", describing: "💭", feelings: "💛",
-  people: "👨‍👩‍👧", things: "📦", world: "🌍",
+  adjectives: "🎨",
+  verbs:      "⚡",
+  nouns:      "📦",
 };
 const CATEGORY_LABELS = {
-  sight_words: "Sight Word", animals: "Animals", colors: "Colors",
-  actions: "Action", describing: "Describing", feelings: "Feeling",
-  people: "People", things: "Things", world: "World",
+  adjectives: "Adjective",
+  verbs:      "Verb",
+  nouns:      "Noun",
 };
 
 let allWords   = [];

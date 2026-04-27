@@ -1,62 +1,81 @@
 {% extends "base.html" %}
 {% block title %}{{ title }}{% endblock %}
 {% block extra_css %}
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/story.css') }}" />
 {% endblock %}
 
 {% block body %}
 <div class="recap-shell" id="recapShell">
 
-  <!-- Section 1: The End -->
-  <div class="recap-the-end">The End.</div>
+  <canvas id="recapStarCanvas" class="recap-star-canvas" aria-hidden="true"></canvas>
 
-  {% if lesson %}
-  <!-- Section 2: Tonight's lesson -->
-  <div class="recap-section recap-lesson">
-    <div class="recap-section-label">Tonight's lesson</div>
-    <p class="recap-lesson-text">{{ lesson }}</p>
-  </div>
-  {% endif %}
+  <div class="recap-content">
 
-  {% if talk_about_it %}
-  <!-- Section 3: Talk about it -->
-  <div class="recap-section recap-talk">
-    <div class="recap-section-label">If you want, ask each other:</div>
-    <p class="recap-talk-text">{{ talk_about_it }}</p>
-  </div>
-  {% endif %}
+    <div class="recap-the-end">The End.</div>
 
-  {% if vocab_words %}
-  <!-- Section 4: New words — mocked for v0.1 -->
-  <!-- TODO v0.2: wire to flashcard component -->
-  <div class="recap-section recap-vocab">
-    <div class="recap-section-label">New words you met</div>
-    <div class="recap-vocab-cards">
-      {% for word in vocab_words %}
-      <div class="recap-vocab-card">
-        <span class="recap-vocab-word">{{ word }}</span>
-      </div>
+    {% if images %}
+    <div class="recap-images-scroll" id="imageStrip">
+      {% for url in images %}
+      <img class="recap-image-thumb" src="{{ url }}" alt="" aria-hidden="true" loading="lazy">
       {% endfor %}
     </div>
-  </div>
-  {% endif %}
+    {% endif %}
 
-  {% if streak >= 2 %}
-  <!-- Section 5: Streak — only when ≥ 2 nights -->
-  <div class="recap-streak">
-    🔥 {{ streak }} nights in a row
-  </div>
-  {% endif %}
+    {% if lesson %}
+    <div class="recap-section recap-lesson">
+      <div class="recap-section-label">Tonight's virtue</div>
+      <p class="recap-lesson-text">{{ lesson }}</p>
+    </div>
+    {% endif %}
 
-  <!-- Bottom actions -->
-  <div class="recap-actions">
-    <button class="recap-btn recap-btn--save" id="saveBtn">Save this story</button>
-    <button class="recap-btn recap-btn--night" id="goodnightBtn">Goodnight</button>
+    {% if talk_about_it %}
+    <div class="recap-section recap-talk">
+      <div class="recap-section-label">Ask each other</div>
+      <p class="recap-talk-text">{{ talk_about_it }}</p>
+    </div>
+    {% endif %}
+
+    {% if vocab_words %}
+    <div class="recap-section recap-vocab">
+      <div class="recap-section-label">{{ profile.name }}'s new words tonight</div>
+      <div class="recap-vocab-cards">
+        {% for word in vocab_words %}
+        <button class="recap-vocab-chip" data-word="{{ word }}">
+          <span class="recap-vocab-word">{{ word }}</span>
+          <span class="recap-vocab-chip-check" hidden>✓</span>
+        </button>
+        {% endfor %}
+      </div>
+      <div class="recap-vocab-hint">Tap a word to see its definition</div>
+    </div>
+    {% endif %}
+
+    <!-- Word detail sheet -->
+    <div class="recap-word-sheet" id="wordSheet" hidden>
+      <div class="recap-word-sheet-bg" id="wordSheetBg"></div>
+      <div class="recap-word-sheet-panel">
+        <div class="recap-word-sheet-handle"></div>
+        <div class="recap-word-detail" id="wordDetail"></div>
+        <button class="recap-word-save-btn" id="wordSaveBtn">Save to flashcards</button>
+      </div>
+    </div>
+
+    {% if streak >= 2 %}
+    <div class="recap-streak">🔥 {{ streak }} nights in a row</div>
+    {% endif %}
+
+    <div class="recap-actions">
+      <a href="/stories/new" class="recap-btn recap-btn--another">Read another story ✨</a>
+      <button class="recap-btn recap-btn--save" id="saveBtn">Save this story</button>
+      <button class="recap-btn recap-btn--night" id="goodnightBtn">Goodnight</button>
+    </div>
+
   </div>
 
 </div>
 
-<!-- Goodnight overlay -->
 <div class="goodnight-overlay" id="goodnightOverlay" hidden></div>
 {% endblock %}
 
@@ -65,6 +84,84 @@
 "use strict";
 const STORY_ID = {{ story_id }};
 
+// ── Star canvas ───────────────────────────────────────────────────────────────
+(function () {
+  const canvas = document.getElementById("recapStarCanvas");
+  const ctx    = canvas.getContext("2d");
+  let stars    = [];
+
+  function resize() {
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+
+  function initStars(n) {
+    stars = [];
+    for (let i = 0; i < n; i++) {
+      stars.push({
+        x:      Math.random() * canvas.width,
+        y:      Math.random() * canvas.height,
+        r:      Math.random() * 1.4 + 0.3,
+        target: Math.random() * 0.6 + 0.1,
+        speed:  Math.random() * 0.006 + 0.002,
+        phase:  Math.random() * Math.PI * 2,
+      });
+    }
+  }
+
+  function draw(t) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (const s of stars) {
+      const opacity = s.target * (0.6 + 0.4 * Math.sin(t * s.speed * 60 + s.phase));
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(180, 170, 140, ${opacity})`;
+      ctx.fill();
+    }
+    requestAnimationFrame(draw);
+  }
+
+  resize();
+  initStars(70);
+  requestAnimationFrame(draw);
+  window.addEventListener("resize", () => { resize(); initStars(70); });
+}());
+
+// ── Image polling ─────────────────────────────────────────────────────────────
+(function () {
+  const strip = document.getElementById("imageStrip");
+  if (!strip) return;
+
+  const MAX_RECAP_IMAGES = 6;
+
+  // Use getAttribute("src") to get the original relative URL, not browser-resolved absolute
+  const seenUrls = new Set(
+    Array.from(strip.querySelectorAll("img")).map(img => img.getAttribute("src"))
+  );
+
+  let polls = 0;
+  const timer = setInterval(() => {
+    fetch("/stories/api/bedtime/" + STORY_ID + "/images")
+      .then(r => r.json())
+      .then(data => {
+        for (const url of Object.values(data.images || {})) {
+          if (seenUrls.has(url)) continue;
+          if (strip.querySelectorAll("img").length >= MAX_RECAP_IMAGES) break;
+          seenUrls.add(url);
+          const img = document.createElement("img");
+          img.className = "recap-image-thumb";
+          img.setAttribute("src", url);
+          img.setAttribute("aria-hidden", "true");
+          img.loading = "lazy";
+          strip.appendChild(img);
+        }
+        if (++polls >= 20) clearInterval(timer);
+      })
+      .catch(() => {});
+  }, 2000);
+}());
+
+// ── Actions ───────────────────────────────────────────────────────────────────
 document.getElementById("saveBtn").addEventListener("click", async () => {
   const btn = document.getElementById("saveBtn");
   btn.disabled = true;
@@ -79,12 +176,200 @@ document.getElementById("saveBtn").addEventListener("click", async () => {
 document.getElementById("goodnightBtn").addEventListener("click", () => {
   const overlay = document.getElementById("goodnightOverlay");
   overlay.hidden = false;
-  // Fade to black over 10 s, then go home
   requestAnimationFrame(() => {
     overlay.style.opacity = "1";
     overlay.style.transition = "opacity 10s ease";
   });
   setTimeout(() => { window.location.href = "/"; }, 10500);
 });
+
+// ── Story word definitions ────────────────────────────────────────────────────
+(function () {
+  const STORY_TITLE = {{ title | tojson }};
+  const AGE_BAND    = {{ profile.age_band | tojson }};
+
+  // Cache: word → {phonetic, definition, example} | "loading" | "error"
+  const enrichCache = {};
+  // Track which words are already saved
+  const savedWords  = new Set();
+
+  let activeWord    = null;
+
+  // ── Pre-fetch definitions in background on page load ──────────────────
+  const chips = [...document.querySelectorAll(".recap-vocab-chip")];
+
+  chips.forEach(chip => {
+    const word = chip.dataset.word;
+    enrichCache[word] = "loading";
+    fetch("/flashcards/api/story-words/enrich", {
+      method:  "POST",
+      headers: {"Content-Type": "application/json"},
+      body:    JSON.stringify({ word, story_title: STORY_TITLE, age_band: AGE_BAND }),
+    })
+      .then(r => r.json())
+      .then(data => { enrichCache[word] = data; })
+      .catch(() => { enrichCache[word] = "error"; });
+  });
+
+  // Pre-check which words are already saved
+  if (chips.length) {
+    const params = new URLSearchParams({ story_id: STORY_ID });
+    chips.forEach(c => params.append("words", c.dataset.word));
+    fetch("/flashcards/api/story-words/status?" + params)
+      .then(r => r.json())
+      .then(data => {
+        Object.entries(data.status || {}).forEach(([w, saved]) => {
+          if (saved) markChipSaved(w);
+        });
+      })
+      .catch(() => {});
+  }
+
+  // ── Sheet open / close ────────────────────────────────────────────────
+  const sheet   = document.getElementById("wordSheet");
+  const sheetBg = document.getElementById("wordSheetBg");
+  const detail  = document.getElementById("wordDetail");
+  const saveBtn = document.getElementById("wordSaveBtn");
+
+  function openSheet(word) {
+    activeWord = word;
+    renderDetail(word);
+    sheet.hidden = false;
+    requestAnimationFrame(() => sheet.classList.add("is-open"));
+  }
+
+  function closeSheet() {
+    sheet.classList.remove("is-open");
+    sheet.addEventListener("transitionend", () => { sheet.hidden = true; }, { once: true });
+    activeWord = null;
+  }
+
+  sheetBg.addEventListener("click", closeSheet);
+
+  // ── Render detail content ─────────────────────────────────────────────
+  function renderDetail(word) {
+    const isSaved = savedWords.has(word);
+    const data    = enrichCache[word];
+
+    // Still loading — show spinner and poll
+    if (!data || data === "loading") {
+      detail.innerHTML = `
+        <div class="recap-word-big">${esc(word)}</div>
+        <div class="recap-word-loading">Looking up definition…</div>`;
+      saveBtn.disabled    = true;
+      saveBtn.textContent = "Save to flashcards";
+      saveBtn.classList.remove("is-saved");
+      const poll = setInterval(() => {
+        if (enrichCache[word] && enrichCache[word] !== "loading") {
+          clearInterval(poll);
+          if (activeWord === word) renderDetail(word);
+        }
+      }, 400);
+      return;
+    }
+
+    // Ollama error or empty response — offer retry
+    const phonetic   = (data !== "error" && data.phonetic)   ? data.phonetic   : "";
+    const definition = (data !== "error" && data.definition) ? data.definition : "";
+    const example    = (data !== "error" && data.example)    ? data.example    : "";
+
+    if (!definition) {
+      detail.innerHTML = `
+        <div class="recap-word-big">${esc(word)}</div>
+        <div class="recap-word-loading">
+          Couldn't load definition.
+          <button class="recap-word-retry-btn" id="retryBtn">Try again</button>
+        </div>`;
+      document.getElementById("retryBtn").addEventListener("click", () => {
+        enrichCache[word] = "loading";
+        fetch("/flashcards/api/story-words/enrich", {
+          method:  "POST",
+          headers: {"Content-Type": "application/json"},
+          body:    JSON.stringify({ word, story_title: STORY_TITLE, age_band: AGE_BAND }),
+        })
+          .then(r => r.json())
+          .then(d => { enrichCache[word] = d; if (activeWord === word) renderDetail(word); })
+          .catch(() => { enrichCache[word] = "error"; if (activeWord === word) renderDetail(word); });
+        if (activeWord === word) renderDetail(word);
+      });
+      saveBtn.disabled    = false;
+      saveBtn.textContent = "Save anyway";
+      saveBtn.classList.remove("is-saved");
+      return;
+    }
+
+    detail.innerHTML = `
+      <div class="recap-word-big">${esc(word)}</div>
+      ${phonetic   ? `<div class="recap-word-phonetic">${esc(phonetic)}</div>` : ""}
+      <div class="recap-word-def">${esc(definition)}</div>
+      ${example    ? `<div class="recap-word-example">"${esc(example)}"</div>` : ""}`;
+
+    if (isSaved) {
+      saveBtn.textContent = "Saved ✓";
+      saveBtn.disabled    = true;
+      saveBtn.classList.add("is-saved");
+    } else {
+      saveBtn.textContent = "Save to flashcards";
+      saveBtn.disabled    = false;
+      saveBtn.classList.remove("is-saved");
+    }
+  }
+
+  // ── Save button ───────────────────────────────────────────────────────
+  saveBtn.addEventListener("click", async () => {
+    if (!activeWord || savedWords.has(activeWord)) return;
+    const word = activeWord;
+    const data = enrichCache[word];
+    saveBtn.disabled    = true;
+    saveBtn.textContent = "Saving…";
+
+    const body = {
+      word, story_id: STORY_ID, story_title: STORY_TITLE, age_band: AGE_BAND,
+    };
+    if (data && data !== "loading" && data !== "error") {
+      body.phonetic   = data.phonetic   || "";
+      body.definition = data.definition || "";
+      body.example    = data.example    || "";
+    }
+
+    try {
+      const res = await fetch("/flashcards/api/story-words/add", {
+        method:  "POST",
+        headers: {"Content-Type": "application/json"},
+        body:    JSON.stringify(body),
+      });
+      if (res.ok || res.status === 409) {
+        markChipSaved(word);
+        saveBtn.textContent = "Saved ✓";
+        saveBtn.classList.add("is-saved");
+        setTimeout(closeSheet, 800);
+      } else {
+        saveBtn.disabled    = false;
+        saveBtn.textContent = "Save to flashcards";
+      }
+    } catch {
+      saveBtn.disabled    = false;
+      saveBtn.textContent = "Save to flashcards";
+    }
+  });
+
+  // ── Chip interactions ─────────────────────────────────────────────────
+  chips.forEach(chip => {
+    chip.addEventListener("click", () => openSheet(chip.dataset.word));
+  });
+
+  function markChipSaved(word) {
+    savedWords.add(word);
+    const chip = document.querySelector(`.recap-vocab-chip[data-word="${CSS.escape(word)}"]`);
+    if (chip) {
+      chip.classList.add("is-saved");
+      chip.querySelector(".recap-vocab-chip-check").hidden = false;
+    }
+  }
+
+  function esc(s) {
+    return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  }
+}());
 </script>
 {% endblock %}

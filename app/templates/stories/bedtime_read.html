@@ -1,13 +1,16 @@
 {% extends "base.html" %}
 {% block title %}{{ story.title }}{% endblock %}
 {% block extra_css %}
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/story.css') }}" />
 {% endblock %}
 
 {% block body %}
 <div class="btr-shell" id="btrShell">
 
-  <!-- Minimal controls — small, never compete with text -->
+  <canvas id="btrStarCanvas" class="btr-star-canvas" aria-hidden="true"></canvas>
+
   <div class="btr-controls" id="btrControls">
     <button class="btr-btn btr-btn--back" id="prevBtn" aria-label="Previous page" hidden>
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -22,12 +25,10 @@
     </a>
   </div>
 
-  <!-- Page display -->
-  <div class="btr-page" id="btrPage" role="main">
-    <!-- Populated by JS -->
-  </div>
+  <div class="btr-page" id="btrPage" role="main"></div>
 
-  <!-- Tap target — full screen, behind controls -->
+  <div class="btr-dots" id="btrDots"></div>
+
   <div class="btr-tap-zone" id="tapZone" aria-label="Tap to continue" role="button" tabindex="0"></div>
 
 </div>
@@ -37,85 +38,154 @@
 <script>
 "use strict";
 
-const STORY_ID  = {{ story_id }};
-const PAGES     = {{ story.pages | tojson }};
+const STORY_ID    = {{ story_id }};
+const PAGES       = {{ story.pages | tojson }};
 const STORY_TITLE = {{ story.title | tojson }};
-const RECAP_URL = "/stories/bedtime/" + STORY_ID + "/recap";
+const RECAP_URL   = "/stories/bedtime/" + STORY_ID + "/recap";
+const PORTRAIT_URL = {{ portrait_url | tojson }};
+const CHAR_NAMES   = {{ char_names | tojson }};
 
-let currentIndex = 0;
+let currentIndex   = 0;
+let onSplash       = Boolean(PORTRAIT_URL);
+let lastStoryImage = null;  // carries the most recent illustration forward
 
-// Images that have arrived: page_number → url
-// Populated from the pages data (image_url injected by story_builder)
 const imagesByPage = {};
 PAGES.forEach(p => { if (p.image_url) imagesByPage[p.page_number] = p.image_url; });
 
-// Skip-and-defer queue: tracks which image we're waiting to show next
-let pendingImageUrl = null;
+// ── Star canvas ───────────────────────────────────────────────────────────────
+(function () {
+  const canvas = document.getElementById("btrStarCanvas");
+  const ctx    = canvas.getContext("2d");
+  let stars    = [];
 
+  function resize() {
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+
+  function initStars(n) {
+    stars = [];
+    for (let i = 0; i < n; i++) {
+      stars.push({
+        x:      Math.random() * canvas.width,
+        y:      Math.random() * canvas.height,
+        r:      Math.random() * 1.4 + 0.3,
+        target: Math.random() * 0.6 + 0.1,
+        speed:  Math.random() * 0.006 + 0.002,
+        phase:  Math.random() * Math.PI * 2,
+      });
+    }
+  }
+
+  function draw(t) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (const s of stars) {
+      const opacity = s.target * (0.6 + 0.4 * Math.sin(t * s.speed * 60 + s.phase));
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(180, 170, 140, ${opacity})`;
+      ctx.fill();
+    }
+    requestAnimationFrame(draw);
+  }
+
+  resize();
+  initStars(60);
+  requestAnimationFrame(draw);
+  window.addEventListener("resize", () => { resize(); initStars(60); });
+}());
+
+// ── Progress dots ─────────────────────────────────────────────────────────────
+function renderDots(index) {
+  const el = document.getElementById("btrDots");
+  if (onSplash) { el.innerHTML = ""; return; }
+  if (PAGES.length > 20) {
+    el.style.cssText = "font-family:'Nunito',sans-serif;font-size:0.75rem;color:rgba(245,217,122,0.5);";
+    el.textContent = (index + 1) + " / " + PAGES.length;
+    return;
+  }
+  el.style.cssText = "";
+  el.innerHTML = PAGES.map((_, i) =>
+    `<div class="btr-dot${i === index ? " btr-dot--active" : ""}"></div>`
+  ).join("");
+}
+
+// ── Splash page ───────────────────────────────────────────────────────────────
+function renderSplash() {
+  const pageEl = document.getElementById("btrPage");
+  document.getElementById("prevBtn").hidden = true;
+
+  const namesHtml = CHAR_NAMES.length
+    ? `<p class="btr-splash-names">${CHAR_NAMES.map(escHtml).join(" &amp; ")}</p>`
+    : "";
+
+  pageEl.style.opacity = "0";
+  setTimeout(() => {
+    pageEl.className = "btr-page btr-page--splash";
+    pageEl.style.removeProperty("--ambient-portrait");
+    pageEl.innerHTML = `
+      <div class="btr-splash-image-wrap">
+        <img class="btr-splash-image" src="${escHtml(PORTRAIT_URL)}" alt="" aria-hidden="true" loading="eager">
+      </div>
+      <h1 class="btr-splash-title">${escHtml(STORY_TITLE)}</h1>
+      ${namesHtml}
+      <p class="btr-splash-hint">tap to begin</p>
+    `;
+    pageEl.style.opacity = "1";
+    renderDots(-1);
+  }, 80);
+}
+
+// ── Story page render ─────────────────────────────────────────────────────────
 function renderPage(index) {
   const page   = PAGES[index];
   const pageEl = document.getElementById("btrPage");
-  const prevEl = document.getElementById("prevBtn");
+  document.getElementById("prevBtn").hidden = (index === 0);
 
-  prevEl.hidden = index === 0;
+  // Show the page's own image, carry forward the last one, or nothing yet
+  const imageToShow = imagesByPage[page.page_number] || lastStoryImage || null;
+  if (imageToShow) lastStoryImage = imageToShow;
+  const hasImage = Boolean(imageToShow);
 
-  // Build content
   let html = "";
-
-  // Page 1 is always typography-only (title + text)
+  if (hasImage) {
+    html += `<div class="btr-image-wrap">
+      <img class="btr-image" src="${escHtml(imageToShow)}" alt="" aria-hidden="true" loading="eager">
+    </div>`;
+  }
   if (index === 0) {
     html += `<h1 class="btr-title">${escHtml(STORY_TITLE)}</h1>`;
-    html += `<p class="btr-text">${escHtml(page.text)}</p>`;
-    pendingImageUrl = null;
-  } else {
-    // Resolve image: use pending deferred image if available,
-    // otherwise use this page's image if ready
-    let imageToShow = null;
-    if (pendingImageUrl) {
-      imageToShow    = pendingImageUrl;
-      pendingImageUrl = null;
-    } else if (imagesByPage[page.page_number]) {
-      imageToShow = imagesByPage[page.page_number];
-    } else if (page.illustration_moment && !imagesByPage[page.page_number]) {
-      // Image was supposed to be here but isn't ready — defer it
-      // (will be surfaced on the next page that has a ready image)
-    }
-
-    if (imageToShow) {
-      html += `<div class="btr-image-wrap">
-        <img class="btr-image" src="${escHtml(imageToShow)}" alt="" aria-hidden="true" loading="eager">
-      </div>`;
-    }
-    html += `<p class="btr-text">${escHtml(page.text)}</p>`;
   }
+  html += `<p class="btr-text">${escHtml(page.text)}</p>`;
 
-  // Crossfade
   pageEl.style.opacity = "0";
   setTimeout(() => {
+    // Ambient portrait used only when no story illustration available yet
+    const useAmbient = PORTRAIT_URL && !hasImage;
+    pageEl.className = "btr-page" +
+      (hasImage   ? " btr-page--has-image" : "") +
+      (useAmbient ? " btr-page--ambient"   : "");
     pageEl.innerHTML = html;
+    if (useAmbient) pageEl.style.setProperty("--ambient-portrait", `url("${PORTRAIT_URL}")`);
+    else            pageEl.style.removeProperty("--ambient-portrait");
     pageEl.style.opacity = "1";
+    renderDots(index);
   }, 150);
 }
 
+// ── Navigation ────────────────────────────────────────────────────────────────
 function advance() {
+  if (onSplash) {
+    onSplash = false;
+    renderPage(0);
+    return;
+  }
   if (currentIndex < PAGES.length - 1) {
     currentIndex++;
-
-    // If current page has an illustration but no image yet, check if
-    // we should carry a pending image forward
-    const page = PAGES[currentIndex];
-    if (page.illustration_moment && imagesByPage[page.page_number]) {
-      // image arrived since story loaded — pick it up
-    } else if (!pendingImageUrl && page.illustration_moment && !imagesByPage[page.page_number]) {
-      // defer — pendingImageUrl stays null until an image shows up
-    }
-
     renderPage(currentIndex);
   } else {
-    // Last page tapped — mark complete, go to recap
     fetch("/stories/api/bedtime/" + STORY_ID + "/complete", { method: "POST" })
-      .catch(() => {}); // fire and forget
-    // Fade out then navigate
+      .catch(() => {});
     document.getElementById("btrShell").style.opacity = "0";
     setTimeout(() => { window.location.href = RECAP_URL; }, 400);
   }
@@ -146,8 +216,40 @@ document.getElementById("prevBtn").addEventListener("click", e => {
   goBack();
 });
 
+// ── Image polling ─────────────────────────────────────────────────────────────
+let imagesPollTimer = null;
+let imagesPollCount = 0;
+const MAX_IMAGE_POLLS = 30;
+
+function pollImages() {
+  fetch("/stories/api/bedtime/" + STORY_ID + "/images")
+    .then(r => r.json())
+    .then(data => {
+      let newImages = false;
+      for (const [pageNum, url] of Object.entries(data.images || {})) {
+        const n = parseInt(pageNum);
+        if (!imagesByPage[n]) { imagesByPage[n] = url; newImages = true; }
+      }
+      if (newImages && !onSplash && imagesByPage[PAGES[currentIndex]?.page_number]) {
+        renderPage(currentIndex);
+      }
+      imagesPollCount++;
+      if (imagesPollCount >= MAX_IMAGE_POLLS ||
+          Object.keys(data.images || {}).length === PAGES.filter(p => p.illustration_moment).length) {
+        clearInterval(imagesPollTimer);
+      }
+    })
+    .catch(() => {});
+}
+
+imagesPollTimer = setInterval(pollImages, 2000);
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 document.getElementById("btrShell").style.transition = "opacity 0.4s ease";
-renderPage(0);
+if (onSplash) {
+  renderSplash();
+} else {
+  renderPage(0);
+}
 </script>
 {% endblock %}

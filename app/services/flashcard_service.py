@@ -507,6 +507,7 @@ class FlashcardService:
         user_id: str = "default",
         card_type: Optional[str] = None,
         source_book: Optional[str] = None,
+        category: Optional[str] = None,
         due_only: bool = False,
         include_mastered: bool = False,
         limit: int = 200,
@@ -520,6 +521,9 @@ class FlashcardService:
         if source_book:
             clauses.append("source_book = ?")
             params.append(source_book)
+        if category:
+            clauses.append("json_extract(front_data, '$.category') = ?")
+            params.append(category)
         if due_only:
             clauses.append("due_date <= ?")
             params.append(date.today().isoformat())
@@ -637,6 +641,18 @@ class FlashcardService:
             for row in rows
         ]
 
+    def get_vocab_word_by_name(self, word: str, age_band: str = ""):
+        """Look up a word in the curated vocab_words table. Returns the best match or None."""
+        with self._connect() as conn:
+            # Prefer exact age-band match; fall back to any band
+            row = conn.execute(
+                """SELECT word, phonetic, definition, example FROM vocab_words
+                   WHERE lower(word) = lower(?)
+                   ORDER BY CASE WHEN age_band = ? THEN 0 ELSE 1 END LIMIT 1""",
+                (word, age_band),
+            ).fetchone()
+        return dict(row) if row else None
+
     def get_vocab_word_counts(self, age_band: str) -> dict:
         """Return total word count and per-level counts for an age band."""
         with self._connect() as conn:
@@ -704,8 +720,15 @@ class FlashcardService:
             return None
         if self.word_exists(row["word"], user_id):
             return None
-        front = {"word": row["word"], "phonetic": row["phonetic"], "image_url": ""}
-        back  = {"definition": row["definition"], "example_sentence": row["example"]}
+        front = {
+            "word":     row["word"],
+            "phonetic": row["phonetic"],
+            "image_url": "",
+            "category": row["category"],
+            "level":    row["level"],
+            "age_band": row["age_band"],
+        }
+        back = {"definition": row["definition"], "example_sentence": row["example"]}
         return self.create_card("vocabulary", front, back, user_id=user_id)
 
     def add_vocab_level_to_deck(
@@ -719,6 +742,26 @@ class FlashcardService:
         added = skipped = 0
         for w in words:
             if w["in_deck"]:
+                skipped += 1
+                continue
+            card = self.add_vocab_word_to_deck(w["id"], user_id=user_id)
+            if card:
+                added += 1
+            else:
+                skipped += 1
+        return {"added": added, "skipped": skipped}
+
+    def ensure_vocab_in_deck(
+        self,
+        age_band: str,
+        level: Optional[int] = None,
+        user_id: str = "default",
+    ) -> dict:
+        """Auto-add all vocab words for a band (or specific level) that aren't yet in deck."""
+        words = self.get_vocab_words(age_band=age_band, level=level, user_id=user_id)
+        added = skipped = 0
+        for w in words:
+            if w["in_deck"] or w["mastered"]:
                 skipped += 1
                 continue
             card = self.add_vocab_word_to_deck(w["id"], user_id=user_id)
@@ -747,6 +790,52 @@ class FlashcardService:
                 (date.today().isoformat(), card_id, user_id),
             )
         return cur.rowcount > 0
+
+    # ── Story word cards ──────────────────────────────────────────────────────
+
+    def add_story_word_to_deck(
+        self,
+        word: str,
+        story_id: int,
+        story_title: str,
+        phonetic: str = "",
+        definition: str = "",
+        example: str = "",
+        user_id: str = "default",
+    ) -> Optional[Card]:
+        """Create a story_word flashcard. Returns None if already in deck for this story."""
+        with self._connect() as conn:
+            existing = conn.execute(
+                """SELECT id FROM cards
+                   WHERE user_id=? AND card_type='story_word'
+                     AND lower(json_extract(front_data,'$.word'))=lower(?)
+                     AND json_extract(front_data,'$.story_id')=?""",
+                (user_id, word, story_id),
+            ).fetchone()
+        if existing:
+            return None
+        front = {"word": word, "phonetic": phonetic, "story_id": story_id, "story_title": story_title}
+        back  = {"definition": definition, "example_sentence": example}
+        return self.create_card("story_word", front, back, user_id=user_id)
+
+    def get_story_words_status(
+        self,
+        story_id: int,
+        words: list,
+        user_id: str = "default",
+    ) -> dict:
+        """Returns {word: bool} indicating which words are already in deck for this story."""
+        if not words:
+            return {}
+        with self._connect() as conn:
+            rows = conn.execute(
+                """SELECT lower(json_extract(front_data,'$.word')) AS word FROM cards
+                   WHERE user_id=? AND card_type='story_word'
+                     AND json_extract(front_data,'$.story_id')=?""",
+                (user_id, story_id),
+            ).fetchall()
+        in_deck = {r["word"] for r in rows}
+        return {w: w.lower() in in_deck for w in words}
 
     # ── Word definition cache ─────────────────────────────────────────────────
 

@@ -23,9 +23,9 @@ VIRTUES = [
 ]
 
 LENGTH_BUCKETS: dict[str, dict] = {
-    "short":  {"words": 300,  "pages": 3,  "label": "Short (3 min)"},
-    "medium": {"words": 700,  "pages": 7,  "label": "Just right (7 min)"},
-    "long":   {"words": 1200, "pages": 12, "label": "Long (12 min)"},
+    "short":  {"words": 300,  "pages": 8,  "label": "Short (5 min)"},
+    "medium": {"words": 700,  "pages": 12, "label": "Just right (10 min)"},
+    "long":   {"words": 1200, "pages": 18, "label": "Long (15 min)"},
 }
 
 STORY_TYPES = [
@@ -205,10 +205,20 @@ class StoryBuilder:
         for c in characters:
             char_svc.increment_featured(c.character_id)
 
-        # Dispatch images in parallel
+        # Dispatch story images + character portrait in parallel
+        scenes = story_json.get("illustration_scenes", [])
         if img.is_configured() and self._check_budget(profile.id) != "stop":
-            scenes = story_json.get("illustration_scenes", [])
+            log.info("Dispatching %d image(s) for story_id=%s via %s",
+                     len(scenes), story_id, type(img).__name__)
             self._dispatch_images(story_id, scenes, profile.id, characters, img)
+            # Generate group portrait alongside story images (fire-and-forget)
+            from app.services.portrait_service import PortraitService
+            PortraitService(self.db_path, self.config).ensure_portrait_async(
+                [c.character_id for c in characters], characters
+            )
+        else:
+            log.info("Skipping images for story_id=%s — provider configured=%s budget=%s",
+                     story_id, img.is_configured(), self._check_budget(profile.id))
 
     def _set_status(self, story_id: int, status: str) -> None:
         with self._connect() as conn:
@@ -326,15 +336,20 @@ class StoryBuilder:
 
                 result = img.generate(prompt)
                 if result.ok:
+                    from app.image_provider import cache_image_locally
+                    image_cache_dir = (self.config.get("IMAGE_CACHE_DIR")
+                                       if isinstance(self.config, dict)
+                                       else getattr(self.config, "IMAGE_CACHE_DIR", None))
+                    local_url = cache_image_locally(result.url, image_cache_dir) if image_cache_dir else result.url
                     with self._connect() as conn:
                         conn.execute(
                             """INSERT OR IGNORE INTO portrait_cache
                                    (cache_key, profile_id, scene_hash, image_url, provider_used)
                                VALUES (?, ?, ?, ?, ?)""",
                             (cache_key, profile_id, cache_key[:16],
-                             result.url, type(img).__name__),
+                             local_url, type(img).__name__),
                         )
-                    self._attach_image(story_id, scene["page_number"], result.url)
+                    self._attach_image(story_id, scene["page_number"], local_url)
                     self._track_image_spend(profile_id)
             except Exception as exc:
                 log.warning("Image job failed for story_id=%s page=%s: %s",
@@ -376,7 +391,8 @@ class StoryBuilder:
 
     def _check_budget(self, profile_id: int) -> str:
         """Returns 'ok', 'warn', or 'stop'."""
-        budget = getattr(self.config, "MONTHLY_IMAGE_BUDGET", 5.0)
+        _get = (lambda k, d=None: self.config.get(k, d)) if isinstance(self.config, dict) else (lambda k, d=None: getattr(self.config, k, d))
+        budget = float(_get("MONTHLY_IMAGE_BUDGET", 5.0) or 5.0)
         month  = date.today().strftime("%Y-%m")
         with self._connect() as conn:
             row = conn.execute(

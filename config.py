@@ -11,6 +11,7 @@ class Config:
     CACHE_DIR = BASE_DIR / "cache"
     BOOK_CACHE_DIR = CACHE_DIR / "books"
     AUDIO_CACHE_DIR = CACHE_DIR / "audio"
+    IMAGE_CACHE_DIR = BASE_DIR / "app" / "static" / "img_cache"
 
     # SQLite — single file, WAL mode for concurrent reads
     DB_PATH = BASE_DIR / "atlas.db"
@@ -26,8 +27,14 @@ class Config:
     ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
     AI_PROVIDER       = os.environ.get("AI_PROVIDER", "claude")   # swap to "local" for on-device
 
+    # On-device vocab enrichment (Ollama on Pi)
+    OLLAMA_BASE_URL    = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434")
+    OLLAMA_VOCAB_MODEL = os.environ.get("OLLAMA_VOCAB_MODEL", "gemma4:e2b")
+
     # Image generation (parent configures; no default key ever shipped)
-    IMAGE_PROVIDER        = os.environ.get("IMAGE_PROVIDER", "replicate")
+    # Set IMAGE_PROVIDER to 'openai' or 'replicate'
+    IMAGE_PROVIDER        = os.environ.get("IMAGE_PROVIDER", "openai")
+    OPENAI_API_KEY        = os.environ.get("OPENAI_API_KEY", "")
     REPLICATE_API_KEY     = os.environ.get("REPLICATE_API_KEY", "")
     MONTHLY_IMAGE_BUDGET  = float(os.environ.get("MONTHLY_IMAGE_BUDGET", "5.0"))
 
@@ -56,3 +63,4 @@ class Config:
     def ensure_dirs(cls):
         cls.BOOK_CACHE_DIR.mkdir(parents=True, exist_ok=True)
         cls.AUDIO_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+        cls.IMAGE_CACHE_DIR.mkdir(parents=True, exist_ok=True)

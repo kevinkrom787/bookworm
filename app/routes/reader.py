@@ -1,5 +1,5 @@
 import base64
-from flask import Blueprint, jsonify, render_template, request, current_app
+from flask import Blueprint, jsonify, render_template, request, current_app, session, redirect, url_for
 from app.services.gutenberg import GutenbergService
 from app.services.epub_parser import parse_epub, save_parsed_book, load_parsed_book
 from app.services.tts import TTSService
@@ -25,7 +25,14 @@ def _gutenberg() -> GutenbergService:
 
 @bp.route("/")
 def home():
-    age_band = current_app.config["DEFAULT_AGE_BAND"]
+    if not session.get("profile_id"):
+        from app.services.profile_service import ProfileService
+        svc = ProfileService(current_app.config["DB_PATH"])
+        if svc.list_profiles():
+            return redirect(url_for("profiles.select"))
+        else:
+            return redirect(url_for("profiles.new"))
+    age_band = session.get("age_band", current_app.config["DEFAULT_AGE_BAND"])
     return render_template("home/index.html", age_band=age_band)
 
 

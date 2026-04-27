@@ -53,10 +53,11 @@
 {% block extra_js %}
 <script>
 "use strict";
-const AGE_BAND    = "{{ age_band }}";
-const FILTER_TYPE = "{{ filter_type | e }}";
-const FILTER_BOOK = "{{ filter_book | e }}";
-const SINGLE_CARD = {{ single_card_id | tojson }};
+const AGE_BAND         = "{{ age_band }}";
+const FILTER_TYPE      = "{{ filter_type | e }}";
+const FILTER_BOOK      = "{{ filter_book | e }}";
+const FILTER_CATEGORY  = "{{ filter_category | e }}";
+const SINGLE_CARD      = {{ single_card_id | tojson }};
 const SET_MIN     = {{ set_min | tojson }};
 const SET_MAX     = {{ set_max | tojson }};
 const SET_LABEL   = "{{ set_label | e }}";
@@ -168,6 +169,37 @@ const CARD_RENDERERS = {
     },
   },
 
+  story_word: {
+    front(card) {
+      const f    = card.front_data;
+      const word = f.word || '—';
+      return `
+        <div class="fc-card-eyebrow">Story Word</div>
+        <div class="fc-vocab-front-body">
+          <div>
+            <div class="fc-vocab-word">${esc(word)}</div>
+            ${f.phonetic ? `<div class="fc-vocab-phonetic">${esc(f.phonetic)}</div>` : ''}
+            ${f.story_title ? `<div class="fc-vocab-story-credit">from "${esc(f.story_title)}"</div>` : ''}
+          </div>
+        </div>
+        <div class="fc-card-footer">
+          <span></span>
+          <button class="fc-speak-btn" data-speak="${esc(word)}">🔊</button>
+        </div>`;
+    },
+    back(card) {
+      const f = card.front_data;
+      const b = card.back_data;
+      return `
+        <div class="fc-card-eyebrow">Definition</div>
+        <div class="fc-vocab-word" style="font-size:1.4rem">${esc(f.word || '—')}</div>
+        <div class="fc-vocab-def">${esc(b.definition || '—')}</div>
+        ${b.example_sentence
+          ? `<div class="fc-vocab-example">"${esc(b.example_sentence)}"</div>`
+          : ''}`;
+    },
+  },
+
 };
 
 function renderFallback(card, side) {
@@ -205,8 +237,9 @@ async function loadQueue() {
       cards = (data.cards || []).filter(c => c.id === SINGLE_CARD);
     } else {
       const params = new URLSearchParams({ limit: "500" });
-      if (FILTER_TYPE) params.set("type", FILTER_TYPE);
-      if (FILTER_BOOK) params.set("book", FILTER_BOOK);
+      if (FILTER_TYPE)     params.set("type",     FILTER_TYPE);
+      if (FILTER_BOOK)     params.set("book",     FILTER_BOOK);
+      if (FILTER_CATEGORY) params.set("category", FILTER_CATEGORY);
       // Quiz mode: fetch all cards in the set, not just due ones
       if (!QUIZ_MODE) params.set("due_only", "1");
 

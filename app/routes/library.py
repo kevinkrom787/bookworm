@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify, render_template, request, current_app
 from app.services.gutenberg import GutenbergService
 from app.services.flashcard_service import FlashcardService
+from app.routes.profiles import active_band
 
 bp = Blueprint("library", __name__, url_prefix="/library")
 
@@ -14,7 +15,7 @@ def _progress() -> FlashcardService:
 
 @bp.route("/")
 def index():
-    age_band = request.args.get("band", current_app.config["DEFAULT_AGE_BAND"])
+    age_band = request.args.get("band") or active_band()
     return render_template("library/index.html", age_band=age_band)
 
 

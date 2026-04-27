@@ -1,5 +1,6 @@
-from flask import Blueprint, jsonify, render_template, request, current_app, g
+from flask import Blueprint, jsonify, render_template, request, current_app, g, session
 from app.services.flashcard_service import FlashcardService
+from app.routes.profiles import active_band
 
 bp = Blueprint("flashcards", __name__, url_prefix="/flashcards")
 
@@ -19,7 +20,7 @@ def _uid() -> str:
 
 @bp.route("/")
 def index():
-    age_band = request.args.get("band", current_app.config["DEFAULT_AGE_BAND"])
+    age_band = request.args.get("band") or active_band()
     svc = _svc()
     stats       = svc.get_stats()
     word_counts = svc.get_vocab_word_counts(age_band)
@@ -29,19 +30,20 @@ def index():
 
 @bp.route("/quiz")
 def quiz_setup():
-    age_band  = request.args.get("band", current_app.config["DEFAULT_AGE_BAND"])
+    age_band  = request.args.get("band") or active_band()
     card_type = request.args.get("type", "number")
     return render_template("flashcards/quiz.html", age_band=age_band, card_type=card_type)
 
 
 @bp.route("/review")
 def review():
-    age_band = request.args.get("band", current_app.config["DEFAULT_AGE_BAND"])
+    age_band = request.args.get("band") or active_band()
     return render_template(
         "flashcards/review.html",
         age_band=age_band,
         filter_type=request.args.get("type", ""),
         filter_book=request.args.get("book", ""),
+        filter_category=request.args.get("category", ""),
         single_card_id=request.args.get("card_id", type=int),
         set_min=request.args.get("set_min", type=int),
         set_max=request.args.get("set_max", type=int),
@@ -58,6 +60,7 @@ def api_list():
         user_id=_uid(),
         card_type=request.args.get("type") or None,
         source_book=request.args.get("book") or None,
+        category=request.args.get("category") or None,
         due_only=request.args.get("due_only") == "1",
         limit=min(500, int(request.args.get("limit", 200))),
         offset=int(request.args.get("offset", 0)),
@@ -160,13 +163,9 @@ def api_get_quiz_sessions():
 @bp.route("/word-list")
 @bp.route("/word-bank")
 def word_bank():
-    age_band = request.args.get("band", current_app.config["DEFAULT_AGE_BAND"])
+    age_band = request.args.get("band") or active_band()
     svc = _svc()
     counts = svc.get_vocab_word_counts(age_band)
-    # Fall back to seedlings if the requested band has no curated words yet
-    if counts["total"] == 0:
-        age_band = "seedlings"
-        counts = svc.get_vocab_word_counts(age_band)
     return render_template("flashcards/word_bank.html", age_band=age_band, word_counts=counts)
 
 
@@ -191,6 +190,19 @@ def api_add_vocab_word():
     if card is None:
         return jsonify({"error": "Word not found or already in deck"}), 409
     return jsonify(card.to_dict()), 201
+
+
+@bp.route("/api/vocab-words/ensure-deck", methods=["POST"])
+def api_ensure_vocab_deck():
+    data  = request.get_json(silent=True) or {}
+    band  = data.get("band", "seedlings")
+    level = data.get("level")
+    result = _svc().ensure_vocab_in_deck(
+        age_band=band,
+        level=int(level) if level is not None else None,
+        user_id=data.get("user_id", "default"),
+    )
+    return jsonify(result)
 
 
 @bp.route("/api/vocab-words/add-level", methods=["POST"])
@@ -218,3 +230,71 @@ def api_master_card(card_id: int):
     if not ok:
         return jsonify({"error": "Card not found"}), 404
     return jsonify({"mastered": not unmaster})
+
+
+# ── Story word cards ──────────────────────────────────────────────────────────
+
+@bp.route("/api/story-words/enrich", methods=["POST"])
+def api_enrich_story_word():
+    """Return definition for a word — curated DB first, built-in dictionary second."""
+    data     = request.get_json(silent=True) or {}
+    word     = (data.get("word") or "").strip()
+    age_band = data.get("age_band") or active_band()
+    if not word:
+        return jsonify({"error": "word required"}), 400
+
+    # 1. Curated vocab_words table (age-appropriate definitions)
+    cached = _svc().get_vocab_word_by_name(word, age_band)
+    if cached and cached.get("definition"):
+        return jsonify({"word": word, "phonetic": cached.get("phonetic", ""),
+                        "definition": cached["definition"], "example": cached.get("example", "")})
+
+    # 2. Built-in story vocabulary dictionary (offline, instant)
+    from app.services.word_dict import lookup as dict_lookup
+    hit = dict_lookup(word)
+    if hit:
+        return jsonify({"word": word, **hit})
+
+    return jsonify({"word": word, "phonetic": "", "definition": "", "example": ""})
+
+
+@bp.route("/api/story-words/add", methods=["POST"])
+def api_add_story_word():
+    data        = request.get_json(silent=True) or {}
+    word        = (data.get("word") or "").strip()
+    story_id    = data.get("story_id")
+    story_title = data.get("story_title", "")
+    age_band    = data.get("age_band") or active_band()
+    user_id     = data.get("user_id", "default")
+
+    if not word or not story_id:
+        return jsonify({"error": "word and story_id required"}), 400
+
+    # Enriched data is always provided by the client (from DB or word_dict)
+    phonetic   = (data.get("phonetic")   or "").strip()
+    definition = (data.get("definition") or "").strip()
+    example    = (data.get("example")    or "").strip()
+
+    card = _svc().add_story_word_to_deck(
+        word=word,
+        story_id=int(story_id),
+        story_title=story_title,
+        phonetic=phonetic,
+        definition=definition,
+        example=example,
+        user_id=user_id,
+    )
+    if card is None:
+        return jsonify({"error": "Already in deck"}), 409
+    return jsonify(card.to_dict()), 201
+
+
+@bp.route("/api/story-words/status", methods=["GET"])
+def api_story_words_status():
+    story_id = request.args.get("story_id", type=int)
+    words    = request.args.getlist("words")
+    user_id  = request.args.get("user_id", "default")
+    if not story_id:
+        return jsonify({"error": "story_id required"}), 400
+    status = _svc().get_story_words_status(story_id, words, user_id)
+    return jsonify({"status": status})

@@ -569,6 +569,12 @@
   color: var(--color-text-3);
   margin-top: auto;
 }
+.fc-vocab-story-credit {
+  font-size: 0.75rem;
+  color: var(--color-text-3);
+  font-style: italic;
+  margin-top: 0.4rem;
+}
 .fc-vocab-img {
   width: 72px;
   height: 72px;
@@ -1571,3 +1577,54 @@
   border-color: var(--color-text-2);
   color: var(--color-text);
 }
+
+/* ── Vocab category sheet step ──────────────────────────────────────────────── */
+.fc-sheet-cats {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px 0 8px;
+}
+
+.fc-sheet-cat-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 16px;
+  background: var(--color-surface);
+  border: 1.5px solid var(--color-border);
+  border-radius: 14px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s, border-color 0.15s;
+}
+.fc-sheet-cat-btn:hover, .fc-sheet-cat-btn:active {
+  background: var(--fc-vocab-bg, #FFF3D0);
+  border-color: var(--fc-vocab-color);
+}
+[data-type="vocabulary"] .fc-sheet-cat-btn:hover,
+[data-type="vocabulary"] .fc-sheet-cat-btn:active {
+  background: color-mix(in srgb, var(--fc-vocab-color) 8%, transparent);
+  border-color: var(--fc-vocab-color);
+}
+
+.fc-cat-icon  { font-size: 1.4rem; flex-shrink: 0; }
+.fc-cat-label { font-size: 1rem; font-weight: 600; color: var(--color-text); flex: 1; }
+.fc-cat-count { font-size: 0.8rem; color: var(--color-text-2); }
+.fc-cat-arrow { font-size: 1.2rem; color: var(--color-text-3); margin-left: 4px; }
+
+/* Back button */
+.fc-sheet-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  color: var(--color-text-2);
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 0 0 10px;
+  font-weight: 500;
+}
+.fc-sheet-back-btn:hover { color: var(--color-text); }

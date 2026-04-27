@@ -64,12 +64,7 @@ def _active_profile():
 
 @bp.route("/")
 def index():
-    profile = _active_profile()
-    if not profile:
-        return redirect(url_for("profiles.select"))
-    stories = _story_svc().list_stories(profile.id)
-    return render_template("stories/index.html",
-                           profile=profile, stories=stories, themes=THEMES)
+    return redirect(url_for("stories.new"))
 
 
 @bp.route("/<int:story_id>")
@@ -206,11 +201,26 @@ def bedtime_read(story_id: int):
     if data["generation_status"] == "stopped":
         return render_template("stories/moderation_stop.html", profile=profile)
 
+    # Look up the character group portrait for the splash page
+    from app.services.portrait_service import PortraitService
+    char_ids   = data.get("characters", [])
+    char_svc   = _char_svc()
+    characters = [c for c in (char_svc.get_character(cid) for cid in char_ids) if c]
+    char_names = [c.name for c in characters]
+
+    portrait_svc = PortraitService(current_app.config["DB_PATH"], current_app.config)
+    portrait_url = portrait_svc.get_portrait(char_ids) or ""
+    # If portrait not ready yet, kick off generation for next time
+    if not portrait_url and characters:
+        portrait_svc.ensure_portrait_async(char_ids, characters)
+
     return render_template(
         "stories/bedtime_read.html",
         profile=profile,
         story_id=story_id,
         story=data["full_story_json"],
+        portrait_url=portrait_url,
+        char_names=char_names,
     )
 
 
@@ -229,6 +239,7 @@ def recap(story_id: int):
     story_j = data["full_story_json"]
     recap_d = story_j.get("recap", {})
     vocab   = story_j.get("vocabulary_used", [])[:3]
+    images  = [p["image_url"] for p in story_j.get("pages", []) if p.get("image_url")][:6]
 
     return render_template(
         "stories/recap.html",
@@ -239,6 +250,7 @@ def recap(story_id: int):
         talk_about_it=recap_d.get("talk_about_it", ""),
         vocab_words=vocab,
         streak=streak["days_read_current"],
+        images=images,
     )
 
 
@@ -250,6 +262,20 @@ def api_status(story_id: int):
     if status is None:
         return jsonify({"error": "not found"}), 404
     return jsonify({"status": status})
+
+
+@bp.route("/api/bedtime/<int:story_id>/images")
+def api_images(story_id: int):
+    """Returns current image URLs keyed by page_number. Reader polls this."""
+    data = _builder().get_story_data(story_id)
+    if not data:
+        return jsonify({"images": {}})
+    images = {
+        str(p["page_number"]): p["image_url"]
+        for p in data["full_story_json"].get("pages", [])
+        if p.get("image_url")
+    }
+    return jsonify({"images": images})
 
 
 @bp.route("/api/bedtime/<int:story_id>/complete", methods=["POST"])
