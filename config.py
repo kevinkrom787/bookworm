@@ -2,19 +2,23 @@ import os
 from pathlib import Path
 
 BASE_DIR = Path(__file__).parent
+# DATA_DIR: persistent storage root. Override with env var on Fly.io (/data volume).
+# Falls back to project root so local dev is unchanged.
+DATA_DIR = Path(os.environ.get("DATA_DIR", str(BASE_DIR)))
 
 
 class Config:
     SECRET_KEY = os.environ.get("SECRET_KEY", "atlas-dev-key-change-before-deploy")
 
-    # Disk cache
-    CACHE_DIR = BASE_DIR / "cache"
+    # Disk cache — stored on persistent volume when DATA_DIR is set
+    CACHE_DIR = DATA_DIR / "cache"
     BOOK_CACHE_DIR = CACHE_DIR / "books"
     AUDIO_CACHE_DIR = CACHE_DIR / "audio"
+    # Image cache stays in static/ so Flask can serve it directly at /static/img_cache/
     IMAGE_CACHE_DIR = BASE_DIR / "app" / "static" / "img_cache"
 
     # SQLite — single file, WAL mode for concurrent reads
-    DB_PATH = BASE_DIR / "atlas.db"
+    DB_PATH = DATA_DIR / "atlas.db"
 
     # TTS defaults
     TTS_VOICE = "af_heart"   # warm American female
