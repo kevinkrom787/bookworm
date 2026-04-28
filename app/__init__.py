@@ -14,8 +14,12 @@ def _run_migrations(db_path: Path) -> None:
     try:
         for sql_file in sorted(migrations_dir.glob("*.sql")):
             for stmt in sql_file.read_text(encoding="utf-8").split(";"):
-                stmt = stmt.strip()
-                if not stmt or stmt.startswith("--"):
+                # Strip comment lines before emptiness check so leading comments
+                # don't cause statements like "-- note\nALTER TABLE..." to be skipped
+                stmt = "\n".join(
+                    l for l in stmt.splitlines() if not l.strip().startswith("--")
+                ).strip()
+                if not stmt:
                     continue
                 try:
                     conn.execute(stmt)
