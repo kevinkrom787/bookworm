@@ -55,9 +55,10 @@ def _fc_svc() -> FlashcardService:
 
 def _active_profile():
     pid = session.get("profile_id")
-    if not pid:
+    fid = session.get("family_id")
+    if not pid or not fid:
         return None
-    return ProfileService(current_app.config["DB_PATH"]).get_profile(pid)
+    return ProfileService(current_app.config["DB_PATH"]).get_profile(pid, family_id=fid)
 
 
 # ── Legacy pages (old story format) ───────────────────────────────────────────
