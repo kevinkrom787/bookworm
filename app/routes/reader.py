@@ -37,8 +37,7 @@ def home():
             return redirect(url_for("profiles.select"))
         else:
             return redirect(url_for("profiles.new"))
-    age_band = session.get("age_band", current_app.config["DEFAULT_AGE_BAND"])
-    return render_template("home/index.html", age_band=age_band)
+    return redirect(url_for("stories.index"))
 
 
 @bp.route("/read/<int:book_id>")

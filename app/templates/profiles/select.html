@@ -47,7 +47,7 @@ document.querySelectorAll(".ps-card[data-profile-id]").forEach(card => {
     card.classList.add("is-loading");
     const id = card.dataset.profileId;
     await fetch(`/profiles/api/${id}/activate`, { method: "POST" });
-    window.location.href = "/";
+    window.location.href = "/stories/";
   });
 });
 </script>
