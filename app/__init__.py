@@ -87,6 +87,8 @@ def create_app(config_class=Config):
             "active_profile_name": session.get("profile_name"),
             "active_age_band":     session.get("age_band", config_class.DEFAULT_AGE_BAND),
             "current_family_name": session.get("family_name", ""),
+            "POSTHOG_API_KEY":     app.config.get("POSTHOG_API_KEY", ""),
+            "POSTHOG_HOST":        app.config.get("POSTHOG_HOST", "https://us.i.posthog.com"),
         }
 
     @app.after_request
