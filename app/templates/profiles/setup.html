@@ -229,6 +229,19 @@
           </button>
           {% endfor %}
         </div>
+        <div class="pw-band-card" style="margin-top:20px">
+          <div class="pw-band-card-header">
+            <span class="pw-band-icon">🧠</span>
+            <div><div class="pw-band-name">The fastest way to a bigger vocabulary is a subject they're obsessed with.</div></div>
+          </div>
+          <p class="pw-band-desc">When kids read about things they actually care about — dinosaurs, space, soccer, slime — comprehension scores jump measurably. A 2025 NIH study found interest-based personalization improved reading comprehension by 54% compared to assigned texts. We use their interests to pick the world the story happens in. The vocabulary lessons are hidden inside the adventure.</p>
+          <div class="pw-band-tags">
+            <span class="pw-band-tag">Interest-driven learning</span>
+            <span class="pw-band-tag">54% comprehension boost</span>
+            <span class="pw-band-tag">Intrinsic motivation</span>
+            <span class="pw-band-tag">Domain vocabulary</span>
+          </div>
+        </div>
       </div>
       <div class="pw-btn-row">
         <button class="pw-back-btn" id="step3Back">← Back</button>
@@ -257,6 +270,19 @@
           <input class="pw-single-input" id="petName" type="text"
                  placeholder="What's their name?" maxlength="20" autocomplete="off"
                  value="{{ profile.fun_facts.get('pet_name', '') if profile else '' }}"/>
+        </div>
+        <div class="pw-band-card" style="margin-top:20px">
+          <div class="pw-band-card-header">
+            <span class="pw-band-icon">🐾</span>
+            <div><div class="pw-band-name">The sidekick that makes the lesson land.</div></div>
+          </div>
+          <p class="pw-band-desc">Animals in children's stories aren't decoration — they're the emotional anchor. When a child's actual pet appears in the story, abstract concepts (courage, kindness, patience) become concrete and personal. Psychologists call this embodied learning: moral lessons absorbed through characters we love stick far longer than lessons we're told. Their pet becomes a co-teacher they don't know they have.</p>
+          <div class="pw-band-tags">
+            <span class="pw-band-tag">Emotional anchoring</span>
+            <span class="pw-band-tag">Embodied learning</span>
+            <span class="pw-band-tag">Character attachment</span>
+            <span class="pw-band-tag">Virtue vocabulary</span>
+          </div>
         </div>
       </div>
       <div class="pw-btn-row">
@@ -288,6 +314,19 @@
                  placeholder="Their names… e.g. Max, Sofia" autocomplete="off"
                  value="{{ profile.fun_facts.get('siblings', '') if profile else '' }}"/>
         </div>
+        <div class="pw-band-card" style="margin-top:20px">
+          <div class="pw-band-card-header">
+            <span class="pw-band-icon">👨‍👩‍👧‍👦</span>
+            <div><div class="pw-band-name">Stories that reflect real life teach real skills.</div></div>
+          </div>
+          <p class="pw-band-desc">Sibling dynamics are some of the richest emotional territory in a child's life — sharing, rivalry, loyalty, forgiveness. When a child's actual sibling appears in the story, they're not just entertained: they're rehearsing. Research in social-emotional learning shows that narrative role-play builds conflict resolution skills and empathy measurably better than direct instruction. A story about them and their brother is also quietly a lesson in how to be a brother.</p>
+          <div class="pw-band-tags">
+            <span class="pw-band-tag">Social-emotional learning</span>
+            <span class="pw-band-tag">Narrative role-play</span>
+            <span class="pw-band-tag">Empathy development</span>
+            <span class="pw-band-tag">Real-world context</span>
+          </div>
+        </div>
       </div>
       <div class="pw-btn-row">
         <button class="pw-back-btn" id="step5Back">← Back</button>
@@ -307,6 +346,19 @@
           <input class="pw-single-input pw-single-input--big" id="favFood" type="text"
                  placeholder="e.g. pizza, tacos, ice cream…" maxlength="40" autocomplete="off"
                  value="{{ profile.fun_facts.get('fav_food', '') if profile else '' }}"/>
+        </div>
+        <div class="pw-band-card" style="margin-top:20px">
+          <div class="pw-band-card-header">
+            <span class="pw-band-icon">🍕</span>
+            <div><div class="pw-band-name">The most random detail makes the whole story real.</div></div>
+          </div>
+          <p class="pw-band-desc">This is the secret ingredient — literally. When a child's favorite food shows up in the story (&ldquo;they celebrated with a giant plate of mac and cheese&rdquo;), it signals something profound: <em>this story was made for me</em>. That feeling of being seen is what converts a passive listener into an active one. It also gives us a natural hook for measurement vocabulary, fractions, science, and cultural storytelling — all wrapped in something they already love.</p>
+          <div class="pw-band-tags">
+            <span class="pw-band-tag">Personalization signal</span>
+            <span class="pw-band-tag">Narrative immersion</span>
+            <span class="pw-band-tag">Cultural identity</span>
+            <span class="pw-band-tag">Cross-subject vocabulary</span>
+          </div>
         </div>
       </div>
       <div class="pw-btn-row">
