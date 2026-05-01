@@ -6,11 +6,46 @@ and quiz history. PIN protection can be added later.
 """
 
 import json
-from flask import Blueprint, render_template, current_app, session
+import sqlite3
+from flask import Blueprint, render_template, current_app, session, abort
 from app.services.flashcard_service import FlashcardService
 from app.services.gutenberg import GutenbergService
 
 bp = Blueprint("parent", __name__, url_prefix="/parent")
+
+_ADMIN_EMAIL = "kevin@unstructured.io"
+
+
+@bp.route("/admin")
+def admin():
+    db_path = current_app.config["DB_PATH"]
+    # Gate: look up the logged-in family's email
+    family_id = session.get("family_id")
+    if not family_id:
+        abort(403)
+    conn = sqlite3.connect(str(db_path))
+    conn.row_factory = sqlite3.Row
+    row = conn.execute("SELECT email FROM families WHERE id = ?", (family_id,)).fetchone()
+    if not row or row["email"].lower() != _ADMIN_EMAIL:
+        conn.close()
+        abort(403)
+
+    families = conn.execute("""
+        SELECT
+            f.id, f.name, f.email, f.plan,
+            strftime('%Y-%m-%d', f.created_at) AS joined,
+            COUNT(DISTINCT cp.id)              AS profiles,
+            COUNT(DISTINCT sh.story_id)        AS stories,
+            strftime('%Y-%m-%d', MAX(sh.created_at)) AS last_story
+        FROM families f
+        LEFT JOIN child_profiles cp ON cp.family_id = f.id
+        LEFT JOIN story_history  sh ON sh.profile_id = cp.id
+        GROUP BY f.id
+        ORDER BY f.created_at DESC
+    """).fetchall()
+    conn.close()
+
+    return render_template("parent/admin.html", families=families)
 
 
 @bp.route("/")
