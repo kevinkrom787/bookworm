@@ -111,31 +111,37 @@
     .step.is-active { transform: translateX(0); }
     .step.is-left   { transform: translateX(-100%); }
 
+    /* ── Step body — prompt + cards grouped and centered ── */
+    .step-body {
+      flex: 1;
+      display: flex; flex-direction: column;
+      justify-content: center;
+      gap: 28px;
+      overflow: hidden;
+      padding: 16px 0;
+    }
+
     /* ── Step prompt ───────────────────────────────────── */
     .step-prompt {
-      font-size: clamp(1.25rem, 5vw, 1.65rem);
+      font-size: clamp(1.4rem, 3.5vw, 2rem);
       font-weight: 900;
       color: var(--c-text);
       text-align: center;
-      padding: 28px 28px 20px;
-      line-height: 1.3;
+      padding: 0 32px;
+      line-height: 1.25;
       letter-spacing: -0.02em;
       flex-shrink: 0;
     }
 
-    /* ── Step content area ─────────────────────────────── */
-    .step-scroll {
-      flex: 1; overflow: hidden;
-      display: flex; flex-direction: column; justify-content: center;
-    }
-
     /* ── Carousel ──────────────────────────────────────── */
     .carousel {
-      display: flex; gap: 10px;
+      display: flex; gap: 14px;
       overflow-x: auto; overflow-y: visible;
-      padding: 8px 18px 16px;
+      padding: 12px 24px 20px;
       -webkit-overflow-scrolling: touch;
       scrollbar-width: none;
+      /* center items when they fit; scroll when they don't */
+      justify-content: safe center;
     }
     .carousel::-webkit-scrollbar { display: none; }
 
@@ -192,8 +198,8 @@
        CHARACTER CARDS
     ════════════════════════════════════════════════════ */
     .char-card {
-      flex-shrink: 0; width: 110px;
-      padding: 18px 10px 14px; border-radius: 22px;
+      flex-shrink: 0; width: 140px;
+      padding: 24px 14px 18px; border-radius: 26px;
       border: 1.5px solid var(--c-border);
       background: var(--c-surface);
       text-align: center; cursor: pointer; position: relative;
@@ -202,55 +208,59 @@
         border-color 0.3s  var(--ease-soft),
         background   0.3s  var(--ease-soft),
         box-shadow   0.3s  var(--ease-soft),
-        transform    0.25s var(--ease-spring);
+        transform    0.3s  var(--ease-spring);
     }
     @media (hover: hover) {
       .char-card:not(.char-card--add):hover {
-        width: 155px;
-        border-color: rgba(var(--c-warm-rgb), 0.35);
-        background: rgba(var(--c-warm-rgb), 0.05);
-        box-shadow: 0 0 20px rgba(var(--c-warm-rgb),.10), 0 8px 20px rgba(0,0,0,.35);
-        transform: translateY(-4px);
+        width: 190px;
+        border-color: rgba(var(--c-warm-rgb), 0.55);
+        background: rgba(var(--c-warm-rgb), 0.07);
+        box-shadow: 0 0 32px rgba(var(--c-warm-rgb),.18),
+                    0 12px 32px rgba(0,0,0,.50);
+        transform: translateY(-8px) scale(1.02);
       }
     }
-    .char-card:active { transform: scale(0.93) !important; }
+    .char-card:active { transform: scale(0.91) !important; }
     .char-card--selected {
-      border-color: rgba(var(--c-warm-rgb), 0.55) !important;
-      background: rgba(var(--c-warm-rgb), 0.06) !important;
+      border-color: rgba(var(--c-warm-rgb), 0.60) !important;
+      background: rgba(var(--c-warm-rgb), 0.08) !important;
       animation: breathe 3.5s ease-in-out infinite;
     }
     .char-card--add {
       border-style: dashed;
-      border-color: rgba(255,255,255,0.12);
+      border-color: rgba(255,255,255,0.14);
     }
     @media (hover: hover) {
       .char-card--add:hover {
-        border-color: rgba(255,255,255,0.25);
-        background: rgba(255,255,255,0.05);
-        transform: translateY(-3px);
+        border-color: rgba(255,255,255,0.30);
+        background: rgba(255,255,255,0.06);
+        transform: translateY(-5px);
+        box-shadow: 0 8px 24px rgba(0,0,0,.35);
       }
     }
     .char-card-avatar {
-      font-size: 3.5rem; line-height: 1;
-      margin-bottom: 10px; display: block;
+      font-size: 4.2rem; line-height: 1;
+      margin-bottom: 12px; display: block;
       transition: transform 0.35s var(--ease-spring);
     }
     @media (hover: hover) {
-      .char-card:not(.char-card--add):hover .char-card-avatar { transform: scale(1.12); }
+      .char-card:not(.char-card--add):hover .char-card-avatar {
+        transform: scale(1.18) translateY(-3px);
+      }
     }
-    .char-card--selected .char-card-avatar { transform: scale(1.07); }
+    .char-card--selected .char-card-avatar { transform: scale(1.10); }
     .char-card-name {
-      font-size: 0.76rem; font-weight: 700;
+      font-size: 0.88rem; font-weight: 700;
       color: var(--c-text-dim);
       overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
       transition: color 0.3s;
     }
     .char-card--selected .char-card-name { color: var(--c-warm); }
     .char-card-check {
-      position: absolute; top: 8px; right: 8px;
-      width: 18px; height: 18px; border-radius: 50%;
+      position: absolute; top: 10px; right: 10px;
+      width: 22px; height: 22px; border-radius: 50%;
       background: var(--c-warm); color: #1a1230;
-      font-size: 0.65rem; font-weight: 900;
+      font-size: 0.75rem; font-weight: 900;
       display: flex; align-items: center; justify-content: center;
       opacity: 0; transform: scale(0.4);
       transition: opacity 0.2s, transform 0.28s var(--ease-spring);
@@ -261,59 +271,62 @@
        STORY TYPE TILES
     ════════════════════════════════════════════════════ */
     .type-tile {
-      flex-shrink: 0; width: 130px;
-      padding: 20px 16px 18px; border-radius: 22px;
+      flex-shrink: 0; width: 160px;
+      padding: 24px 20px 22px; border-radius: 26px;
       border: 1.5px solid var(--c-border);
       background: var(--c-surface);
       text-align: left; cursor: pointer; overflow: hidden;
-      display: flex; flex-direction: column; gap: 10px;
+      display: flex; flex-direction: column; gap: 14px;
       transition:
-        width        0.38s var(--ease-spring),
+        width        0.4s  var(--ease-spring),
         border-color 0.3s  var(--ease-soft),
         background   0.3s  var(--ease-soft),
         box-shadow   0.3s  var(--ease-soft),
-        transform    0.25s var(--ease-spring);
+        transform    0.3s  var(--ease-spring);
     }
     @media (hover: hover) {
       .type-tile:hover {
-        width: 215px;
-        border-color: rgba(var(--c-warm-rgb), 0.32);
-        background: rgba(var(--c-warm-rgb), 0.05);
-        box-shadow: 0 0 24px rgba(var(--c-warm-rgb),.10), 0 10px 28px rgba(0,0,0,.40);
-        transform: translateY(-5px);
+        width: 260px;
+        border-color: rgba(var(--c-warm-rgb), 0.50);
+        background: rgba(var(--c-warm-rgb), 0.07);
+        box-shadow: 0 0 36px rgba(var(--c-warm-rgb),.16),
+                    0 14px 36px rgba(0,0,0,.55);
+        transform: translateY(-8px) scale(1.02);
       }
     }
-    .type-tile:active { transform: scale(0.93) !important; }
+    .type-tile:active { transform: scale(0.92) !important; }
     .type-tile--selected {
-      width: 215px !important;
-      border-color: rgba(var(--c-warm-rgb), 0.55) !important;
-      background: rgba(var(--c-warm-rgb), 0.06) !important;
+      width: 260px !important;
+      border-color: rgba(var(--c-warm-rgb), 0.60) !important;
+      background: rgba(var(--c-warm-rgb), 0.08) !important;
       animation: breathe 3.5s ease-in-out infinite;
     }
     .type-tile-emoji {
-      font-size: 3.2rem; line-height: 1; display: block; flex-shrink: 0;
-      transition: font-size 0.35s var(--ease-spring), transform 0.35s var(--ease-spring);
+      font-size: 3.8rem; line-height: 1; display: block; flex-shrink: 0;
+      transition: font-size 0.38s var(--ease-spring), transform 0.38s var(--ease-spring);
     }
     @media (hover: hover) {
-      .type-tile:hover .type-tile-emoji { font-size: 3.8rem; transform: scale(1.05); }
+      .type-tile:hover .type-tile-emoji {
+        font-size: 4.5rem; transform: scale(1.06) translateY(-2px);
+      }
     }
-    .type-tile--selected .type-tile-emoji { font-size: 3.8rem; }
-    .type-tile-text { display: flex; flex-direction: column; gap: 3px; }
+    .type-tile--selected .type-tile-emoji { font-size: 4.5rem; }
+    .type-tile-text { display: flex; flex-direction: column; gap: 4px; }
     .type-tile-label {
-      font-size: 0.98rem; font-weight: 800;
-      color: rgba(237,232,223,0.78);
+      font-size: 1.05rem; font-weight: 800;
+      color: rgba(237,232,223,0.80);
       display: block; white-space: nowrap; transition: color 0.3s;
     }
     .type-tile--selected .type-tile-label { color: var(--c-warm); }
     .type-tile-tagline {
-      font-size: 0.7rem; font-weight: 600;
+      font-size: 0.78rem; font-weight: 600;
       color: transparent; display: block; white-space: nowrap;
       transition: color 0.3s var(--ease-soft);
     }
     @media (hover: hover) {
       .type-tile:hover .type-tile-tagline { color: var(--c-text-dim); }
     }
-    .type-tile--selected .type-tile-tagline { color: rgba(var(--c-warm-rgb), 0.55) !important; }
+    .type-tile--selected .type-tile-tagline { color: rgba(var(--c-warm-rgb), 0.60) !important; }
 
     /* ════════════════════════════════════════════════════
        LENGTH PILLS
@@ -432,12 +445,15 @@
       * { transition-duration: 0.01ms !important; }
     }
 
-    @media (max-width: 400px) {
-      .char-card { width: 90px; }
-      .char-card-avatar { font-size: 2.8rem; }
-      .type-tile { width: 110px; }
-      .type-tile-emoji { font-size: 2.6rem; }
-      .step-prompt { padding: 20px 20px 14px; }
+    @media (max-width: 480px) {
+      .char-card { width: 110px; padding: 18px 10px 14px; }
+      .char-card-avatar { font-size: 3.2rem; margin-bottom: 8px; }
+      .char-card-name { font-size: 0.78rem; }
+      .type-tile { width: 130px; padding: 18px 14px 16px; }
+      .type-tile-emoji { font-size: 3rem; }
+      .type-tile--selected, .type-tile:hover { width: 200px !important; }
+      .step-prompt { font-size: 1.3rem; padding: 0 20px; }
+      .step-body { gap: 20px; }
     }
   </style>
 </head>
@@ -468,8 +484,8 @@
 
     <!-- ── Step 1: Characters ──────────────────────────── -->
     <div class="step is-active" id="step1">
+      <div class="step-body">
       <div class="step-prompt">Who's coming on tonight's adventure?</div>
-      <div class="step-scroll">
         <div class="carousel" id="charCarousel">
           {% for char in characters %}
           <button type="button"
@@ -487,7 +503,7 @@
             <span class="char-card-name">Someone new</span>
           </button>
         </div>
-      </div>
+      </div><!-- /.step-body -->
       <div class="step-footer">
         <button class="next-btn" id="nextBtn1"
                 {% if not preselected_char_id %}disabled{% endif %}>
@@ -498,8 +514,8 @@
 
     <!-- ── Step 2: Story type ──────────────────────────── -->
     <div class="step" id="step2">
+      <div class="step-body">
       <div class="step-prompt">What kind of story shall we dream up?</div>
-      <div class="step-scroll">
         <div class="carousel" id="typeCarousel">
           {% for t in story_types %}
           <button type="button"
@@ -514,7 +530,7 @@
           </button>
           {% endfor %}
         </div>
-      </div>
+      </div><!-- /.step-body -->
       <div class="step-footer">
         <button class="next-btn" id="nextBtn2">Continue →</button>
       </div>
@@ -522,8 +538,8 @@
 
     <!-- ── Step 3: Length ──────────────────────────────── -->
     <div class="step" id="step3">
+      <div class="step-body">
       <div class="step-prompt">How long shall tonight's tale be?</div>
-      <div class="step-scroll">
         <div class="length-row">
           {% for key, info in length_buckets.items() %}
           <button type="button"
@@ -545,7 +561,7 @@
           </button>
           {% endfor %}
         </div>
-      </div>
+      </div><!-- /.step-body -->
       <div class="step-footer">
         <button class="start-btn" id="startBtn">Step Into the Story ✨</button>
       </div>
