@@ -74,10 +74,10 @@
         <div class="pw-step-heading">
           <div class="pw-step-emoji" id="previewEmoji2">🦁</div>
           <h1>How old are you?</h1>
-          <p>We'll pick the right words and stories</p>
+          <p>Stories calibrated to Lexile levels · Tier 2 vocabulary built in</p>
         </div>
         <div class="pw-age-grid" id="ageGrid">
-          {% for age in range(4, 13) %}
+          {% for age in range(2, 13) %}
           <button class="pw-age-btn {{ 'is-selected' if profile and profile.age == age }}"
                   data-age="{{ age }}">{{ age }}</button>
           {% endfor %}
@@ -220,7 +220,7 @@ document.getElementById("nameInput").addEventListener("input", e => {
 });
 
 // ── Age ───────────────────────────────────────────────────────────────────────
-const BAND_LABELS = { seedlings: "Ages 4–6 · Seedlings 🌱", explorers: "Ages 7–9 · Explorers 🔭", adventurers: "Ages 10–12 · Adventurers 🏔️" };
+const BAND_LABELS = { seedlings: "Ages 2–6 · Seedlings 🌱", explorers: "Ages 7–9 · Explorers 🔭", adventurers: "Ages 10–12 · Adventurers 🏔️" };
 function ageToBand(age) { return age <= 6 ? "seedlings" : age <= 9 ? "explorers" : "adventurers"; }
 
 document.querySelectorAll(".pw-age-btn").forEach(btn => {
