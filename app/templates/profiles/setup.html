@@ -51,6 +51,74 @@
       letter-spacing: 0.03em;
     }
 
+    /* ── Per-question fun-fact steps ─────────────────────────────────────── */
+    .pw-choice-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      width: 100%; max-width: 380px;
+      margin: 0 auto;
+    }
+    .pw-choice-btn {
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+      padding: 18px 8px;
+      background: var(--pw-surface);
+      border: 2px solid var(--pw-border);
+      border-radius: 16px;
+      cursor: pointer;
+      font-size: 2rem;
+      color: var(--pw-text);
+      transition: border-color 0.15s, background 0.15s, transform 0.12s;
+    }
+    .pw-choice-btn span { font-size: 0.75rem; font-weight: 700; color: var(--pw-text-2); }
+    .pw-choice-btn:active { transform: scale(0.95); }
+    .pw-choice-btn.is-selected {
+      border-color: var(--pw-accent);
+      background: var(--pw-accent-lt);
+    }
+    .pw-choice-btn.is-selected span { color: var(--pw-accent); }
+    .pw-choice-no { grid-column: span 3; flex-direction: row; gap: 10px; padding: 14px; font-size: 1.4rem; }
+    .pw-choice-no span { font-size: 0.82rem; }
+
+    .pw-twin-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 14px; width: 100%; max-width: 380px; margin: 0 auto;
+    }
+    .pw-twin-btn {
+      display: flex; flex-direction: column; align-items: center; gap: 10px;
+      padding: 28px 10px;
+      background: var(--pw-surface);
+      border: 2px solid var(--pw-border);
+      border-radius: 20px; cursor: pointer;
+      color: var(--pw-text); font-size: 0.88rem; font-weight: 700;
+      transition: border-color 0.15s, background 0.15s, transform 0.12s;
+    }
+    .pw-twin-btn:active { transform: scale(0.96); }
+    .pw-twin-btn.is-selected { border-color: var(--pw-accent); background: var(--pw-accent-lt); color: var(--pw-accent); }
+    .pw-twin-emoji { font-size: 2.4rem; line-height: 1; }
+
+    .pw-reveal-wrap {
+      width: 100%; max-width: 380px; margin: 16px auto 0;
+      animation: revealDown 0.22s cubic-bezier(0.34,1.28,0.64,1) both;
+    }
+    @keyframes revealDown {
+      from { opacity: 0; transform: translateY(-6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .pw-single-input {
+      width: 100%; box-sizing: border-box;
+      padding: 16px 18px;
+      background: var(--pw-surface);
+      border: 2px solid var(--pw-border);
+      border-radius: 16px;
+      color: var(--pw-text); font-size: 1rem; font-weight: 600;
+      font-family: inherit; outline: none;
+      transition: border-color 0.15s;
+    }
+    .pw-single-input:focus { border-color: var(--pw-accent); }
+    .pw-single-input::placeholder { color: var(--pw-text-2); }
+    .pw-single-input--big { font-size: 1.15rem; padding: 22px 24px; }
+
     :root {
       --pw-bg:       #0e0c1e;
       --pw-surface:  rgba(255,255,255,0.05);
@@ -168,51 +236,82 @@
       </div>
     </div>
 
-    <!-- Step 4: Fun facts -->
+    <!-- Step 4: Pet -->
     <div class="pw-step" id="step4" hidden>
       <div class="pw-step-content">
         <div class="pw-step-heading">
           <div class="pw-step-emoji" id="previewEmoji4">🦁</div>
-          <h1>Fun stuff!</h1>
-          <p>This helps us write stories just for you</p>
+          <h1>Do you have a pet?</h1>
+          <p>We'll make them a star in your stories</p>
         </div>
-
-        <div class="pw-facts-form">
-          <div class="pw-fact-group">
-            <label class="pw-fact-label">🐾 Do you have a pet?</label>
-            <div class="pw-fact-row">
-              <input class="pw-fact-input" id="petName" type="text"
-                     placeholder="Pet's name (optional)" maxlength="20"
-                     value="{{ profile.fun_facts.get('pet_name', '') if profile else '' }}"/>
-              <select class="pw-fact-select" id="petType">
-                <option value="">Type…</option>
-                <option value="dog"   {% if profile and profile.fun_facts.get('pet_type') == 'dog' %}selected{% endif %}>🐕 Dog</option>
-                <option value="cat"   {% if profile and profile.fun_facts.get('pet_type') == 'cat' %}selected{% endif %}>🐈 Cat</option>
-                <option value="fish"  {% if profile and profile.fun_facts.get('pet_type') == 'fish' %}selected{% endif %}>🐠 Fish</option>
-                <option value="bird"  {% if profile and profile.fun_facts.get('pet_type') == 'bird' %}selected{% endif %}>🐦 Bird</option>
-                <option value="other" {% if profile and profile.fun_facts.get('pet_type') == 'other' %}selected{% endif %}>Other</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="pw-fact-group">
-            <label class="pw-fact-label">👨‍👩‍👧 Any brothers or sisters?</label>
-            <input class="pw-fact-input" id="siblings" type="text"
-                   placeholder="Their names, separated by commas"
-                   value="{{ profile.fun_facts.get('siblings', '') if profile else '' }}"/>
-          </div>
-
-          <div class="pw-fact-group">
-            <label class="pw-fact-label">❤️ Favorite food?</label>
-            <input class="pw-fact-input" id="favFood" type="text"
-                   placeholder="e.g. pizza, tacos…" maxlength="30"
-                   value="{{ profile.fun_facts.get('fav_food', '') if profile else '' }}"/>
-          </div>
+        <div class="pw-choice-grid">
+          <button class="pw-choice-btn" data-pet="dog">🐕<span>Dog</span></button>
+          <button class="pw-choice-btn" data-pet="cat">🐈<span>Cat</span></button>
+          <button class="pw-choice-btn" data-pet="fish">🐠<span>Fish</span></button>
+          <button class="pw-choice-btn" data-pet="bird">🐦<span>Bird</span></button>
+          <button class="pw-choice-btn" data-pet="bunny">🐇<span>Bunny</span></button>
+          <button class="pw-choice-btn" data-pet="other">🦎<span>Other</span></button>
+          <button class="pw-choice-btn pw-choice-no" data-pet="">🚫 <span>No pet</span></button>
+        </div>
+        <div class="pw-reveal-wrap" id="petNameWrap" hidden>
+          <input class="pw-single-input" id="petName" type="text"
+                 placeholder="What's their name?" maxlength="20" autocomplete="off"
+                 value="{{ profile.fun_facts.get('pet_name', '') if profile else '' }}"/>
         </div>
       </div>
       <div class="pw-btn-row">
         <button class="pw-back-btn" id="step4Back">← Back</button>
-        <button class="pw-next-btn" id="step4Save">
+        <button class="pw-next-btn" id="step4Next">Next →</button>
+      </div>
+    </div>
+
+    <!-- Step 5: Siblings -->
+    <div class="pw-step" id="step5" hidden>
+      <div class="pw-step-content">
+        <div class="pw-step-heading">
+          <div class="pw-step-emoji" id="previewEmoji5">🦁</div>
+          <h1>Any brothers or sisters?</h1>
+          <p>We can write them into the adventure too</p>
+        </div>
+        <div class="pw-twin-grid">
+          <button class="pw-twin-btn" id="sibNo">
+            <span class="pw-twin-emoji">🌟</span>
+            <span>Nope, just me!</span>
+          </button>
+          <button class="pw-twin-btn" id="sibYes">
+            <span class="pw-twin-emoji">👨‍👩‍👧‍👦</span>
+            <span>Yes!</span>
+          </button>
+        </div>
+        <div class="pw-reveal-wrap" id="siblingWrap" hidden>
+          <input class="pw-single-input" id="siblings" type="text"
+                 placeholder="Their names… e.g. Max, Sofia" autocomplete="off"
+                 value="{{ profile.fun_facts.get('siblings', '') if profile else '' }}"/>
+        </div>
+      </div>
+      <div class="pw-btn-row">
+        <button class="pw-back-btn" id="step5Back">← Back</button>
+        <button class="pw-next-btn" id="step5Next">Next →</button>
+      </div>
+    </div>
+
+    <!-- Step 6: Favorite food -->
+    <div class="pw-step" id="step6" hidden>
+      <div class="pw-step-content">
+        <div class="pw-step-heading">
+          <div class="pw-step-emoji" id="previewEmoji6">🦁</div>
+          <h1>Favorite food?</h1>
+          <p>Maybe it'll show up in a story...</p>
+        </div>
+        <div style="width:100%;max-width:380px;margin:0 auto;">
+          <input class="pw-single-input pw-single-input--big" id="favFood" type="text"
+                 placeholder="e.g. pizza, tacos, ice cream…" maxlength="40" autocomplete="off"
+                 value="{{ profile.fun_facts.get('fav_food', '') if profile else '' }}"/>
+        </div>
+      </div>
+      <div class="pw-btn-row">
+        <button class="pw-back-btn" id="step6Back">← Back</button>
+        <button class="pw-next-btn" id="step6Save">
           {{ "Save changes" if profile else "Let's go! 🚀" }}
         </button>
       </div>
@@ -224,10 +323,9 @@
 <script>
 "use strict";
 
-const IS_EDIT   = {{ 'true' if profile else 'false' }};
+const IS_EDIT    = {{ 'true' if profile else 'false' }};
 const PROFILE_ID = {{ profile.id if profile else 'null' }};
 
-// ── State ─────────────────────────────────────────────────────────────────────
 let state = {
   avatar_emoji: "{{ profile.avatar_emoji if profile else '🦁' }}",
   avatar_color: "{{ profile.avatar_color if profile else '#6C8EF5' }}",
@@ -237,7 +335,6 @@ let state = {
   fun_facts:    {{ (profile.fun_facts | tojson) if profile else '{}' }},
 };
 
-// ── DOM refs ──────────────────────────────────────────────────────────────────
 const avatarPreview = document.getElementById("avatarPreview");
 const progressFill  = document.getElementById("progressFill");
 
@@ -261,7 +358,7 @@ document.querySelectorAll(".pw-color-btn").forEach(btn => {
 function updateAvatarPreview() {
   avatarPreview.textContent = state.avatar_emoji;
   avatarPreview.style.background = state.avatar_color;
-  ["previewEmoji2","previewEmoji3","previewEmoji4"].forEach(id => {
+  ["previewEmoji2","previewEmoji3","previewEmoji4","previewEmoji5","previewEmoji6"].forEach(id => {
     const el = document.getElementById(id);
     if (el) { el.textContent = state.avatar_emoji; el.style.background = state.avatar_color; }
   });
@@ -278,22 +375,19 @@ function ageToBand(age) { return age <= 6 ? "seedlings" : age <= 9 ? "explorers"
 
 const BAND_INFO = {
   seedlings: {
-    icon: "🌱",
-    name: "Seedlings · Ages 2–6",
+    icon: "🌱", name: "Seedlings · Ages 2–6",
     lexile: "Lexile 100–400L · Dolch Pre-K to Grade 1",
     desc: "Stories use simple, rhythmic language to build listening comprehension and confidence. We weave in high-frequency sight words from the Dolch list — the 220 words that make up most of what children read — while gently introducing Tier 2 words like curious, brave, and discover.",
     tags: ["Dolch sight words", "Tier 1 & 2 vocabulary", "Lexile 100–400L", "Phonemic awareness", "Listening comprehension"],
   },
   explorers: {
-    icon: "🔭",
-    name: "Explorers · Ages 7–9",
+    icon: "🔭", name: "Explorers · Ages 7–9",
     lexile: "Lexile 400–800L · Fry words 1–500",
     desc: "Stories stretch vocabulary intentionally. Every tale introduces 3–5 Tier 2 words — high-utility academic words like fortunate, hesitate, and determined — that appear across subjects in school. These are the words that predict reading comprehension scores and classroom confidence.",
     tags: ["Beck's Tier 2 vocabulary", "Fry words 1–500", "Lexile 400–800L", "Context clues", "Sentence complexity"],
   },
   adventurers: {
-    icon: "🏔️",
-    name: "Adventurers · Ages 10–12",
+    icon: "🏔️", name: "Adventurers · Ages 10–12",
     lexile: "Lexile 800–1100L · Fry words 500–1000",
     desc: "Rich, complex narratives that challenge and reward. Tier 2 words like ambiguous, persevere, and eloquent are embedded naturally in context — the way research shows vocabulary is actually acquired. Stories are calibrated to the upper Lexile range that prepares readers for middle school texts.",
     tags: ["Advanced Tier 2 vocabulary", "Fry words 500–1000", "Lexile 800–1100L", "Narrative complexity", "Middle school readiness"],
@@ -305,23 +399,16 @@ document.querySelectorAll(".pw-age-btn").forEach(btn => {
     document.querySelectorAll(".pw-age-btn").forEach(b => b.classList.remove("is-selected"));
     btn.classList.add("is-selected");
     state.age = parseInt(btn.dataset.age);
-    const band = ageToBand(state.age);
-    const info = BAND_INFO[band];
-
-    // Rebuild the card with a fresh animation each time
+    const info = BAND_INFO[ageToBand(state.age)];
     const card = document.getElementById("bandCard");
     card.hidden = false;
-    card.style.animation = "none";
-    card.offsetHeight; // reflow
-    card.style.animation = "";
-
-    document.getElementById("bandIcon").textContent  = info.icon;
-    document.getElementById("bandName").textContent  = info.name;
+    card.style.animation = "none"; card.offsetHeight; card.style.animation = "";
+    document.getElementById("bandIcon").textContent   = info.icon;
+    document.getElementById("bandName").textContent   = info.name;
     document.getElementById("bandLexile").textContent = info.lexile;
-    document.getElementById("bandDesc").textContent  = info.desc;
-    document.getElementById("bandTags").innerHTML    =
+    document.getElementById("bandDesc").textContent   = info.desc;
+    document.getElementById("bandTags").innerHTML     =
       info.tags.map(t => `<span class="pw-band-tag">${t}</span>`).join("");
-
     document.getElementById("step2Next").disabled = false;
   });
 });
@@ -339,11 +426,42 @@ document.querySelectorAll(".pw-interest-btn").forEach(btn => {
   });
 });
 
+// ── Pet ───────────────────────────────────────────────────────────────────────
+document.querySelectorAll(".pw-choice-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".pw-choice-btn").forEach(b => b.classList.remove("is-selected"));
+    btn.classList.add("is-selected");
+    state.fun_facts = state.fun_facts || {};
+    state.fun_facts.pet_type = btn.dataset.pet;
+    const wrap = document.getElementById("petNameWrap");
+    if (btn.dataset.pet) {
+      wrap.hidden = false;
+      document.getElementById("petName").focus();
+    } else {
+      wrap.hidden = true;
+      state.fun_facts.pet_name = "";
+    }
+  });
+});
+
+// ── Siblings ──────────────────────────────────────────────────────────────────
+document.getElementById("sibNo").addEventListener("click", () => {
+  document.getElementById("sibNo").classList.add("is-selected");
+  document.getElementById("sibYes").classList.remove("is-selected");
+  document.getElementById("siblingWrap").hidden = true;
+});
+document.getElementById("sibYes").addEventListener("click", () => {
+  document.getElementById("sibYes").classList.add("is-selected");
+  document.getElementById("sibNo").classList.remove("is-selected");
+  document.getElementById("siblingWrap").hidden = false;
+  document.getElementById("siblings").focus();
+});
+
 // ── Navigation ────────────────────────────────────────────────────────────────
 function goStep(from, to) {
   document.getElementById("step" + from).hidden = true;
   document.getElementById("step" + to).hidden = false;
-  const pct = { 1:25, 2:50, 3:75, 4:100 }[to] || 25;
+  const pct = { 1:17, 2:33, 3:50, 4:67, 5:83, 6:100 }[to] || 17;
   progressFill.style.width = pct + "%";
   window.scrollTo(0, 0);
 }
@@ -358,16 +476,20 @@ document.getElementById("step2Next").addEventListener("click", () => goStep(2, 3
 document.getElementById("step3Back").addEventListener("click", () => goStep(3, 2));
 document.getElementById("step3Next").addEventListener("click", () => goStep(3, 4));
 document.getElementById("step4Back").addEventListener("click", () => goStep(4, 3));
+document.getElementById("step4Next").addEventListener("click", () => goStep(4, 5));
+document.getElementById("step5Back").addEventListener("click", () => goStep(5, 4));
+document.getElementById("step5Next").addEventListener("click", () => goStep(5, 6));
+document.getElementById("step6Back").addEventListener("click", () => goStep(6, 5));
 
 // ── Save ──────────────────────────────────────────────────────────────────────
-document.getElementById("step4Save").addEventListener("click", async () => {
-  const btn = document.getElementById("step4Save");
+document.getElementById("step6Save").addEventListener("click", async () => {
+  const btn = document.getElementById("step6Save");
   btn.disabled = true;
   btn.textContent = "Saving…";
 
   state.fun_facts = {
+    ...(state.fun_facts || {}),
     pet_name: document.getElementById("petName").value.trim(),
-    pet_type: document.getElementById("petType").value,
     siblings: document.getElementById("siblings").value.trim(),
     fav_food: document.getElementById("favFood").value.trim(),
   };
@@ -395,7 +517,7 @@ document.getElementById("step4Save").addEventListener("click", async () => {
   }
 });
 
-// Init: pre-select saved values if editing
+// ── Init (edit mode) ──────────────────────────────────────────────────────────
 if (IS_EDIT) {
   document.querySelectorAll(".pw-avatar-btn").forEach(b => {
     b.classList.toggle("is-selected", b.dataset.emoji === state.avatar_emoji);
@@ -408,7 +530,25 @@ if (IS_EDIT) {
     if (ageBtn) {
       ageBtn.classList.add("is-selected");
       document.getElementById("step2Next").disabled = false;
-      document.getElementById("bandLabel").textContent = BAND_LABELS[ageToBand(state.age)];
+      const info = BAND_INFO[ageToBand(state.age)];
+      const card = document.getElementById("bandCard");
+      card.hidden = false;
+      document.getElementById("bandIcon").textContent   = info.icon;
+      document.getElementById("bandName").textContent   = info.name;
+      document.getElementById("bandLexile").textContent = info.lexile;
+      document.getElementById("bandDesc").textContent   = info.desc;
+      document.getElementById("bandTags").innerHTML =
+        info.tags.map(t => `<span class="pw-band-tag">${t}</span>`).join("");
+    }
+  }
+  if (state.fun_facts) {
+    if (state.fun_facts.pet_type) {
+      const petBtn = document.querySelector(`.pw-choice-btn[data-pet="${state.fun_facts.pet_type}"]`);
+      if (petBtn) { petBtn.classList.add("is-selected"); document.getElementById("petNameWrap").hidden = false; }
+    }
+    if (state.fun_facts.siblings) {
+      document.getElementById("sibYes").classList.add("is-selected");
+      document.getElementById("siblingWrap").hidden = false;
     }
   }
 }
