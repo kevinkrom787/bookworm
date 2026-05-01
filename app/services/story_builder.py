@@ -270,6 +270,23 @@ class StoryBuilder:
         reading_level = level_map.get(profile.age_band, "mid-level reader")
         interests     = ", ".join(profile.interests) if profile.interests else "adventures, animals"
 
+        fun_facts = profile.fun_facts or {}
+        pet_name  = fun_facts.get("pet_name", "").strip()
+        pet_type  = fun_facts.get("pet_type", "").strip()
+        siblings  = fun_facts.get("siblings", "").strip()
+        fav_food  = fun_facts.get("fav_food", "").strip()
+
+        personal_lines = []
+        if pet_name and pet_type:
+            personal_lines.append(f"Pet: {pet_name} the {pet_type}")
+        elif pet_name:
+            personal_lines.append(f"Pet: {pet_name}")
+        if siblings:
+            personal_lines.append(f"Siblings: {siblings}")
+        if fav_food:
+            personal_lines.append(f"Favorite food: {fav_food}")
+        personal_str = "\n".join(f"- {l}" for l in personal_lines) if personal_lines else "(none provided)"
+
         char_lines = "\n".join(
             f"- {c.name}: {c.canonical_description}" for c in characters
         ) if characters else "- (no specific characters; invent engaging ones)"
@@ -287,10 +304,10 @@ class StoryBuilder:
 
         return (
             f"## About tonight's reader\n"
-            f"Name: {profile.name}\n"
-            f"Age: {profile.age}\n"
+            f"Name: {profile.name}, age {profile.age}\n"
             f"Reading level: {reading_level}\n"
             f"Interests: {interests}\n"
+            f"Personal details (use these IN the story — not as background, as fuel):\n{personal_str}\n"
             f"Vocabulary currently practicing:\n{vocab_str}\n"
             f"Tonight's virtue focus: {virtue}\n\n"
             f"## Tonight's story\n"
@@ -317,7 +334,9 @@ class StoryBuilder:
                 prompt      = (
                     f"{style}. {scene_desc}. "
                     + (f"Characters: {'; '.join(char_descs)}. " if char_descs else "")
-                    + "Child-safe, warm, inviting. No text or letters in the image."
+                    + "Child-safe, warm, inviting. No text or letters in the image. "
+                    + "Composition: main subject(s) positioned in the upper two-thirds of the frame; "
+                    + "lower third is simple open background (sky, ground, grass, or floor) with no characters or important details."
                 )
                 cache_key   = _cache_key(profile_id, scene.get("page_number", 0), prompt)
 

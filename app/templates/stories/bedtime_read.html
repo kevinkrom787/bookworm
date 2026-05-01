@@ -230,8 +230,18 @@ function pollImages() {
         const n = parseInt(pageNum);
         if (!imagesByPage[n]) { imagesByPage[n] = url; newImages = true; }
       }
-      if (newImages && !onSplash && imagesByPage[PAGES[currentIndex]?.page_number]) {
-        renderPage(currentIndex);
+      if (newImages && !onSplash) {
+        const currentPage = PAGES[currentIndex];
+        if (currentPage && imagesByPage[currentPage.page_number]) {
+          const newUrl = imagesByPage[currentPage.page_number];
+          const existingImg = document.querySelector("#btrPage .btr-image");
+          if (existingImg) {
+            existingImg.src = newUrl;
+            lastStoryImage = newUrl;
+          } else {
+            renderPage(currentIndex);
+          }
+        }
       }
       imagesPollCount++;
       if (imagesPollCount >= MAX_IMAGE_POLLS ||

@@ -4,8 +4,6 @@ Story routes — /stories/
 from flask import (Blueprint, jsonify, redirect, render_template,
                    request, session, url_for, current_app, g)
 
-from app.services.story_service import StoryService, THEMES
-from app.services.flashcard_service import FlashcardService
 from app.services.profile_service import ProfileService
 from app.services.character_service import CharacterService
 from app.services.streak_service import StreakService
@@ -16,15 +14,6 @@ bp = Blueprint("stories", __name__, url_prefix="/stories")
 
 
 # ── Service helpers ────────────────────────────────────────────────────────────
-
-def _story_svc() -> StoryService:
-    if "story_svc" not in g:
-        g.story_svc = StoryService(
-            db_path=current_app.config["DB_PATH"],
-            api_key=current_app.config.get("ANTHROPIC_API_KEY", ""),
-        )
-    return g.story_svc
-
 
 def _builder() -> StoryBuilder:
     if "story_builder" not in g:
@@ -47,12 +36,6 @@ def _streak_svc() -> StreakService:
     return g.streak_svc
 
 
-def _fc_svc() -> FlashcardService:
-    if "fc_svc" not in g:
-        g.fc_svc = FlashcardService(current_app.config["DB_PATH"])
-    return g.fc_svc
-
-
 def _active_profile():
     pid = session.get("profile_id")
     fid = session.get("family_id")
@@ -61,32 +44,11 @@ def _active_profile():
     return ProfileService(current_app.config["DB_PATH"]).get_profile(pid, family_id=fid)
 
 
-# ── Legacy pages (old story format) ───────────────────────────────────────────
+# ── Bedtime story flow ─────────────────────────────────────────────────────────
 
 @bp.route("/")
 def index():
     return redirect(url_for("stories.new"))
-
-
-@bp.route("/<int:story_id>")
-def read_legacy(story_id: int):
-    profile = _active_profile()
-    story   = _story_svc().get_story(story_id)
-    if not story:
-        return redirect(url_for("stories.index"))
-    return render_template("stories/read.html", profile=profile, story=story)
-
-
-@bp.route("/api/<int:story_id>", methods=["DELETE"])
-def api_delete(story_id: int):
-    profile = _active_profile()
-    if not profile:
-        return jsonify({"error": "No active profile"}), 401
-    deleted = _story_svc().delete_story(story_id, profile.id)
-    return jsonify({"deleted": deleted})
-
-
-# ── Bedtime story flow ─────────────────────────────────────────────────────────
 
 @bp.route("/new")
 def new():
@@ -336,43 +298,3 @@ def api_stats():
     return jsonify(_streak_svc().get_stats(profile.id))
 
 
-# ── Legacy generation (kept for backward compat with old new.html) ─────────────
-
-@bp.route("/api/generate", methods=["POST"])
-def api_generate():
-    profile = _active_profile()
-    if not profile:
-        return jsonify({"error": "No active profile"}), 401
-
-    data        = request.get_json(silent=True) or {}
-    theme       = data.get("theme", "adventure")
-    vocab_words = data.get("vocab_words", [])
-
-    if not current_app.config.get("ANTHROPIC_API_KEY"):
-        return jsonify({"error": "ANTHROPIC_API_KEY not configured"}), 503
-
-    try:
-        story, questions = _story_svc().generate(
-            profile=profile, theme=theme, vocab_words=vocab_words,
-        )
-    except ValueError as e:
-        return jsonify({"error": str(e)}), 503
-    except Exception as e:
-        current_app.logger.error("Story generation error: %s", e)
-        return jsonify({"error": "Story generation failed — please try again"}), 500
-
-    fc = _fc_svc()
-    for q in questions:
-        try:
-            fc.create_card(
-                card_type="book_quiz",
-                front_data={"question": q["question"], "source_chapter": story.title},
-                back_data={"choices": q["choices"], "correct_index": q["correct_index"],
-                           "explanation": q.get("explanation", "")},
-                source_book=story.title,
-                source_chapter=story.title,
-            )
-        except Exception:
-            pass
-
-    return jsonify({"story_id": story.id, "title": story.title}), 201
