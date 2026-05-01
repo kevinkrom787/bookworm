@@ -1,19 +1,432 @@
-{% extends "base.html" %}
-{% block title %}My Story{% endblock %}
-{% block extra_css %}
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/story.css') }}" />
-{% endblock %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <title>Tonight's Story</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/story.css') }}"/>
+  <style>
+    /* ── Override: dark setup shell ───────────────────── */
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { height: 100%; }
 
-{% block body %}
+    .setup-shell {
+      height: 100dvh;
+      background: #0d0b1a;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+      font-family: 'Nunito', sans-serif;
+    }
+
+    /* Star canvas sits behind everything */
+    .setup-star-canvas {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    /* ── Header ────────────────────────────────────────── */
+    .setup-header {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 14px 16px 10px;
+      flex-shrink: 0;
+    }
+
+    .setup-back-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255,255,255,0.07);
+      color: rgba(240,235,224,0.6);
+      flex-shrink: 0;
+      margin-top: 2px;
+      transition: background 0.15s;
+    }
+    .setup-back-btn:active { background: rgba(255,255,255,0.14); }
+
+    .setup-header-text { flex: 1; min-width: 0; }
+
+    .setup-header-title {
+      font-size: 1.25rem;
+      font-weight: 900;
+      color: #f5d97a;
+      text-shadow: 0 0 24px rgba(245,217,122,0.35);
+      letter-spacing: -0.01em;
+      line-height: 1.2;
+    }
+
+    .setup-preview {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: rgba(240,235,224,0.4);
+      margin-top: 3px;
+      font-style: italic;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      transition: color 0.3s;
+    }
+    .setup-preview.is-ready { color: rgba(245,217,122,0.6); }
+
+    /* ── Error ─────────────────────────────────────────── */
+    .setup-error-banner {
+      background: rgba(220,38,38,0.12);
+      color: #fca5a5;
+      border-bottom: 1px solid rgba(220,38,38,0.2);
+      font-size: 0.85rem;
+      font-weight: 600;
+      padding: 8px 16px;
+      text-align: center;
+      position: relative;
+      z-index: 2;
+    }
+
+    /* ── Scrollable body ───────────────────────────────── */
+    .setup-form {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      position: relative;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      padding: 8px 0 0;
+    }
+    .setup-form::-webkit-scrollbar { display: none; }
+
+    /* ── Section label ─────────────────────────────────── */
+    .setup-section { padding: 0 16px; }
+
+    .setup-section-label {
+      font-size: 0.7rem;
+      font-weight: 900;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: rgba(245,217,122,0.5);
+      margin-bottom: 12px;
+    }
+
+    /* ── Character cards ───────────────────────────────── */
+    .setup-chars-scroll {
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+      padding: 4px 16px 8px;
+      margin: 0 -16px;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    .setup-chars-scroll::-webkit-scrollbar { display: none; }
+
+    .char-card {
+      flex-shrink: 0;
+      width: 96px;
+      padding: 14px 8px 12px;
+      border-radius: 20px;
+      border: 2px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.04);
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s, transform 0.15s cubic-bezier(0.34,1.4,0.64,1), box-shadow 0.2s;
+      position: relative;
+    }
+    .char-card:active { transform: scale(0.93); }
+
+    .char-card--selected {
+      border-color: #f5d97a;
+      background: rgba(245,217,122,0.08);
+      box-shadow: 0 0 20px rgba(245,217,122,0.2), inset 0 0 12px rgba(245,217,122,0.05);
+    }
+
+    .char-card--add {
+      border-style: dashed;
+      border-color: rgba(255,255,255,0.15);
+    }
+
+    .char-card-avatar {
+      font-size: 3.2rem;
+      line-height: 1;
+      margin-bottom: 8px;
+      transition: transform 0.2s;
+    }
+    .char-card--selected .char-card-avatar { transform: scale(1.08); }
+
+    .char-card-name {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: rgba(240,235,224,0.65);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .char-card--selected .char-card-name { color: #f5d97a; }
+
+    .char-card-check {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #f5d97a;
+      color: #1a1530;
+      font-size: 0.65rem;
+      font-weight: 900;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transform: scale(0.6);
+      transition: opacity 0.15s, transform 0.2s cubic-bezier(0.34,1.4,0.64,1);
+    }
+    .char-card--selected .char-card-check { opacity: 1; transform: scale(1); }
+
+    /* ── Story type grid ───────────────────────────────── */
+    .setup-type-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .type-tile {
+      padding: 16px 12px 14px;
+      border-radius: 18px;
+      border: 2px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.04);
+      text-align: left;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s, transform 0.15s cubic-bezier(0.34,1.4,0.64,1);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .type-tile:active { transform: scale(0.95); }
+
+    .type-tile--selected {
+      border-color: #f5d97a;
+      background: rgba(245,217,122,0.07);
+    }
+
+    .type-tile-emoji {
+      font-size: 2.2rem;
+      line-height: 1;
+      display: block;
+    }
+
+    .type-tile-label {
+      font-size: 0.95rem;
+      font-weight: 800;
+      color: rgba(240,235,224,0.8);
+      display: block;
+      line-height: 1.1;
+    }
+    .type-tile--selected .type-tile-label { color: #f5d97a; }
+
+    .type-tile-tagline {
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: rgba(240,235,224,0.35);
+      display: block;
+      line-height: 1.3;
+    }
+    .type-tile--selected .type-tile-tagline { color: rgba(245,217,122,0.55); }
+
+    /* ── Length pills ──────────────────────────────────── */
+    .setup-length-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .length-pill {
+      flex: 1;
+      padding: 14px 8px;
+      border-radius: 16px;
+      border: 2px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.04);
+      cursor: pointer;
+      text-align: center;
+      transition: border-color 0.2s, background 0.2s, transform 0.15s cubic-bezier(0.34,1.4,0.64,1);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+    }
+    .length-pill:active { transform: scale(0.95); }
+
+    .length-pill--selected {
+      border-color: #f5d97a;
+      background: rgba(245,217,122,0.07);
+    }
+
+    .length-pill-icon { font-size: 1.4rem; line-height: 1; }
+
+    .length-pill-label {
+      font-size: 0.78rem;
+      font-weight: 800;
+      color: rgba(240,235,224,0.6);
+      line-height: 1.2;
+    }
+    .length-pill--selected .length-pill-label { color: #f5d97a; }
+
+    .length-pill-time {
+      font-size: 0.68rem;
+      font-weight: 600;
+      color: rgba(240,235,224,0.3);
+    }
+    .length-pill--selected .length-pill-time { color: rgba(245,217,122,0.5); }
+
+    /* ── Footer ────────────────────────────────────────── */
+    .setup-footer {
+      padding: 12px 16px 20px;
+      flex-shrink: 0;
+      position: relative;
+      z-index: 2;
+    }
+
+    .setup-start-btn {
+      width: 100%;
+      padding: 18px;
+      border-radius: 18px;
+      background: #f5d97a;
+      color: #1a1530;
+      font-family: 'Nunito', sans-serif;
+      font-size: 1.15rem;
+      font-weight: 900;
+      letter-spacing: 0.02em;
+      cursor: pointer;
+      border: none;
+      box-shadow: 0 0 32px rgba(245,217,122,0.3);
+      transition: opacity 0.15s, transform 0.15s cubic-bezier(0.34,1.4,0.64,1), box-shadow 0.2s;
+    }
+    .setup-start-btn:active { transform: scale(0.97); opacity: 0.9; }
+    .setup-start-btn:disabled { opacity: 0.45; cursor: default; box-shadow: none; }
+
+    /* ── Add character modal ───────────────────────────── */
+    .add-char-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      z-index: 100;
+      padding: 0 0 env(safe-area-inset-bottom, 0);
+    }
+    .add-char-modal[hidden] { display: none; }
+
+    .add-char-modal-box {
+      background: #1a1533;
+      border-radius: 24px 24px 0 0;
+      padding: 12px 24px 36px;
+      width: 100%;
+      max-width: 480px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      animation: sheetUp 0.32s cubic-bezier(0.34,1.3,0.64,1) both;
+    }
+    @keyframes sheetUp {
+      from { transform: translateY(100%); }
+      to   { transform: translateY(0); }
+    }
+
+    .add-char-sheet-handle {
+      width: 40px;
+      height: 4px;
+      background: rgba(255,255,255,0.18);
+      border-radius: 99px;
+      margin: 0 auto 8px;
+    }
+
+    .add-char-modal-title {
+      font-size: 1.1rem;
+      font-weight: 900;
+      color: #f5d97a;
+    }
+
+    .add-char-input {
+      border: 1.5px solid rgba(255,255,255,0.1);
+      border-radius: 14px;
+      background: rgba(255,255,255,0.06);
+      color: #f0ebe0;
+      padding: 13px 14px;
+      font-size: 1rem;
+      font-family: 'Nunito', sans-serif;
+      font-weight: 600;
+      width: 100%;
+      outline: none;
+    }
+    .add-char-input::placeholder { color: rgba(240,235,224,0.25); font-weight: 400; }
+    .add-char-input:focus { border-color: rgba(245,217,122,0.55); }
+
+    .add-char-modal-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .add-char-cancel {
+      padding: 12px 20px;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.07);
+      color: rgba(240,235,224,0.6);
+      font-family: 'Nunito', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+    }
+    .add-char-confirm {
+      flex: 1;
+      padding: 12px 20px;
+      border-radius: 14px;
+      background: #f5d97a;
+      color: #1a1530;
+      font-family: 'Nunito', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 800;
+      cursor: pointer;
+      border: none;
+    }
+
+    @media (max-width: 380px) {
+      .char-card { width: 84px; }
+      .char-card-avatar { font-size: 2.6rem; }
+      .type-tile-emoji { font-size: 1.8rem; }
+    }
+  </style>
+</head>
+<body>
 <div class="setup-shell">
 
+  <canvas id="setupStarCanvas" class="setup-star-canvas" aria-hidden="true"></canvas>
+
   <header class="setup-header">
-    <a class="back-btn" href="/" aria-label="Home">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+    <a class="setup-back-btn" href="/" aria-label="Home">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
         <polyline points="15 18 9 12 15 6"/>
       </svg>
     </a>
-    <span class="setup-header-title">My Story</span>
+    <div class="setup-header-text">
+      <div class="setup-header-title">Tonight's Story ✨</div>
+      <div class="setup-preview" id="setupPreview">Pick who's in it to begin...</div>
+    </div>
   </header>
 
   {% if error %}
@@ -22,34 +435,32 @@
 
   <form class="setup-form" method="POST" action="{{ url_for('stories.start') }}" id="setupForm">
 
-    <!-- ── Row 1: Who's in it? ──────────────────────────────────── -->
+    <!-- ── Who's in it? ───────────────────────────────── -->
     <section class="setup-section">
-      <div class="setup-section-label">Who's in it?</div>
+      <div class="setup-section-label">Who's joining?</div>
       <div class="setup-chars-scroll" id="charScroll">
-
         {% for char in characters %}
         <button type="button"
                 class="char-card {% if char.character_id == preselected_char_id %}char-card--selected{% endif %}"
                 data-char-id="{{ char.character_id }}"
+                data-char-name="{{ char.name }}"
                 aria-pressed="{{ 'true' if char.character_id == preselected_char_id else 'false' }}">
           <div class="char-card-avatar">{{ char.avatar_emoji }}</div>
           <div class="char-card-name">{{ char.name }}</div>
           <div class="char-card-check">✓</div>
         </button>
         {% endfor %}
-
         <button type="button" class="char-card char-card--add" id="addCharBtn">
           <div class="char-card-avatar">＋</div>
           <div class="char-card-name">Someone new</div>
         </button>
-
       </div>
     </section>
 
-    <!-- ── Row 2: What kind? ────────────────────────────────────── -->
+    <!-- ── What kind? ──────────────────────────────────── -->
     <section class="setup-section">
-      <div class="setup-section-label">What kind?</div>
-      <div class="setup-type-row">
+      <div class="setup-section-label">What kind of night?</div>
+      <div class="setup-type-grid">
         {% for t in story_types %}
         <button type="button"
                 class="type-tile {% if t.key == preselected_type %}type-tile--selected{% endif %}"
@@ -57,12 +468,13 @@
                 aria-pressed="{{ 'true' if t.key == preselected_type else 'false' }}">
           <span class="type-tile-emoji">{{ t.emoji }}</span>
           <span class="type-tile-label">{{ t.label }}</span>
+          <span class="type-tile-tagline" data-key="{{ t.key }}"></span>
         </button>
         {% endfor %}
       </div>
     </section>
 
-    <!-- ── Row 3: How long? ─────────────────────────────────────── -->
+    <!-- ── How long? ───────────────────────────────────── -->
     <section class="setup-section">
       <div class="setup-section-label">How long?</div>
       <div class="setup-length-row">
@@ -71,20 +483,21 @@
                 class="length-pill {% if key == 'medium' %}length-pill--selected{% endif %}"
                 data-length="{{ key }}"
                 aria-pressed="{{ 'true' if key == 'medium' else 'false' }}">
-          {{ info.label }}
+          <span class="length-pill-icon">{{ '⚡' if key == 'short' else ('🌙' if key == 'medium' else '🌌') }}</span>
+          <span class="length-pill-label">{{ info.label.split(' (')[0] }}</span>
+          <span class="length-pill-time">{{ info.label.split('(')[1].replace(')', '') if '(' in info.label else '' }}</span>
         </button>
         {% endfor %}
       </div>
     </section>
 
-    <!-- Hidden inputs written by JS -->
-    <input type="hidden" name="story_type"   id="inputType"   value="{{ preselected_type }}">
+    <!-- Hidden inputs -->
+    <input type="hidden" name="story_type"    id="inputType"   value="{{ preselected_type }}">
     <input type="hidden" name="length_bucket" id="inputLength" value="medium">
-    <!-- character_ids appended dynamically as multiple hidden inputs -->
 
     <div class="setup-footer">
       <button type="submit" class="setup-start-btn" id="startBtn">
-        Start
+        Begin the Adventure →
       </button>
     </div>
 
@@ -92,28 +505,100 @@
 
 </div>
 
-<!-- Add character modal -->
+<!-- Add character bottom sheet -->
 <div class="add-char-modal" id="addCharModal" hidden>
   <div class="add-char-modal-box">
-    <div class="add-char-modal-title">Who is it?</div>
-    <input class="add-char-input" type="text" id="newCharName" placeholder="Name" maxlength="30" autocomplete="off">
-    <input class="add-char-input" type="text" id="newCharDesc" placeholder="What do they look like? (optional)" maxlength="120" autocomplete="off">
+    <div class="add-char-sheet-handle"></div>
+    <div class="add-char-modal-title">Who is it? 🐾</div>
+    <input class="add-char-input" type="text" id="newCharName"
+           placeholder="Name (e.g. Mochi, Bella, Captain Rex)" maxlength="30" autocomplete="off"/>
+    <input class="add-char-input" type="text" id="newCharDesc"
+           placeholder="What do they look like? (optional)" maxlength="120" autocomplete="off"/>
     <div class="add-char-modal-actions">
       <button type="button" class="add-char-cancel" id="cancelAddChar">Cancel</button>
-      <button type="button" class="add-char-confirm" id="confirmAddChar">Add</button>
+      <button type="button" class="add-char-confirm" id="confirmAddChar">Add to story</button>
     </div>
   </div>
 </div>
-{% endblock %}
 
-{% block extra_js %}
 <script>
 "use strict";
 
+// ── Star canvas ───────────────────────────────────────────────────────────────
+(function () {
+  const canvas = document.getElementById("setupStarCanvas");
+  const ctx = canvas.getContext("2d");
+  let stars = [];
+  function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+  function init() {
+    stars = Array.from({ length: 50 }, () => ({
+      x: Math.random() * canvas.width, y: Math.random() * canvas.height,
+      r: Math.random() * 1.2 + 0.3, target: Math.random() * 0.45 + 0.08,
+      speed: Math.random() * 0.005 + 0.002, phase: Math.random() * Math.PI * 2
+    }));
+  }
+  function draw(t) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (const s of stars) {
+      const o = s.target * (0.6 + 0.4 * Math.sin(t * s.speed * 60 + s.phase));
+      ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(180,170,140,${o})`; ctx.fill();
+    }
+    requestAnimationFrame(draw);
+  }
+  resize(); init(); requestAnimationFrame(draw);
+  window.addEventListener("resize", () => { resize(); init(); });
+}());
+
+// ── Data ──────────────────────────────────────────────────────────────────────
 const MAX_CHARS = 3;
-let selectedCharIds = new Set(
-  {{ ([preselected_char_id] if preselected_char_id else []) | tojson }}
-);
+const TAGLINES = {
+  adventure : "Explore new worlds",
+  funny     : "Laugh until sleepy",
+  mystery   : "Solve the puzzle",
+  cozy      : "Warm and dreamy",
+  brave     : "Face your fears",
+};
+
+let selectedCharIds   = new Set({{ ([preselected_char_id] if preselected_char_id else []) | tojson }});
+let selectedCharNames = new Map();
+let selectedType      = {{ preselected_type | tojson }};
+let selectedLength    = "medium";
+
+// Populate taglines
+document.querySelectorAll(".type-tile-tagline").forEach(el => {
+  el.textContent = TAGLINES[el.dataset.key] || "";
+});
+
+// Seed char names from pre-selected
+document.querySelectorAll(".char-card:not(.char-card--add)").forEach(card => {
+  if (selectedCharIds.has(parseInt(card.dataset.charId))) {
+    selectedCharNames.set(parseInt(card.dataset.charId), card.dataset.charName);
+  }
+});
+
+// ── Live preview ──────────────────────────────────────────────────────────────
+function updatePreview() {
+  const el = document.getElementById("setupPreview");
+  const names = [...selectedCharNames.values()];
+  const typeLabel = document.querySelector(`.type-tile[data-type="${selectedType}"] .type-tile-label`)?.textContent || selectedType;
+  const lengthEl  = document.querySelector(`.length-pill[data-length="${selectedLength}"] .length-pill-time`);
+  const timeStr   = lengthEl?.textContent || "";
+
+  if (!names.length) {
+    el.textContent = "Pick who's in it to begin...";
+    el.classList.remove("is-ready");
+    return;
+  }
+
+  const nameStr = names.length === 1
+    ? names[0]
+    : names.slice(0, -1).join(", ") + " & " + names[names.length - 1];
+
+  el.textContent = `A ${typeLabel.toLowerCase()} story starring ${nameStr}${timeStr ? " — " + timeStr : ""}`;
+  el.classList.add("is-ready");
+}
+updatePreview();
 
 // ── Character selection ───────────────────────────────────────────────────────
 document.querySelectorAll(".char-card:not(.char-card--add)").forEach(card => {
@@ -121,23 +606,27 @@ document.querySelectorAll(".char-card:not(.char-card--add)").forEach(card => {
 });
 
 function toggleChar(card) {
-  const id = parseInt(card.dataset.charId);
+  const id   = parseInt(card.dataset.charId);
+  const name = card.dataset.charName;
   if (selectedCharIds.has(id)) {
     selectedCharIds.delete(id);
+    selectedCharNames.delete(id);
     card.classList.remove("char-card--selected");
     card.setAttribute("aria-pressed", "false");
   } else {
     if (selectedCharIds.size >= MAX_CHARS) {
-      // Deselect oldest
       const oldest = [...selectedCharIds][0];
       selectedCharIds.delete(oldest);
+      selectedCharNames.delete(oldest);
       document.querySelector(`.char-card[data-char-id="${oldest}"]`)
         ?.classList.remove("char-card--selected");
     }
     selectedCharIds.add(id);
+    selectedCharNames.set(id, name);
     card.classList.add("char-card--selected");
     card.setAttribute("aria-pressed", "true");
   }
+  updatePreview();
 }
 
 // ── Story type selection ──────────────────────────────────────────────────────
@@ -149,7 +638,9 @@ document.querySelectorAll(".type-tile").forEach(tile => {
     });
     tile.classList.add("type-tile--selected");
     tile.setAttribute("aria-pressed", "true");
-    document.getElementById("inputType").value = tile.dataset.type;
+    selectedType = tile.dataset.type;
+    document.getElementById("inputType").value = selectedType;
+    updatePreview();
   });
 });
 
@@ -162,17 +653,24 @@ document.querySelectorAll(".length-pill").forEach(pill => {
     });
     pill.classList.add("length-pill--selected");
     pill.setAttribute("aria-pressed", "true");
-    document.getElementById("inputLength").value = pill.dataset.length;
+    selectedLength = pill.dataset.length;
+    document.getElementById("inputLength").value = selectedLength;
+    updatePreview();
   });
 });
 
-// ── Add character modal ───────────────────────────────────────────────────────
+// ── Add character bottom sheet ────────────────────────────────────────────────
 document.getElementById("addCharBtn").addEventListener("click", () => {
   document.getElementById("addCharModal").hidden = false;
   document.getElementById("newCharName").focus();
 });
 document.getElementById("cancelAddChar").addEventListener("click", () => {
   document.getElementById("addCharModal").hidden = true;
+});
+document.getElementById("addCharModal").addEventListener("click", e => {
+  if (e.target === document.getElementById("addCharModal")) {
+    document.getElementById("addCharModal").hidden = true;
+  }
 });
 document.getElementById("confirmAddChar").addEventListener("click", addCharacter);
 document.getElementById("newCharName").addEventListener("keydown", e => {
@@ -193,13 +691,13 @@ async function addCharacter() {
     if (!resp.ok) throw new Error("Failed");
     const char = await resp.json();
 
-    // Inject card before the + button
     const scroll = document.getElementById("charScroll");
     const addBtn = document.getElementById("addCharBtn");
     const card   = document.createElement("button");
-    card.type    = "button";
-    card.className = "char-card";
-    card.dataset.charId = char.character_id;
+    card.type          = "button";
+    card.className     = "char-card";
+    card.dataset.charId   = char.character_id;
+    card.dataset.charName = char.name;
     card.setAttribute("aria-pressed", "false");
     card.innerHTML = `
       <div class="char-card-avatar">${char.avatar_emoji}</div>
@@ -213,23 +711,26 @@ async function addCharacter() {
     document.getElementById("addCharModal").hidden = true;
     document.getElementById("newCharName").value   = "";
     document.getElementById("newCharDesc").value   = "";
-  } catch (e) {
-    alert("Couldn't add character. Please try again.");
+  } catch {
+    alert("Couldn't add that character. Please try again.");
   }
 }
 
-// ── Form submit — inject character_ids ───────────────────────────────────────
+// ── Form submit ───────────────────────────────────────────────────────────────
 document.getElementById("setupForm").addEventListener("submit", e => {
-  // Remove any old character_id inputs
   document.querySelectorAll("input[name='character_ids']").forEach(el => el.remove());
   const form = document.getElementById("setupForm");
   selectedCharIds.forEach(id => {
-    const inp  = document.createElement("input");
-    inp.type   = "hidden";
-    inp.name   = "character_ids";
-    inp.value  = id;
+    const inp = document.createElement("input");
+    inp.type  = "hidden";
+    inp.name  = "character_ids";
+    inp.value = id;
     form.appendChild(inp);
   });
+  const btn = document.getElementById("startBtn");
+  btn.disabled    = true;
+  btn.textContent = "Weaving your story...";
 });
 </script>
-{% endblock %}
+</body>
+</html>
