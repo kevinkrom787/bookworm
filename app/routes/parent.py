@@ -28,7 +28,8 @@ def admin():
     row = conn.execute("SELECT email FROM families WHERE id = ?", (family_id,)).fetchone()
     if not row or row["email"].lower() != _ADMIN_EMAIL:
         conn.close()
-        abort(403)
+        actual = row["email"] if row else "unknown"
+        abort(403, description=f"Admin requires {_ADMIN_EMAIL!r}. You're logged in as {actual!r}.")
 
     families = conn.execute("""
         SELECT
