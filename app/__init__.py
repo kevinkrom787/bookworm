@@ -54,6 +54,13 @@ def create_app(config_class=Config):
             client_kwargs={"scope": "openid email profile"},
         )
 
+    # PostHog server-side analytics
+    from app.analytics import init as init_analytics
+    init_analytics(
+        api_key=app.config.get("POSTHOG_API_KEY", ""),
+        host=app.config.get("POSTHOG_HOST", "https://us.i.posthog.com"),
+    )
+
     # Register route blueprints
     from app.routes import (library, reader, flashcards, parent,
                             profiles as profiles_bp, stories as stories_bp,

@@ -39,6 +39,10 @@ class Config:
     GOOGLE_CLIENT_ID     = os.environ.get("GOOGLE_CLIENT_ID", "")
     GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", "")
 
+    # PostHog analytics
+    POSTHOG_API_KEY  = os.environ.get("POSTHOG_API_KEY", "")
+    POSTHOG_HOST     = os.environ.get("POSTHOG_HOST", "https://us.i.posthog.com")
+
     # Image generation (parent configures; no default key ever shipped)
     # Set IMAGE_PROVIDER to 'openai' or 'replicate'
     IMAGE_PROVIDER        = os.environ.get("IMAGE_PROVIDER", "openai")

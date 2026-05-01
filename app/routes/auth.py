@@ -6,6 +6,7 @@ from flask import (Blueprint, redirect, render_template,
                    request, session, url_for, current_app)
 from app.services.family_service import FamilyService
 from app.extensions import oauth
+from app import analytics
 
 bp = Blueprint("auth", __name__, url_prefix="/auth")
 
@@ -57,10 +58,16 @@ def google_callback():
     if not email:
         return redirect(url_for("auth.login"))
 
-    family = _svc().find_or_create_google(email=email, name=name)
+    family  = _svc().find_or_create_google(email=email, name=name)
+    is_new  = not _profiles_for(family.id)
     session["family_id"]   = family.id
     session["family_name"] = family.name
     session.permanent      = True
+
+    distinct_id = f"family_{family.id}"
+    analytics.identify(distinct_id, {"email": email, "name": name, "plan": family.plan})
+    analytics.capture(distinct_id, "signed_up" if is_new else "logged_in",
+                      {"method": "google", "email": email})
 
     profiles = _profiles_for(family.id)
     return redirect(url_for("profiles.select") if profiles else url_for("profiles.new"))
@@ -111,6 +118,7 @@ def guest():
     session["family_name"] = "Guest"
     session.permanent      = True
     _set_guest_profile_session(family.id)
+    analytics.capture(f"family_{family.id}", "signed_up", {"method": "guest"})
     resp = redirect(url_for("stories.new"))
     resp.set_cookie(_GUEST_COOKIE, str(family.id),
                     max_age=_GUEST_COOKIE_AGE, samesite="Lax", httponly=True)

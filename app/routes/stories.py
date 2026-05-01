@@ -10,6 +10,7 @@ from app.services.streak_service import StreakService
 from app.services.story_builder import StoryBuilder, STORY_TYPES, LENGTH_BUCKETS
 from app.services.family_service import FamilyService
 from app.routes.profiles import active_band
+from app import analytics
 
 bp = Blueprint("stories", __name__, url_prefix="/stories")
 
@@ -140,6 +141,13 @@ def start():
     )
     builder.build_async(story_id, profile, character_ids, story_type, length_bucket)
 
+    analytics.capture(f"family_{session.get('family_id')}", "story_started", {
+        "story_type":   story_type,
+        "length_bucket": length_bucket,
+        "profile_id":   profile.id,
+        "story_id":     story_id,
+    })
+
     return redirect(url_for("stories.generating", story_id=story_id))
 
 
@@ -267,6 +275,10 @@ def api_complete(story_id: int):
     if not profile:
         return jsonify({"error": "No active profile"}), 401
     _builder().complete_story(story_id, profile.id)
+    analytics.capture(f"family_{session.get('family_id')}", "story_completed", {
+        "story_id":  story_id,
+        "profile_id": profile.id,
+    })
     return jsonify({"ok": True})
 
 
