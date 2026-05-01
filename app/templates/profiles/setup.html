@@ -8,6 +8,49 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/profiles.css') }}"/>
   <style>
     /* Force the app's dark night-sky palette regardless of localStorage theme */
+
+    .pw-band-card {
+      margin-top: 16px;
+      background: rgba(212,167,106,0.07);
+      border: 1px solid rgba(212,167,106,0.20);
+      border-radius: 16px;
+      padding: 16px 18px;
+      animation: bandIn 0.3s cubic-bezier(0.34,1.28,0.64,1) both;
+    }
+    @keyframes bandIn {
+      from { opacity: 0; transform: translateY(8px) scale(0.98); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .pw-band-card-header {
+      display: flex; align-items: center; gap: 12px; margin-bottom: 10px;
+    }
+    .pw-band-icon { font-size: 2rem; line-height: 1; }
+    .pw-band-name {
+      font-size: 0.95rem; font-weight: 800;
+      color: #d4a76a;
+    }
+    .pw-band-lexile {
+      font-size: 0.72rem; font-weight: 700;
+      color: rgba(212,167,106,0.55);
+      margin-top: 2px; letter-spacing: 0.04em;
+    }
+    .pw-band-desc {
+      font-size: 0.82rem; font-weight: 600; line-height: 1.6;
+      color: rgba(237,232,223,0.65);
+      margin-bottom: 12px;
+    }
+    .pw-band-tags {
+      display: flex; flex-wrap: wrap; gap: 6px;
+    }
+    .pw-band-tag {
+      font-size: 0.68rem; font-weight: 700;
+      background: rgba(212,167,106,0.10);
+      border: 1px solid rgba(212,167,106,0.20);
+      color: rgba(212,167,106,0.75);
+      padding: 3px 9px; border-radius: 99px;
+      letter-spacing: 0.03em;
+    }
+
     :root {
       --pw-bg:       #0e0c1e;
       --pw-surface:  rgba(255,255,255,0.05);
@@ -73,8 +116,8 @@
       <div class="pw-step-content">
         <div class="pw-step-heading">
           <div class="pw-step-emoji" id="previewEmoji2">🦁</div>
-          <h1>How old are you?</h1>
-          <p>Stories calibrated to Lexile levels · Tier 2 vocabulary built in</p>
+          <h1>How old are they?</h1>
+          <p>We'll meet them exactly where they are</p>
         </div>
         <div class="pw-age-grid" id="ageGrid">
           {% for age in range(2, 13) %}
@@ -82,7 +125,18 @@
                   data-age="{{ age }}">{{ age }}</button>
           {% endfor %}
         </div>
-        <div class="pw-band-label" id="bandLabel">Pick your age above</div>
+        <div class="pw-band-card" id="bandCard" hidden>
+          <div class="pw-band-card-header">
+            <span class="pw-band-icon" id="bandIcon"></span>
+            <div>
+              <div class="pw-band-name" id="bandName"></div>
+              <div class="pw-band-lexile" id="bandLexile"></div>
+            </div>
+          </div>
+          <p class="pw-band-desc" id="bandDesc"></p>
+          <div class="pw-band-tags" id="bandTags"></div>
+        </div>
+        <div class="pw-band-label" id="bandLabel" style="display:none"></div>
       </div>
       <div class="pw-btn-row">
         <button class="pw-back-btn" id="step2Back">← Back</button>
@@ -220,8 +274,31 @@ document.getElementById("nameInput").addEventListener("input", e => {
 });
 
 // ── Age ───────────────────────────────────────────────────────────────────────
-const BAND_LABELS = { seedlings: "Ages 2–6 · Seedlings 🌱", explorers: "Ages 7–9 · Explorers 🔭", adventurers: "Ages 10–12 · Adventurers 🏔️" };
 function ageToBand(age) { return age <= 6 ? "seedlings" : age <= 9 ? "explorers" : "adventurers"; }
+
+const BAND_INFO = {
+  seedlings: {
+    icon: "🌱",
+    name: "Seedlings · Ages 2–6",
+    lexile: "Lexile 100–400L · Dolch Pre-K to Grade 1",
+    desc: "Stories use simple, rhythmic language to build listening comprehension and confidence. We weave in high-frequency sight words from the Dolch list — the 220 words that make up most of what children read — while gently introducing Tier 2 words like curious, brave, and discover.",
+    tags: ["Dolch sight words", "Tier 1 & 2 vocabulary", "Lexile 100–400L", "Phonemic awareness", "Listening comprehension"],
+  },
+  explorers: {
+    icon: "🔭",
+    name: "Explorers · Ages 7–9",
+    lexile: "Lexile 400–800L · Fry words 1–500",
+    desc: "Stories stretch vocabulary intentionally. Every tale introduces 3–5 Tier 2 words — high-utility academic words like fortunate, hesitate, and determined — that appear across subjects in school. These are the words that predict reading comprehension scores and classroom confidence.",
+    tags: ["Beck's Tier 2 vocabulary", "Fry words 1–500", "Lexile 400–800L", "Context clues", "Sentence complexity"],
+  },
+  adventurers: {
+    icon: "🏔️",
+    name: "Adventurers · Ages 10–12",
+    lexile: "Lexile 800–1100L · Fry words 500–1000",
+    desc: "Rich, complex narratives that challenge and reward. Tier 2 words like ambiguous, persevere, and eloquent are embedded naturally in context — the way research shows vocabulary is actually acquired. Stories are calibrated to the upper Lexile range that prepares readers for middle school texts.",
+    tags: ["Advanced Tier 2 vocabulary", "Fry words 500–1000", "Lexile 800–1100L", "Narrative complexity", "Middle school readiness"],
+  },
+};
 
 document.querySelectorAll(".pw-age-btn").forEach(btn => {
   btn.addEventListener("click", () => {
@@ -229,7 +306,22 @@ document.querySelectorAll(".pw-age-btn").forEach(btn => {
     btn.classList.add("is-selected");
     state.age = parseInt(btn.dataset.age);
     const band = ageToBand(state.age);
-    document.getElementById("bandLabel").textContent = BAND_LABELS[band];
+    const info = BAND_INFO[band];
+
+    // Rebuild the card with a fresh animation each time
+    const card = document.getElementById("bandCard");
+    card.hidden = false;
+    card.style.animation = "none";
+    card.offsetHeight; // reflow
+    card.style.animation = "";
+
+    document.getElementById("bandIcon").textContent  = info.icon;
+    document.getElementById("bandName").textContent  = info.name;
+    document.getElementById("bandLexile").textContent = info.lexile;
+    document.getElementById("bandDesc").textContent  = info.desc;
+    document.getElementById("bandTags").innerHTML    =
+      info.tags.map(t => `<span class="pw-band-tag">${t}</span>`).join("");
+
     document.getElementById("step2Next").disabled = false;
   });
 });
