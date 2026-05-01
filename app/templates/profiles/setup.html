@@ -6,7 +6,20 @@
   <title>Atlas — {{ "Edit" if profile else "New" }} Reader</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/atlas.css') }}"/>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/profiles.css') }}"/>
-  <script>(function(){var t=localStorage.getItem("atlas:theme")||"light";document.documentElement.dataset.theme=t;}());</script>
+  <style>
+    /* Force the app's dark night-sky palette regardless of localStorage theme */
+    :root {
+      --pw-bg:       #0e0c1e;
+      --pw-surface:  rgba(255,255,255,0.05);
+      --pw-border:   rgba(255,255,255,0.09);
+      --pw-text:     #ede8df;
+      --pw-text-2:   rgba(237,232,223,0.55);
+      --pw-accent:   #d4a76a;
+      --pw-accent-lt: rgba(212,167,106,0.12);
+      --pw-radius:   20px;
+      --pw-radius-sm: 12px;
+    }
+  </style>
 </head>
 <body>
 <div class="pw-shell">

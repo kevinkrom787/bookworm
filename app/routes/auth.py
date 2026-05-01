@@ -68,6 +68,26 @@ def google_callback():
 
 # ── Guest ─────────────────────────────────────────────────────────────────────
 
+def _set_guest_profile_session(family_id: int) -> None:
+    """Find or create the guest's single profile and put it in session."""
+    from app.services.profile_service import ProfileService
+    svc = ProfileService(current_app.config["DB_PATH"])
+    profiles = svc.list_profiles(family_id)
+    if profiles:
+        p = profiles[0]
+    else:
+        p = svc.create_profile(
+            name="Explorer",
+            age=8,
+            family_id=family_id,
+            avatar_emoji="🦄",
+            avatar_color="#f97316",
+        )
+    session["profile_id"]   = p.id
+    session["profile_name"] = p.name
+    session["age_band"]     = p.age_band
+
+
 @bp.route("/guest")
 def guest():
     # Resume an existing guest account from the persistent cookie
@@ -80,18 +100,18 @@ def guest():
                 session["family_id"]   = family.id
                 session["family_name"] = "Guest"
                 session.permanent      = True
-                profiles = _profiles_for(family.id)
-                dest = url_for("profiles.select") if profiles else url_for("profiles.new")
-                return redirect(dest)
+                _set_guest_profile_session(fid)
+                return redirect(url_for("stories.new"))
         except (ValueError, TypeError):
             pass
 
-    # New guest
+    # New guest — auto-create family + profile, skip the wizard entirely
     family = _svc().create_guest()
     session["family_id"]   = family.id
     session["family_name"] = "Guest"
     session.permanent      = True
-    resp = redirect(url_for("profiles.new"))
+    _set_guest_profile_session(family.id)
+    resp = redirect(url_for("stories.new"))
     resp.set_cookie(_GUEST_COOKIE, str(family.id),
                     max_age=_GUEST_COOKIE_AGE, samesite="Lax", httponly=True)
     return resp
