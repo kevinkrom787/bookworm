@@ -510,11 +510,17 @@
   z-index: 2;
 }
 
-/* Hard cap so long passages never escape the gradient zone */
+/* Hard cap so long passages never escape the gradient zone.
+   z-index 11 + pointer-events: auto lets the text scroll on mobile
+   even though the tap-zone sits at z-index 10. */
 .btr-page--has-image .btr-text {
   max-height: 56vh;
   overflow-y: auto;
   scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  pointer-events: auto;
+  position: relative;
+  z-index: 11;
 }
 .btr-page--has-image .btr-text::-webkit-scrollbar { display: none; }
 
