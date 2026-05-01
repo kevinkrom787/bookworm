@@ -29,10 +29,10 @@ LENGTH_BUCKETS: dict[str, dict] = {
 }
 
 STORY_TYPES = [
-    {"key": "adventure", "label": "Adventure", "emoji": "🗺️"},
+    {"key": "adventure", "label": "Adventure", "emoji": "🌋"},
     {"key": "funny",     "label": "Funny",     "emoji": "😄"},
     {"key": "mystery",   "label": "Mystery",   "emoji": "🔍"},
-    {"key": "cozy",      "label": "Cozy",      "emoji": "🛋️"},
+    {"key": "cozy",      "label": "Cozy",      "emoji": "🌙"},
     {"key": "brave",     "label": "Brave",     "emoji": "🦁"},
 ]
 
