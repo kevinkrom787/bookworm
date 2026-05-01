@@ -76,6 +76,15 @@ def login_post():
     return redirect(next_url if next_url.startswith("/") else url_for("profiles.select"))
 
 
+@bp.route("/guest")
+def guest():
+    family = _svc().create_guest()
+    session["family_id"]   = family.id
+    session["family_name"] = "Guest"
+    session.permanent      = True
+    return redirect(url_for("profiles.new"))
+
+
 @bp.route("/logout", methods=["POST"])
 def logout():
     session.clear()

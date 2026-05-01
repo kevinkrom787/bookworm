@@ -8,6 +8,7 @@ from app.services.profile_service import ProfileService
 from app.services.character_service import CharacterService
 from app.services.streak_service import StreakService
 from app.services.story_builder import StoryBuilder, STORY_TYPES, LENGTH_BUCKETS
+from app.services.family_service import FamilyService
 from app.routes.profiles import active_band
 
 bp = Blueprint("stories", __name__, url_prefix="/stories")
@@ -42,6 +43,12 @@ def _active_profile():
     if not pid or not fid:
         return None
     return ProfileService(current_app.config["DB_PATH"]).get_profile(pid, family_id=fid)
+
+
+def _family_svc() -> FamilyService:
+    if "family_svc" not in g:
+        g.family_svc = FamilyService(current_app.config["DB_PATH"])
+    return g.family_svc
 
 
 # ── Bedtime story flow ─────────────────────────────────────────────────────────
@@ -88,12 +95,25 @@ def new():
     )
 
 
+@bp.route("/upgrade")
+def upgrade():
+    fid    = session.get("family_id")
+    fam    = _family_svc().get_by_id(fid) if fid else None
+    count  = _family_svc().story_count(fid) if fid else 0
+    return render_template("stories/upgrade.html",
+                           is_guest=fam and fam.plan == "guest",
+                           story_count=count)
+
+
 @bp.route("/start", methods=["POST"])
 def start():
     """Kick off generation. Returns immediately; generation runs in background."""
     profile = _active_profile()
     if not profile:
         return redirect(url_for("profiles.select"))
+
+    if _family_svc().at_story_limit(session.get("family_id")):
+        return redirect(url_for("stories.upgrade"))
 
     data         = request.form
     char_ids_raw = request.form.getlist("character_ids")

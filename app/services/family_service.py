@@ -4,12 +4,15 @@ Each family is a billing unit; child profiles are scoped under it.
 """
 from __future__ import annotations
 
+import secrets
 import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
 import bcrypt
+
+FREE_STORY_LIMIT = 5
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS families (
@@ -91,3 +94,32 @@ class FamilyService:
                 "SELECT * FROM families WHERE id = ?", (family_id,)
             ).fetchone()
         return self._row_to_family(row) if row else None
+
+    def create_guest(self) -> Family:
+        """Create an anonymous guest family. Password is an unguessable random hash."""
+        placeholder_email = f"guest-{secrets.token_hex(12)}@atlas.local"
+        placeholder_pw    = secrets.token_hex(32)
+        pw_hash = bcrypt.hashpw(placeholder_pw.encode(), bcrypt.gensalt()).decode()
+        with self._connect() as conn:
+            cur = conn.execute(
+                "INSERT INTO families (name, email, password_hash, plan) VALUES (?, ?, ?, ?)",
+                ("Guest", placeholder_email, pw_hash, "guest"),
+            )
+        return self.get_by_id(cur.lastrowid)
+
+    def story_count(self, family_id: int) -> int:
+        """Total non-errored stories generated across all profiles in this family."""
+        with self._connect() as conn:
+            row = conn.execute(
+                """SELECT COUNT(*) FROM story_history sh
+                   JOIN child_profiles cp ON sh.profile_id = cp.id
+                   WHERE cp.family_id = ? AND sh.generation_status != 'error'""",
+                (family_id,),
+            ).fetchone()
+        return row[0] if row else 0
+
+    def at_story_limit(self, family_id: int) -> bool:
+        family = self.get_by_id(family_id)
+        if not family or family.plan not in ("free", "guest"):
+            return False
+        return self.story_count(family_id) >= FREE_STORY_LIMIT
