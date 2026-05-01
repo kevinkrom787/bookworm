@@ -1,17 +1,103 @@
 """
 Auth routes — /auth/
-Handles family account signup, login, and logout.
+Google OAuth is the primary path. Email/password routes kept as fallback.
 """
 from flask import (Blueprint, redirect, render_template,
                    request, session, url_for, current_app)
 from app.services.family_service import FamilyService
+from app.extensions import oauth
 
 bp = Blueprint("auth", __name__, url_prefix="/auth")
+
+_GUEST_COOKIE = "atlas_guest"
+_GUEST_COOKIE_AGE = 365 * 24 * 3600  # 1 year
 
 
 def _svc() -> FamilyService:
     return FamilyService(current_app.config["DB_PATH"])
 
+
+def _profiles_for(family_id: int) -> list:
+    from app.services.profile_service import ProfileService
+    return ProfileService(current_app.config["DB_PATH"]).list_profiles(family_id)
+
+
+# ── Main login page ────────────────────────────────────────────────────────────
+
+@bp.route("/login", methods=["GET"])
+def login():
+    if "family_id" in session:
+        return redirect(url_for("profiles.select"))
+    google_enabled = bool(current_app.config.get("GOOGLE_CLIENT_ID"))
+    return render_template("auth/login.html", google_enabled=google_enabled)
+
+
+# ── Google OAuth ───────────────────────────────────────────────────────────────
+
+@bp.route("/google")
+def google_login():
+    if not current_app.config.get("GOOGLE_CLIENT_ID"):
+        return redirect(url_for("auth.login"))
+    redirect_uri = url_for("auth.google_callback", _external=True)
+    return oauth.google.authorize_redirect(redirect_uri)
+
+
+@bp.route("/google/callback")
+def google_callback():
+    if not current_app.config.get("GOOGLE_CLIENT_ID"):
+        return redirect(url_for("auth.login"))
+    try:
+        token    = oauth.google.authorize_access_token()
+        userinfo = token.get("userinfo") or {}
+    except Exception:
+        return redirect(url_for("auth.login"))
+
+    email = (userinfo.get("email") or "").lower().strip()
+    name  = (userinfo.get("name") or email.split("@")[0]).strip()
+    if not email:
+        return redirect(url_for("auth.login"))
+
+    family = _svc().find_or_create_google(email=email, name=name)
+    session["family_id"]   = family.id
+    session["family_name"] = family.name
+    session.permanent      = True
+
+    profiles = _profiles_for(family.id)
+    return redirect(url_for("profiles.select") if profiles else url_for("profiles.new"))
+
+
+# ── Guest ─────────────────────────────────────────────────────────────────────
+
+@bp.route("/guest")
+def guest():
+    # Resume an existing guest account from the persistent cookie
+    raw = request.cookies.get(_GUEST_COOKIE, "")
+    if raw:
+        try:
+            fid    = int(raw)
+            family = _svc().get_by_id(fid)
+            if family and family.plan == "guest":
+                session["family_id"]   = family.id
+                session["family_name"] = "Guest"
+                session.permanent      = True
+                profiles = _profiles_for(family.id)
+                dest = url_for("profiles.select") if profiles else url_for("profiles.new")
+                return redirect(dest)
+        except (ValueError, TypeError):
+            pass
+
+    # New guest
+    family = _svc().create_guest()
+    session["family_id"]   = family.id
+    session["family_name"] = "Guest"
+    session.permanent      = True
+    resp = redirect(url_for("profiles.new"))
+    resp.set_cookie(_GUEST_COOKIE, str(family.id),
+                    max_age=_GUEST_COOKIE_AGE, samesite="Lax", httponly=True)
+    return resp
+
+
+# ── Email / password fallback (existing accounts) ─────────────────────────────
 
 @bp.route("/signup", methods=["GET"])
 def signup():
@@ -50,13 +136,6 @@ def signup_post():
     return redirect(url_for("profiles.select"))
 
 
-@bp.route("/login", methods=["GET"])
-def login():
-    if "family_id" in session:
-        return redirect(url_for("profiles.select"))
-    return render_template("auth/login.html")
-
-
 @bp.route("/login", methods=["POST"])
 def login_post():
     email    = (request.form.get("email")    or "").strip().lower()
@@ -64,9 +143,11 @@ def login_post():
 
     family = _svc().authenticate(email=email, password=password)
     if not family:
+        google_enabled = bool(current_app.config.get("GOOGLE_CLIENT_ID"))
         return render_template("auth/login.html",
                                error="Incorrect email or password.",
-                               email=email), 401
+                               email=email,
+                               google_enabled=google_enabled), 401
 
     session["family_id"]   = family.id
     session["family_name"] = family.name
@@ -76,14 +157,7 @@ def login_post():
     return redirect(next_url if next_url.startswith("/") else url_for("profiles.select"))
 
 
-@bp.route("/guest")
-def guest():
-    family = _svc().create_guest()
-    session["family_id"]   = family.id
-    session["family_name"] = "Guest"
-    session.permanent      = True
-    return redirect(url_for("profiles.new"))
-
+# ── Logout ────────────────────────────────────────────────────────────────────
 
 @bp.route("/logout", methods=["POST"])
 def logout():

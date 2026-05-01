@@ -38,6 +38,18 @@ def create_app(config_class=Config):
     config_class.ensure_dirs()
     _run_migrations(config_class.DB_PATH)
 
+    # Google OAuth
+    from app.extensions import oauth
+    oauth.init_app(app)
+    if app.config.get("GOOGLE_CLIENT_ID"):
+        oauth.register(
+            name="google",
+            client_id=app.config["GOOGLE_CLIENT_ID"],
+            client_secret=app.config["GOOGLE_CLIENT_SECRET"],
+            server_metadata_url="https://accounts.google.com/.well-known/openid-configuration",
+            client_kwargs={"scope": "openid email profile"},
+        )
+
     # Register route blueprints
     from app.routes import (library, reader, flashcards, parent,
                             profiles as profiles_bp, stories as stories_bp,

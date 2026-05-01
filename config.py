@@ -35,6 +35,10 @@ class Config:
     OLLAMA_BASE_URL    = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434")
     OLLAMA_VOCAB_MODEL = os.environ.get("OLLAMA_VOCAB_MODEL", "gemma4:e2b")
 
+    # Google OAuth (set via fly secrets or .env)
+    GOOGLE_CLIENT_ID     = os.environ.get("GOOGLE_CLIENT_ID", "")
+    GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", "")
+
     # Image generation (parent configures; no default key ever shipped)
     # Set IMAGE_PROVIDER to 'openai' or 'replicate'
     IMAGE_PROVIDER        = os.environ.get("IMAGE_PROVIDER", "openai")

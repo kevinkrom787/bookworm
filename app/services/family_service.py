@@ -95,6 +95,29 @@ class FamilyService:
             ).fetchone()
         return self._row_to_family(row) if row else None
 
+    def get_by_email(self, email: str) -> Optional[Family]:
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT * FROM families WHERE email = ?", (email.lower(),)
+            ).fetchone()
+        return self._row_to_family(row) if row else None
+
+    def find_or_create_google(self, email: str, name: str) -> Family:
+        """Idempotent: return existing family for this email or create a new free one."""
+        existing = self.get_by_email(email)
+        if existing:
+            return existing
+        pw_hash = bcrypt.hashpw(secrets.token_hex(32).encode(), bcrypt.gensalt()).decode()
+        try:
+            with self._connect() as conn:
+                cur = conn.execute(
+                    "INSERT INTO families (name, email, password_hash, plan) VALUES (?, ?, ?, 'free')",
+                    (name.strip(), email.lower(), pw_hash),
+                )
+            return self.get_by_id(cur.lastrowid)
+        except sqlite3.IntegrityError:
+            return self.get_by_email(email)
+
     def create_guest(self) -> Family:
         """Create an anonymous guest family. Password is an unguessable random hash."""
         placeholder_email = f"guest-{secrets.token_hex(12)}@atlas.local"
