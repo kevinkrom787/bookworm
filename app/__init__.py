@@ -35,6 +35,10 @@ def _run_migrations(db_path: Path) -> None:
 def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
+
+    # Trust Fly.io's proxy so url_for() generates https:// URLs
+    from werkzeug.middleware.proxy_fix import ProxyFix
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
     config_class.ensure_dirs()
     _run_migrations(config_class.DB_PATH)
 
