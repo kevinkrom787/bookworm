@@ -1,29 +1,29 @@
 """
-Thin wrapper around the PostHog Python SDK.
-All calls are no-ops when POSTHOG_API_KEY is not set.
+PostHog analytics wrapper. All calls are no-ops when POSTHOG_API_KEY is unset.
+Uses the Posthog client class (v3 API) with atexit flush so events aren't
+dropped when Fly.io auto-stops the machine.
 """
-import posthog as _ph
+import atexit
+from posthog import Posthog as _Client
 
-_ready = False
+_client: _Client | None = None
 
 
 def init(api_key: str, host: str) -> None:
-    global _ready
+    global _client
     if not api_key:
         return
-    _ph.api_key  = api_key
-    _ph.host     = host
-    _ph.disabled = False
-    _ready = True
+    _client = _Client(api_key, host=host)
+    atexit.register(_client.shutdown)
 
 
 def capture(distinct_id: str, event: str, props: dict | None = None) -> None:
-    if not _ready:
+    if _client is None:
         return
-    _ph.capture(distinct_id, event, properties=props or {})
+    _client.capture(str(distinct_id), event, properties=props or {})
 
 
 def identify(distinct_id: str, props: dict | None = None) -> None:
-    if not _ready:
+    if _client is None:
         return
-    _ph.identify(distinct_id, properties=props or {})
+    _client.identify(str(distinct_id), properties=props or {})
