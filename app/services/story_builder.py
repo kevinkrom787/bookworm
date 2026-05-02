@@ -8,12 +8,15 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import re
 import sqlite3
 import threading
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date
 from pathlib import Path
 from typing import Optional
+
+_MAX_JSON_RETRIES = 2
 
 log = logging.getLogger(__name__)
 
@@ -129,8 +132,18 @@ class StoryBuilder:
             profile, characters, virtue, story_type, length_bucket
         )
 
-        raw        = ai.complete(system=system_prompt, user=user_prompt, max_tokens=4096)
-        story_json = _parse_json(raw)
+        story_json = None
+        for attempt in range(_MAX_JSON_RETRIES + 1):
+            raw = ai.complete(system=system_prompt, user=user_prompt, max_tokens=4096)
+            try:
+                story_json = _parse_json(raw)
+                break
+            except (json.JSONDecodeError, ValueError) as exc:
+                if attempt < _MAX_JSON_RETRIES:
+                    log.warning("JSON parse failed (attempt %d) for story_id=%s, retrying: %s",
+                                attempt + 1, story_id, exc)
+                else:
+                    raise
 
         moderation_events = []
         clean_pages       = []
@@ -322,6 +335,10 @@ class StoryBuilder:
         self, story_id: int, scenes: list[dict],
         profile_id: int, characters: list, img,
     ) -> None:
+        # Serialize all _attach_image calls — each does a read-modify-write on
+        # full_story_json, so concurrent workers would drop each other's writes.
+        attach_lock = threading.Lock()
+
         def generate_one(scene: dict) -> None:
             try:
                 char_names  = scene.get("characters_present", [])
@@ -350,7 +367,8 @@ class StoryBuilder:
                             "UPDATE portrait_cache SET last_used_at = datetime('now') WHERE cache_key = ?",
                             (cache_key,),
                         )
-                        self._attach_image(story_id, scene["page_number"], cached["image_url"])
+                        with attach_lock:
+                            self._attach_image(story_id, scene["page_number"], cached["image_url"])
                         return
 
                 result = img.generate(prompt)
@@ -368,7 +386,8 @@ class StoryBuilder:
                             (cache_key, profile_id, cache_key[:16],
                              local_url, type(img).__name__),
                         )
-                    self._attach_image(story_id, scene["page_number"], local_url)
+                    with attach_lock:
+                        self._attach_image(story_id, scene["page_number"], local_url)
                     self._track_image_spend(profile_id)
             except Exception as exc:
                 log.warning("Image job failed for story_id=%s page=%s: %s",
@@ -504,14 +523,23 @@ def _load_system_prompt() -> str:
 
 
 def _parse_json(raw: str) -> dict:
-    """Strip markdown fences and parse JSON."""
+    """Extract and parse JSON from LLM output, tolerating fences and preamble."""
     text = raw.strip()
-    if text.startswith("```"):
-        parts = text.split("```")
-        text  = parts[1] if len(parts) > 1 else text
-        if text.startswith("json"):
-            text = text[4:]
-    return json.loads(text.strip())
+    # Strip markdown code fences (```json ... ``` or ``` ... ```)
+    text = re.sub(r'^```(?:json)?\s*\n?', '', text, flags=re.MULTILINE)
+    text = re.sub(r'\n?```\s*$', '', text, flags=re.MULTILINE)
+    text = text.strip()
+    # Try direct parse first
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        pass
+    # Fall back: carve out the outermost { ... } block
+    start = text.find('{')
+    end   = text.rfind('}')
+    if start != -1 and end > start:
+        return json.loads(text[start:end + 1])
+    raise ValueError("No valid JSON object found in LLM output")
 
 
 def _cache_key(profile_id: int, page_number: int, prompt: str) -> str:
