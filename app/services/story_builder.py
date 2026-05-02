@@ -127,7 +127,7 @@ class StoryBuilder:
         characters = [c for c in characters if c is not None]
 
         virtue       = self._rotate_virtue(profile.id)
-        system_prompt = _load_system_prompt()
+        system_prompt = _load_system_prompt(profile.age)
         user_prompt   = self._assemble_user_prompt(
             profile, characters, virtue, story_type, length_bucket
         )
@@ -281,7 +281,11 @@ class StoryBuilder:
             "adventurers": "confident reader — richer vocabulary, varied sentence structure",
         }
         reading_level = level_map.get(profile.age_band, "mid-level reader")
-        interests     = ", ".join(profile.interests) if profile.interests else "adventures, animals"
+        from app.services.profile_service import INTERESTS as _INTEREST_LIST
+        _interest_label = {i["key"]: i["label"] for i in _INTEREST_LIST}
+        interests = ", ".join(
+            _interest_label.get(k, k) for k in profile.interests
+        ) if profile.interests else "adventures, animals"
 
         fun_facts = profile.fun_facts or {}
         pet_name  = fun_facts.get("pet_name", "").strip()
@@ -290,8 +294,16 @@ class StoryBuilder:
         fav_food  = fun_facts.get("fav_food", "").strip()
 
         personal_lines = []
-        if pet_name and pet_type:
-            personal_lines.append(f"Pet: {pet_name} the {pet_type}")
+        if pet_type and pet_type != "other":
+            if pet_name:
+                personal_lines.append(f"Pet: {pet_name} the {pet_type}")
+            else:
+                personal_lines.append(f"Pet: a {pet_type} (no name given)")
+        elif pet_type == "other":
+            if pet_name:
+                personal_lines.append(f"Pet: {pet_name} (some kind of animal)")
+            else:
+                personal_lines.append("Pet: some kind of animal (no name given)")
         elif pet_name:
             personal_lines.append(f"Pet: {pet_name}")
         if siblings:
@@ -466,7 +478,8 @@ class StoryBuilder:
         if row:
             words = json.loads(row["vocabulary_used"])
             with self._connect() as conn:
-                for word in words:
+                for entry in words:
+                    word = entry["word"] if isinstance(entry, dict) else entry
                     conn.execute(
                         """INSERT INTO vocab_encounters (profile_id, word, story_id)
                            VALUES (?, ?, ?)""",
@@ -517,9 +530,9 @@ class StoryBuilder:
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
-def _load_system_prompt() -> str:
+def _load_system_prompt(age: int) -> str:
     path = Path(__file__).parent.parent / "templates" / "prompts" / "bedtime_story.txt"
-    return path.read_text(encoding="utf-8")
+    return path.read_text(encoding="utf-8").replace("{AGE}", str(age))
 
 
 def _parse_json(raw: str) -> dict:

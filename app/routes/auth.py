@@ -112,13 +112,40 @@ def guest():
         except (ValueError, TypeError):
             pass
 
-    # New guest — auto-create family + profile, skip the wizard entirely
+    # New guest — ask for age before creating account
+    return redirect(url_for("auth.guest_setup"))
+
+
+@bp.route("/guest/setup", methods=["GET", "POST"])
+def guest_setup():
+    if request.method == "GET":
+        return render_template("auth/guest_setup.html")
+
+    age = request.form.get("age", "8")
+    try:
+        age = max(2, min(13, int(age)))
+    except (ValueError, TypeError):
+        age = 8
+
     family = _svc().create_guest()
     session["family_id"]   = family.id
     session["family_name"] = "Guest"
     session.permanent      = True
-    _set_guest_profile_session(family.id)
-    analytics.capture(f"family_{family.id}", "signed_up", {"method": "guest"})
+
+    from app.services.profile_service import ProfileService
+    svc = ProfileService(current_app.config["DB_PATH"])
+    p = svc.create_profile(
+        name="Explorer",
+        age=age,
+        family_id=family.id,
+        avatar_emoji="🦄",
+        avatar_color="#f97316",
+    )
+    session["profile_id"]   = p.id
+    session["profile_name"] = p.name
+    session["age_band"]     = p.age_band
+
+    analytics.capture(f"family_{family.id}", "signed_up", {"method": "guest", "age": age})
     resp = redirect(url_for("stories.new"))
     resp.set_cookie(_GUEST_COOKIE, str(family.id),
                     max_age=_GUEST_COOKIE_AGE, samesite="Lax", httponly=True)
