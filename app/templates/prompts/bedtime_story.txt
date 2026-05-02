@@ -124,7 +124,7 @@ Calibrate the stakes and emotional texture to the child's age.
   "illustration_scenes": [
     {
       "page_number": 1,
-      "scene_description": "Visual description for the illustrator. Characters occupy the upper two-thirds of the frame. Lower third is open background — sky, ground, or floor — for text overlay. Describe expressions, action, and mood. No text in the illustration.",
+      "scene_description": "Brief for a bold children's book illustrator who loves Grumpy Monkey and Oliver Jeffers. Name the specific colors, the exact expression on each character's face, and the one physical action happening. What is the most visually dramatic or funny moment on this page? Characters fill the upper two-thirds. Lower third is open sky, ground, or floor for text — but the upper world should be rich and surprising. No text in the illustration.",
       "characters_present": ["name"]
     }
   ],

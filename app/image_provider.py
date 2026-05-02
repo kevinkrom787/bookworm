@@ -48,7 +48,7 @@ class OpenAIImageProvider(ImageProvider):
             from openai import OpenAI
             client = OpenAI(api_key=self._api_key)
             # Prepend safety framing — DALL-E 3 responds well to this
-            safe_prompt = f"Children's book watercolor illustration, soft and warm, age-appropriate, no text. {prompt}"
+            safe_prompt = f"Children's book illustration, age-appropriate, no text or letters. {prompt}"
             response = client.images.generate(
                 model=self.MODEL,
                 prompt=safe_prompt,
@@ -125,7 +125,7 @@ def cache_image_locally(url: str, cache_dir) -> str:
         if not dest.exists():
             urllib.request.urlretrieve(url, dest)
 
-        return f"/static/img_cache/{name}"
+        return f"/img_cache/{name}"
     except Exception as exc:
         log.warning("Image local cache failed, using remote URL: %s", exc)
         return url

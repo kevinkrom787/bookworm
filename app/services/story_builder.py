@@ -358,7 +358,11 @@ class StoryBuilder:
                     f"{c.name}: {c.canonical_description}"
                     for c in characters if c.name in char_names
                 ]
-                style       = characters[0].style_descriptor if characters else "watercolor children's book illustration, soft warm palette"
+                style       = characters[0].style_descriptor if characters else (
+                    "bold children's book illustration, thick expressive ink outlines, "
+                    "vivid jewel-tone colors, richly detailed environments, "
+                    "exaggerated expressive faces, dynamic poses, sense of wonder"
+                )
                 scene_desc  = scene["scene_description"]
                 prompt      = (
                     f"{style}. {scene_desc}. "
