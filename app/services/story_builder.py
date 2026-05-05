@@ -45,7 +45,7 @@ _MODERATION_FALLBACK = (
     "when you stop and notice how beautiful the world already is."
 )
 
-_MILD_WORDS  = {"kill", "die", "dead", "hate", "stupid", "idiot", "blood", "gun", "weapon", "fight", "hurt", "pain", "scream"}
+_MILD_WORDS  = {"kill", "die", "dead", "stupid", "idiot", "blood", "gun", "weapon"}
 _ALERT_WORDS = {"sex", "naked", "drugs", "alcohol", "murder", "abuse", "suicide", "porn", "violence"}
 
 
@@ -149,7 +149,10 @@ class StoryBuilder:
         clean_pages       = []
         stopped           = False
 
-        for page in story_json.get("pages", []):
+        all_pages = story_json.get("pages", [])
+        page_text_by_num = {p["page_number"]: p["text"] for p in all_pages}
+
+        for page in all_pages:
             tier = _moderation_tier(page["text"])
 
             if tier == "alert":
@@ -161,13 +164,19 @@ class StoryBuilder:
                 break
 
             if tier == "mild":
+                pn   = page["page_number"]
+                prev = page_text_by_num.get(pn - 1, "")
+                nxt  = page_text_by_num.get(pn + 1, "")
+                ctx  = (
+                    f"Story title: {story_json.get('title', '')}\n"
+                    f"Characters: {', '.join(c.name for c in characters)}\n"
+                    + (f"Page {pn-1}: {prev}\n" if prev else "")
+                    + f"Page {pn} (rewrite this): {page['text']}\n"
+                    + (f"Page {pn+1}: {nxt}\n" if nxt else "")
+                )
                 regen = ai.complete(
-                    system="You are a children's bedtime story editor.",
-                    user=(
-                        "Rewrite the following page for a children's bedtime story. "
-                        "Keep the same plot point but use only gentle, age-appropriate language.\n\n"
-                        + page["text"]
-                    ),
+                    system="You are a children's bedtime story editor. Rewrite only the flagged page so it flows naturally before and after the surrounding pages. Same plot point, same characters, same tone — only remove any language that is not appropriate for young children. Return only the rewritten page text, no commentary.",
+                    user=ctx,
                     max_tokens=512,
                 )
                 if _moderation_tier(regen) != "ok":

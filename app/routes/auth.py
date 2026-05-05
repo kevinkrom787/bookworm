@@ -64,10 +64,8 @@ def google_callback():
     session["family_name"] = family.name
     session.permanent      = True
 
-    distinct_id = f"family_{family.id}"
-    analytics.identify(distinct_id, {"email": email, "name": name, "plan": family.plan})
-    analytics.capture(distinct_id, "signed_up" if is_new else "logged_in",
-                      {"method": "google", "email": email})
+    analytics.capture(family.id, "signed_up" if is_new else "logged_in",
+                      {"method": "google"})
 
     profiles = _profiles_for(family.id)
     return redirect(url_for("profiles.select") if profiles else url_for("profiles.new"))
@@ -145,7 +143,7 @@ def guest_setup():
     session["profile_name"] = p.name
     session["age_band"]     = p.age_band
 
-    analytics.capture(f"family_{family.id}", "signed_up", {"method": "guest", "age": age})
+    analytics.capture(family.id, "signed_up", {"method": "guest", "age": age})
     resp = redirect(url_for("stories.new"))
     resp.set_cookie(_GUEST_COOKIE, str(family.id),
                     max_age=_GUEST_COOKIE_AGE, samesite="Lax", httponly=True)

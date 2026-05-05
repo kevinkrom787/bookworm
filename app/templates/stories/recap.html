@@ -18,28 +18,28 @@
     {% if images %}
     <div class="recap-images-scroll" id="imageStrip">
       {% for url in images %}
-      <img class="recap-image-thumb" src="{{ url }}" alt="" aria-hidden="true" loading="lazy">
+      <img class="recap-image-thumb" src="{{ url }}" alt="Story illustration" loading="lazy">
       {% endfor %}
     </div>
     {% endif %}
 
     {% if lesson %}
     <div class="recap-section recap-lesson">
-      <div class="recap-section-label">Tonight's virtue</div>
+      <div class="recap-section-label">The moral</div>
       <p class="recap-lesson-text">{{ lesson }}</p>
     </div>
     {% endif %}
 
     {% if talk_about_it %}
     <div class="recap-section recap-talk">
-      <div class="recap-section-label">Ask each other</div>
+      <div class="recap-section-label">Ask {{ profile.name }}</div>
       <p class="recap-talk-text">{{ talk_about_it }}</p>
     </div>
     {% endif %}
 
     {% if vocab_words %}
     <div class="recap-section recap-vocab">
-      <div class="recap-section-label">{{ profile.name }}'s new words tonight</div>
+      <div class="recap-section-label">Words to discuss</div>
       <div class="recap-vocab-cards">
         {% for word in vocab_words %}
         <button class="recap-vocab-chip" data-word="{{ word }}">
@@ -62,13 +62,12 @@
       </div>
     </div>
 
-    {% if streak >= 2 %}
-    <div class="recap-streak">🔥 {{ streak }} nights in a row</div>
+    {% if streak >= 1 %}
+    <div class="recap-streak">🔥 {{ streak }} night{{ 's' if streak != 1 }} in a row</div>
     {% endif %}
 
     <div class="recap-actions">
       <a href="/stories/new" class="recap-btn recap-btn--another">Read another story ✨</a>
-      <button class="recap-btn recap-btn--save" id="saveBtn">Save this story</button>
       <button class="recap-btn recap-btn--night" id="goodnightBtn">Goodnight</button>
     </div>
 
@@ -77,6 +76,15 @@
 </div>
 
 <div class="goodnight-overlay" id="goodnightOverlay" hidden></div>
+
+<!-- Image lightbox -->
+<div class="recap-lightbox" id="recapLightbox" hidden>
+  <div class="recap-lightbox-bg" id="lightboxBg"></div>
+  <button class="recap-lightbox-close" id="lightboxClose" aria-label="Close">✕</button>
+  <button class="recap-lightbox-prev" id="lightboxPrev" aria-label="Previous image">&#8249;</button>
+  <img class="recap-lightbox-img" id="lightboxImg" src="" alt="Story illustration">
+  <button class="recap-lightbox-next" id="lightboxNext" aria-label="Next image">&#8250;</button>
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -162,17 +170,6 @@ const STORY_ID = {{ story_id }};
 }());
 
 // ── Actions ───────────────────────────────────────────────────────────────────
-document.getElementById("saveBtn").addEventListener("click", async () => {
-  const btn = document.getElementById("saveBtn");
-  btn.disabled = true;
-  try {
-    await fetch("/stories/api/bedtime/" + STORY_ID + "/save", { method: "POST" });
-    btn.textContent = "Saved ✓";
-  } catch {
-    btn.disabled = false;
-  }
-});
-
 document.getElementById("goodnightBtn").addEventListener("click", () => {
   const overlay = document.getElementById("goodnightOverlay");
   overlay.hidden = false;
@@ -370,6 +367,67 @@ document.getElementById("goodnightBtn").addEventListener("click", () => {
   function esc(s) {
     return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
   }
+}());
+
+// ── Image lightbox ────────────────────────────────────────────────────────────
+(function () {
+  const lightbox    = document.getElementById("recapLightbox");
+  const lightboxBg  = document.getElementById("lightboxBg");
+  const lightboxImg = document.getElementById("lightboxImg");
+  const closeBtn    = document.getElementById("lightboxClose");
+  const prevBtn     = document.getElementById("lightboxPrev");
+  const nextBtn     = document.getElementById("lightboxNext");
+  const strip       = document.getElementById("imageStrip");
+  if (!strip || !lightbox) return;
+
+  let current = 0;
+
+  function thumbs() {
+    return Array.from(strip.querySelectorAll(".recap-image-thumb"));
+  }
+
+  function open(index) {
+    const imgs = thumbs();
+    if (!imgs[index]) return;
+    current = index;
+    lightboxImg.src = imgs[index].getAttribute("src");
+    prevBtn.hidden = (current === 0);
+    nextBtn.hidden = (current === imgs.length - 1);
+    lightbox.hidden = false;
+    document.body.style.overflow = "hidden";
+  }
+
+  function close() {
+    lightbox.hidden = true;
+    lightboxImg.src = "";
+    document.body.style.overflow = "";
+  }
+
+  function go(delta) {
+    const imgs = thumbs();
+    const next = current + delta;
+    if (next >= 0 && next < imgs.length) open(next);
+  }
+
+  // Event delegation so dynamically-appended thumbs work automatically
+  strip.addEventListener("click", e => {
+    const img = e.target.closest(".recap-image-thumb");
+    if (!img) return;
+    const index = thumbs().indexOf(img);
+    if (index >= 0) open(index);
+  });
+
+  lightboxBg.addEventListener("click", close);
+  closeBtn.addEventListener("click", close);
+  prevBtn.addEventListener("click", e => { e.stopPropagation(); go(-1); });
+  nextBtn.addEventListener("click", e => { e.stopPropagation(); go(1); });
+
+  document.addEventListener("keydown", e => {
+    if (lightbox.hidden) return;
+    if (e.key === "Escape")      close();
+    if (e.key === "ArrowLeft")   go(-1);
+    if (e.key === "ArrowRight")  go(1);
+  });
 }());
 </script>
 {% endblock %}

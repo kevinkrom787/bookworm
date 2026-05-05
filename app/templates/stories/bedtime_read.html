@@ -12,17 +12,24 @@
   <canvas id="btrStarCanvas" class="btr-star-canvas" aria-hidden="true"></canvas>
 
   <div class="btr-controls" id="btrControls">
-    <button class="btr-btn btr-btn--back" id="prevBtn" aria-label="Previous page" hidden>
+    <div class="btr-controls-left">
+      <button class="btr-btn btr-btn--back" id="prevBtn" aria-label="Previous page" hidden>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+      </button>
+      <a class="btr-btn btr-btn--home" href="/" aria-label="Home">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+          <polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+      </a>
+    </div>
+    <button class="btr-btn btr-btn--next" id="nextBtn" aria-label="Next page">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-        <polyline points="15 18 9 12 15 6"/>
+        <polyline points="9 18 15 12 9 6"/>
       </svg>
     </button>
-    <a class="btr-btn btr-btn--home" href="/" aria-label="Home">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-        <polyline points="9 22 9 12 15 12 15 22"/>
-      </svg>
-    </a>
   </div>
 
   <div class="btr-page" id="btrPage" role="main"></div>
@@ -125,7 +132,7 @@ function renderSplash() {
     pageEl.style.removeProperty("--ambient-portrait");
     pageEl.innerHTML = `
       <div class="btr-splash-image-wrap">
-        <img class="btr-splash-image" src="${escHtml(PORTRAIT_URL)}" alt="" aria-hidden="true" loading="eager">
+        <img class="btr-splash-image" src="${escHtml(PORTRAIT_URL)}" alt="" aria-hidden="true" loading="eager" onerror="this.style.display='none'">
       </div>
       <h1 class="btr-splash-title">${escHtml(STORY_TITLE)}</h1>
       ${namesHtml}
@@ -150,7 +157,7 @@ function renderPage(index) {
   let html = "";
   if (hasImage) {
     html += `<div class="btr-image-wrap">
-      <img class="btr-image" src="${escHtml(imageToShow)}" alt="" aria-hidden="true" loading="eager">
+      <img class="btr-image" src="${escHtml(imageToShow)}" alt="" aria-hidden="true" loading="eager" onerror="this.closest('.btr-image-wrap').style.display='none'">
     </div>`;
   }
   if (index === 0) {
@@ -186,6 +193,7 @@ function advance() {
   } else {
     fetch("/stories/api/bedtime/" + STORY_ID + "/complete", { method: "POST" })
       .catch(() => {});
+
     document.getElementById("btrShell").style.opacity = "0";
     setTimeout(() => { window.location.href = RECAP_URL; }, 400);
   }
@@ -214,6 +222,10 @@ document.getElementById("tapZone").addEventListener("keydown", e => {
 document.getElementById("prevBtn").addEventListener("click", e => {
   e.stopPropagation();
   goBack();
+});
+document.getElementById("nextBtn").addEventListener("click", e => {
+  e.stopPropagation();
+  advance();
 });
 
 // ── Image polling ─────────────────────────────────────────────────────────────

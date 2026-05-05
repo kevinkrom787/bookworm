@@ -7,9 +7,11 @@
 /* ── Reset ──────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { -webkit-text-size-adjust: 100%; }
-button { cursor: pointer; border: none; background: none; font: inherit; }
-a { color: inherit; }
+button { cursor: pointer; border: none; background: none; font: inherit; touch-action: manipulation; }
+a { color: inherit; touch-action: manipulation; }
 img { display: block; max-width: 100%; }
+/* Prevent iOS Safari auto-zoom on input focus (triggers when font-size < 16px) */
+input, select, textarea { font-size: max(1rem, 16px); }
 
 /* ── Tokens ─────────────────────────────────────────────────── */
 :root {
@@ -95,8 +97,6 @@ body {
   font-family: var(--font-ui);
   font-size: var(--font-size-base);
   line-height: 1.5;
-  overflow: hidden;        /* no body scroll — UI manages its own scrolling */
-  height: 100vh;
   width: 100vw;
   -webkit-tap-highlight-color: transparent;
   user-select: none;       /* prevent accidental text selection on touch */

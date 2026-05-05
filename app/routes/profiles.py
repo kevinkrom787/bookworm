@@ -4,6 +4,7 @@ Profile routes — /profiles/
 from flask import (Blueprint, jsonify, redirect, render_template,
                    request, session, url_for, current_app)
 from app.services.profile_service import ProfileService, INTERESTS, AVATARS, COLORS
+from app import analytics
 
 bp = Blueprint("profiles", __name__, url_prefix="/profiles")
 
@@ -66,6 +67,7 @@ def api_create():
         family_id=_fid(),
     )
     _set_session(profile)
+    analytics.capture(_fid(), "profile_created", {"age_band": profile.age_band})
     return jsonify(profile.to_dict()), 201
 
 

@@ -13,6 +13,7 @@ from typing import Optional
 import bcrypt
 
 FREE_STORY_LIMIT = 5
+_UNLIMITED_EMAILS = {"kevin@unstructured.io", "kevinkrom787@gmail.com", "kevin.j.krom@gmail.com"}
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS families (
@@ -144,5 +145,7 @@ class FamilyService:
     def at_story_limit(self, family_id: int) -> bool:
         family = self.get_by_id(family_id)
         if not family or family.plan not in ("free", "guest"):
+            return False
+        if family.email in _UNLIMITED_EMAILS:
             return False
         return self.story_count(family_id) >= FREE_STORY_LIMIT

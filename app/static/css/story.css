@@ -753,7 +753,88 @@
     0 0 0 1.5px rgba(245, 217, 122, 0.18),
     0 0 24px rgba(245, 217, 122, 0.12),
     0 4px 16px rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+  transition: transform 0.15s var(--ease-spring), box-shadow 0.15s;
 }
+.recap-image-thumb:active {
+  transform: scale(0.94);
+}
+
+/* ── Image lightbox ──────────────────────────────────── */
+
+.recap-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.recap-lightbox[hidden] { display: none; }
+
+.recap-lightbox-bg {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.92);
+}
+
+.recap-lightbox-img {
+  position: relative;
+  z-index: 1;
+  max-width: 92vw;
+  max-height: 86vh;
+  object-fit: contain;
+  border-radius: 16px;
+  box-shadow: 0 0 0 2px rgba(245, 217, 122, 0.18), 0 16px 60px rgba(0, 0, 0, 0.7);
+  animation: lightboxIn 0.22s ease both;
+}
+
+@keyframes lightboxIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.recap-lightbox-close {
+  position: absolute;
+  top: max(16px, env(safe-area-inset-top));
+  right: 16px;
+  z-index: 2;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.recap-lightbox-prev,
+.recap-lightbox-next {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  font-size: 2rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.recap-lightbox-prev { left: 12px; }
+.recap-lightbox-next { right: 12px; }
+.recap-lightbox-prev[hidden],
+.recap-lightbox-next[hidden] { display: none; }
 
 .recap-section {
   padding: 16px 18px;
@@ -1001,12 +1082,6 @@
   box-shadow: 0 0 28px rgba(245, 217, 122, 0.3);
 }
 
-.recap-btn--save {
-  background: rgba(255, 255, 255, 0.07);
-  color: rgba(240, 235, 224, 0.75);
-  border: 1.5px solid rgba(255, 255, 255, 0.12);
-}
-
 .recap-btn--night {
   background: transparent;
   color: rgba(240, 235, 224, 0.38);
@@ -1068,6 +1143,59 @@
 .gen-shell {
   max-width: 100vw;
   overflow-x: hidden;
+}
+
+/* ── Stacked layout for phone portrait ───────────────────
+   Full-bleed cinematic works on tablets and landscape where
+   there's room. On a portrait phone the image gets cropped
+   and text covers it. Switch to image-on-top / text-below
+   so kids see every illustration in full.
+───────────────────────────────────────────────────────── */
+@media (max-width: 600px) and (orientation: portrait) {
+
+  .btr-page--has-image {
+    justify-content: flex-start;
+  }
+
+  /* Take image out of absolute positioning so it flows
+     naturally in the column. 1/1 aspect ratio shows the
+     full square illustration without any cropping. */
+  .btr-image-wrap {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    flex-shrink: 0;
+    z-index: 1;
+  }
+
+  .btr-image {
+    object-position: center center;
+  }
+
+  /* No text over the image — gradient scrim not needed */
+  .btr-page--has-image::after {
+    display: none;
+  }
+
+  /* Title sits below the image in the dark panel */
+  .btr-page--has-image .btr-title {
+    position: relative;
+    z-index: 2;
+    padding: 14px 16px 2px;
+    text-shadow: none;
+  }
+
+  /* Text panel: solid shell background, readable, scrollable */
+  .btr-page--has-image .btr-text {
+    position: relative;
+    z-index: 2;
+    max-height: none;
+    flex: 1;
+    padding: 10px 20px calc(72px + env(safe-area-inset-bottom));
+    font-size: clamp(1rem, 4.5vw, 1.4rem);
+    text-shadow: none;
+    overflow-y: auto;
+  }
 }
 
 @media (max-width: 480px) {

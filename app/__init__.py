@@ -42,6 +42,9 @@ def create_app(config_class=Config):
     config_class.ensure_dirs()
     _run_migrations(config_class.DB_PATH)
 
+    from app import analytics
+    analytics.init(config_class.DB_PATH)
+
     # Google OAuth
     from app.extensions import oauth
     oauth.init_app(app)

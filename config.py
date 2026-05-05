@@ -14,8 +14,8 @@ class Config:
     CACHE_DIR = DATA_DIR / "cache"
     BOOK_CACHE_DIR = CACHE_DIR / "books"
     AUDIO_CACHE_DIR = CACHE_DIR / "audio"
-    # Image cache stays in static/ so Flask can serve it directly at /static/img_cache/
-    IMAGE_CACHE_DIR = BASE_DIR / "app" / "static" / "img_cache"
+    # Image cache on the persistent volume so images survive deploys
+    IMAGE_CACHE_DIR = DATA_DIR / "img_cache"
 
     # SQLite — single file, WAL mode for concurrent reads
     DB_PATH = DATA_DIR / "atlas.db"

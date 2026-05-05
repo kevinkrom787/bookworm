@@ -194,6 +194,50 @@
     .start-btn:disabled { opacity: 0.5; cursor: default; animation: none;
                           box-shadow: none; background: #a08040; }
 
+    /* ── Step spotlight ────────────────────────────────── */
+    .step-scene {
+      flex-shrink: 0;
+      display: flex; flex-direction: column; align-items: center;
+      gap: 6px; padding-top: 4px;
+    }
+    .scene-emoji {
+      font-size: 5.5rem; line-height: 1; display: block;
+      animation: moonFloat 3s ease-in-out infinite;
+      filter: drop-shadow(0 0 18px rgba(var(--c-warm-rgb), 0.18));
+      will-change: transform;
+    }
+    .scene-emoji--pop {
+      animation: heroPop 0.48s cubic-bezier(0.34,1.56,0.64,1) forwards,
+                 moonFloat 3s ease-in-out 0.48s infinite;
+    }
+    @keyframes heroPop {
+      0%   { transform: scale(0.3) rotate(-12deg); opacity: 0.2; }
+      65%  { transform: scale(1.2)  rotate(4deg);  opacity: 1;   }
+      100% { transform: scale(1)   rotate(0deg);  opacity: 1;   }
+    }
+    .scene-label {
+      display: flex; flex-direction: column; align-items: center;
+      gap: 3px; min-height: 46px; text-align: center;
+    }
+    .scene-name {
+      font-size: 1.12rem; font-weight: 900;
+      color: var(--c-text); letter-spacing: -0.01em;
+    }
+    .scene-power {
+      font-size: 0.65rem; font-weight: 800;
+      color: var(--c-warm); letter-spacing: 0.16em;
+      text-transform: uppercase;
+      opacity: 0; transition: opacity 0.35s;
+    }
+    .scene-power--on { opacity: 1; }
+    .scene-traits {
+      font-size: 0.70rem; font-weight: 700;
+      color: rgba(var(--c-warm-rgb), 0.50);
+      letter-spacing: 0.05em;
+      opacity: 0; transition: opacity 0.4s 0.1s;
+    }
+    .scene-traits--on { opacity: 1; }
+
     /* ════════════════════════════════════════════════════
        CHARACTER CARDS
     ════════════════════════════════════════════════════ */
@@ -435,6 +479,163 @@
       cursor: pointer; border: none;
     }
 
+    /* ── Hero card (character + stats, step 1) ──────────── */
+    .hero-card {
+      display: flex; align-items: center;
+      gap: clamp(18px, 3.5vw, 40px);
+      width: calc(100% - 36px);
+      max-width: min(92vw, 800px);
+      margin: 0 auto;
+      padding: clamp(20px, 3.5vw, 36px) clamp(22px, 3.5vw, 36px);
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 24px; flex-shrink: 0;
+      min-height: clamp(160px, 24vh, 240px);
+    }
+    .hero-char {
+      display: flex; flex-direction: column; align-items: center;
+      gap: 8px; flex-shrink: 0;
+      width: clamp(100px, 16vw, 150px);
+    }
+    .hero-emoji-wrap {
+      width: clamp(84px, 13vw, 124px);
+      height: clamp(84px, 13vw, 124px);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      border: 1.5px solid rgba(212,167,106,0.20);
+      background: radial-gradient(circle, rgba(212,167,106,0.10) 0%, transparent 70%);
+      transition: box-shadow 0.45s ease, background 0.45s ease, border-color 0.45s ease;
+      flex-shrink: 0;
+    }
+    .hero-emoji-wrap .scene-emoji {
+      font-size: clamp(3.5rem, 7vw, 5.5rem) !important;
+      animation: moonFloat 3s ease-in-out infinite;
+      will-change: transform;
+      filter: none !important;
+    }
+    .hero-char .scene-name {
+      font-size: clamp(0.85rem, 1.8vw, 1.15rem); font-weight: 900;
+      color: var(--c-text); text-align: center;
+    }
+    .hero-char .scene-power {
+      font-size: clamp(0.46rem, 0.9vw, 0.6rem); font-weight: 800;
+      color: var(--c-warm); letter-spacing: 0.13em;
+      text-transform: uppercase; text-align: center;
+    }
+
+    /* Pip reveal animation — left-to-right stagger on character select */
+    @keyframes pipReveal {
+      from { transform: scaleX(0); opacity: 0; }
+      to   { transform: scaleX(1); opacity: 1; }
+    }
+    .hero-stat-pip--filled {
+      transform-origin: left center;
+      animation: pipReveal 0.1s ease both;
+    }
+
+    /* Tone down the step-prompt so hero card is the star */
+    #step1 .step-prompt {
+      font-size: clamp(1rem, 2.6vw, 1.55rem);
+      color: var(--c-text-dim);
+      font-weight: 700;
+    }
+    .hero-stats {
+      flex: 1; display: flex; flex-direction: column;
+      gap: clamp(8px, 1.4vh, 14px);
+      min-width: 0;
+    }
+    .hero-stats-empty {
+      font-size: 0.82rem; font-weight: 600;
+      color: var(--c-text-faint); font-style: italic;
+      text-align: center; padding: 28px 0;
+    }
+    .hero-stat {
+      display: flex; align-items: center; gap: 10px;
+    }
+    .hero-stat-label {
+      font-size: clamp(0.52rem, 1vw, 0.68rem); font-weight: 800;
+      letter-spacing: 0.05em; text-transform: uppercase;
+      color: rgba(237,232,223,0.42);
+      width: clamp(46px, 7vw, 64px); flex-shrink: 0; text-align: right;
+    }
+    .hero-stat-pips {
+      display: flex; gap: clamp(2px, 0.4vw, 4px); flex: 1;
+    }
+    .hero-stat-pip {
+      /* grows to fill space, capped so they never become bars */
+      flex: 1; max-width: 20px;
+      height: clamp(9px, 1.4vh, 13px);
+      border-radius: 3px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.07);
+      transition: background 0.18s, border-color 0.18s, box-shadow 0.18s;
+    }
+    .hero-stat-pip--filled {
+      background: var(--c-warm);
+      border-color: rgba(var(--c-warm-rgb), 0.8);
+      box-shadow: 0 0 5px rgba(var(--c-warm-rgb), 0.35);
+    }
+
+    /* Step 1 vertical layout — desktop: space-between fills the height nicely */
+    #step1 .step-body {
+      justify-content: space-between;
+      padding: clamp(10px, 2.5vh, 24px) 0 8px;
+      gap: 0;
+    }
+    /* Mobile: card fills the top, carousel pins to bottom — no dead zones */
+    @media (max-width: 600px) {
+      #step1 .step-body {
+        justify-content: flex-start;
+        gap: 12px;
+        padding-top: 8px;
+      }
+      /* Prompt is redundant on mobile — the carousel is self-evident */
+      #step1 .step-prompt { display: none; }
+
+      /* Card grows to fill all available space above the carousel */
+      .hero-card {
+        flex: 1;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 16px;
+        min-height: unset;
+        padding: 20px 20px;
+        width: calc(100% - 36px);
+      }
+      .hero-char {
+        width: 100%;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+      }
+      .hero-emoji-wrap {
+        width: clamp(140px, 42vw, 200px);
+        height: clamp(140px, 42vw, 200px);
+      }
+      .hero-emoji-wrap .scene-emoji {
+        font-size: clamp(5.5rem, 24vw, 8rem) !important;
+      }
+      .hero-char .scene-name  { font-size: 1.15rem; }
+      .hero-char .scene-power { font-size: 0.6rem; opacity: 1; }
+
+      /* Stats go full-width below the emoji */
+      .hero-stats {
+        width: 100%;
+        gap: 11px;
+      }
+      .hero-stat-label { width: 52px; }
+      .hero-stat-pip {
+        height: 12px;
+        max-width: 28px;
+      }
+      #step1 .carousel {
+        margin-top: auto;
+        flex-shrink: 0;
+        padding-bottom: 4px;
+      }
+    }
+
     /* ── Reduced motion ────────────────────────────────── */
     @media (prefers-reduced-motion: reduce) {
       .char-card--selected,
@@ -446,12 +647,12 @@
     }
 
     @media (max-width: 480px) {
-      .char-card { width: 110px; padding: 18px 10px 14px; }
-      .char-card-avatar { font-size: 3.2rem; margin-bottom: 8px; }
-      .char-card-name { font-size: 0.78rem; }
-      .type-tile { width: 130px; padding: 18px 14px 16px; }
+      .char-card { width: 140px; padding: 22px 14px 18px; }
+      .char-card-avatar { font-size: 4rem; margin-bottom: 10px; }
+      .char-card-name { font-size: 0.85rem; }
+      .type-tile { width: 140px; padding: 18px 14px 16px; }
       .type-tile-emoji { font-size: 3rem; }
-      .type-tile--selected, .type-tile:hover { width: 200px !important; }
+      .type-tile--selected, .type-tile:hover { width: 210px !important; }
       .step-prompt { font-size: 1.3rem; padding: 0 20px; }
       .step-body { gap: 20px; }
     }
@@ -485,6 +686,18 @@
     <!-- ── Step 1: Characters ──────────────────────────── -->
     <div class="step is-active" id="step1">
       <div class="step-body">
+        <div class="hero-card">
+          <div class="hero-char">
+            <div class="hero-emoji-wrap" id="heroEmojiWrap">
+              <span class="scene-emoji" id="sceneEmoji1">🌙</span>
+            </div>
+            <span class="scene-name" id="sceneName1">Pick a hero</span>
+            <span class="scene-power" id="scenePower1"></span>
+          </div>
+          <div class="hero-stats" id="heroStats">
+            <div class="hero-stats-empty">Select a character</div>
+          </div>
+        </div>
       <div class="step-prompt">Who's coming on tonight's adventure?</div>
         <div class="carousel" id="charCarousel">
           {% for char in characters %}
@@ -492,6 +705,7 @@
                   class="char-card {% if char.character_id == preselected_char_id %}char-card--selected{% endif %}"
                   data-char-id="{{ char.character_id }}"
                   data-char-name="{{ char.name }}"
+                  data-avatar="{{ char.avatar_emoji }}"
                   aria-pressed="{{ 'true' if char.character_id == preselected_char_id else 'false' }}">
             <span class="char-card-avatar">{{ char.avatar_emoji }}</span>
             <span class="char-card-name">{{ char.name }}</span>
@@ -515,6 +729,14 @@
     <!-- ── Step 2: Story type ──────────────────────────── -->
     <div class="step" id="step2">
       <div class="step-body">
+        <div class="step-scene">
+          <span class="scene-emoji" id="sceneEmoji2">✨</span>
+          <div class="scene-label">
+            <span class="scene-name"  id="sceneName2">Choose your adventure</span>
+            <span class="scene-power" id="scenePower2"></span>
+            <span class="scene-traits" id="sceneTraits2"></span>
+          </div>
+        </div>
       <div class="step-prompt">What kind of story shall we dream up?</div>
         <div class="carousel" id="typeCarousel">
           {% for t in story_types %}
@@ -539,6 +761,14 @@
     <!-- ── Step 3: Length ──────────────────────────────── -->
     <div class="step" id="step3">
       <div class="step-body">
+        <div class="step-scene">
+          <span class="scene-emoji" id="sceneEmoji3">🌙</span>
+          <div class="scene-label">
+            <span class="scene-name"  id="sceneName3">The perfect tale awaits</span>
+            <span class="scene-power" id="scenePower3"></span>
+            <span class="scene-traits" id="sceneTraits3"></span>
+          </div>
+        </div>
       <div class="step-prompt">How long shall tonight's tale be?</div>
         <div class="length-row">
           {% for key, info in length_buckets.items() %}
@@ -640,6 +870,137 @@
   addEventListener("resize", () => { resize(); init(); });
 }());
 
+// ── Spotlight data ────────────────────────────────────────────────────────────
+const HERO_TRAITS = {
+  '🦁':{ power:'FEARLESS LEADER',   traits:'Brave · Bold · Loyal'           },
+  '🐯':{ power:'ROAR POWER',        traits:'Fierce · Fast · Unstoppable'    },
+  '🐆':{ power:'SPEED CHAMPION',    traits:'Quick · Sharp · Daring'         },
+  '🐻':{ power:'BIG HEART HERO',    traits:'Kind · Gentle · Strong'         },
+  '🐼':{ power:'PEACEFUL WARRIOR',  traits:'Calm · Wise · Loving'           },
+  '🐨':{ power:'COZY DREAMER',      traits:'Gentle · Caring · Sweet'        },
+  '🦊':{ power:'CLEVER EXPLORER',   traits:'Curious · Witty · Resourceful'  },
+  '🐺':{ power:'LOYAL GUARDIAN',    traits:'Loyal · Brave · Protective'     },
+  '🐶':{ power:'BEST FRIEND EVER',  traits:'Loyal · Joyful · Devoted'       },
+  '🐱':{ power:'INDEPENDENT SOUL',  traits:'Clever · Curious · Caring'      },
+  '🦅':{ power:'FREEDOM FLIER',     traits:'Courageous · Free · Visionary'  },
+  '🦉':{ power:'WISE GUARDIAN',     traits:'Wise · Curious · Honest'        },
+  '🦜':{ power:'COLORFUL SPIRIT',   traits:'Joyful · Bright · Expressive'   },
+  '🐉':{ power:'LEGENDARY DRAGON',  traits:'Mighty · Noble · Unstoppable'   },
+  '🦄':{ power:'MAGIC BELIEVER',    traits:'Hopeful · Kind · Pure'          },
+  '🦕':{ power:'GENTLE GIANT',      traits:'Peaceful · Mighty · Noble'      },
+  '🦖':{ power:'T-REX POWER 🦖',   traits:'Fierce · Bold · RAWR!'          },
+  '🐒':{ power:'PLAYFUL TRICKSTER', traits:'Curious · Joyful · Clever'      },
+  '🦍':{ power:'MIGHTY PROTECTOR',  traits:'Strong · Gentle · Wise'         },
+  '🐙':{ power:'CURIOUS EXPLORER',   traits:'Clever · Playful · Creative'    },
+  '🐋':{ power:'GENTLE GIANT',      traits:'Wise · Calm · Compassionate'    },
+  '🐬':{ power:'OCEAN HEART',       traits:'Joyful · Free · Compassionate'  },
+  '🦈':{ power:'DETERMINED HERO',   traits:'Focused · Brave · Relentless'   },
+  '🐸':{ power:'LEAP OF COURAGE',   traits:'Bold · Adaptable · Cheerful'    },
+  '🦦':{ power:'PLAYFUL EXPLORER',  traits:'Joyful · Clever · Energetic'    },
+  '🐧':{ power:'COOLEST KID',       traits:'Funny · Loyal · Resilient'      },
+  '🦋':{ power:'TRANSFORMATION',    traits:'Graceful · Hopeful · Beautiful'  },
+  '🐝':{ power:'COMMUNITY HERO',    traits:'Hardworking · Loyal · Brave'    },
+  '🦸':{ power:'TRUE SUPERHERO',    traits:'Brave · Just · Selfless'        },
+  '🧙':{ power:'WISE WIZARD',       traits:'Wise · Curious · Powerful'      },
+  '🧚':{ power:'FAIRY MAGIC',       traits:'Kind · Hopeful · Magical'       },
+  '🐾':{ power:'MYSTERY HERO',      traits:'Brave · Kind · Curious'         },
+};
+const DEFAULT_HERO = { power:"TONIGHT'S HERO", traits:'Brave · Kind · Curious' };
+
+// Stat values per emoji: [Heart, Courage, Brains, Speed, Magic]  (out of 10)
+const STAT_LABELS  = ['Heart','Courage','Brains','Speed','Magic'];
+const STAT_COLORS  = ['#f87171','#fb923c','#60a5fa','#4ade80','#c084fc'];
+const HERO_STATS = {
+  '🐻':[10,7,6,4,5], '🦊':[6,7,10,8,6],  '🦉':[6,5,10,3,8],
+  '🐙':[7,6,9,5,9],  '🦄':[10,6,6,7,10], '🦖':[5,10,5,9,4],
+  '🐯':[6,9,6,10,3], '🐋':[9,5,9,4,7],   '🐺':[8,9,7,7,5],
+  '🐼':[9,5,8,3,6],  '🦅':[6,9,7,10,5],  '🦁':[7,10,7,8,5],
+  '🐆':[5,8,7,10,4], '🐨':[9,4,6,3,6],   '🐶':[10,7,5,7,4],
+  '🐱':[7,6,9,7,7],  '🦜':[8,5,7,6,7],   '🐉':[7,10,7,8,10],
+  '🦕':[8,6,6,3,7],  '🐒':[8,6,9,9,5],   '🦍':[8,8,8,7,5],
+  '🐬':[9,6,9,9,7],  '🦈':[5,10,6,10,3], '🐸':[8,8,7,7,6],
+  '🦦':[9,6,8,8,5],  '🐧':[8,7,7,5,5],   '🦋':[9,5,6,7,10],
+  '🐝':[7,8,8,7,6],  '🦸':[9,10,7,8,7],  '🧙':[5,6,10,4,10],
+  '🧚':[9,5,7,7,10], '🧒':[9,8,7,8,6],   '🐾':[7,7,7,7,7],
+};
+
+function renderStats(emoji) {
+  const el   = document.getElementById('heroStats');
+  const wrap = document.getElementById('heroEmojiWrap');
+  if (!el) return;
+
+  if (!emoji) {
+    el.innerHTML = '<div class="hero-stats-empty">Select a character</div>';
+    if (wrap) { wrap.style.boxShadow = ''; wrap.style.background = ''; wrap.style.borderColor = ''; }
+    return;
+  }
+
+  const vals   = HERO_STATS[emoji] || HERO_STATS['🐾'];
+  // Derive accent from the character's strongest stat
+  const maxIdx = vals.indexOf(Math.max(...vals));
+  const accent = STAT_COLORS[maxIdx];
+
+  // Glow ring matches dominant stat color
+  if (wrap) {
+    wrap.style.boxShadow    = `0 0 0 1.5px ${accent}40, 0 0 28px ${accent}30`;
+    wrap.style.background   = `radial-gradient(circle, ${accent}20 0%, transparent 68%)`;
+    wrap.style.borderColor  = `${accent}45`;
+  }
+
+  el.innerHTML = STAT_LABELS.map((label, i) => {
+    const val   = vals[i];
+    const color = STAT_COLORS[i];
+    const pips  = Array.from({length: 10}, (_, j) => {
+      if (j >= val) return `<span class="hero-stat-pip"></span>`;
+      const delay = `animation-delay:${j * 0.04}s`;
+      return `<span class="hero-stat-pip hero-stat-pip--filled" style="background:${color};border-color:${color};box-shadow:0 0 5px ${color}55;${delay}"></span>`;
+    }).join('');
+    return `<div class="hero-stat"><span class="hero-stat-label" style="color:${color}88">${label}</span><div class="hero-stat-pips">${pips}</div></div>`;
+  }).join('');
+}
+
+const TYPE_SCENES = {
+  adventure:{ emoji:'🗺️', power:'EXPLORER',        traits:'Discover · Dare · Dream'        },
+  funny:    { emoji:'🤣', power:'LAUGH CHAMPION',   traits:'Joy · Silliness · Smiles'       },
+  mystery:  { emoji:'🔍', power:'SUPER DETECTIVE',  traits:'Think · Question · Solve'       },
+  cozy:     { emoji:'🛋️', power:'COZY DREAMER',    traits:'Warm · Safe · Peaceful'         },
+  brave:    { emoji:'🛡️', power:'CHAMPION HERO',   traits:'Courage · Honor · Heart'        },
+};
+const DEFAULT_TYPE = { emoji:'✨', power:'STORY MAGIC', traits:'Adventure · Laughter · Wonder' };
+
+const LENGTH_SCENES = {
+  short:  { emoji:'⚡', power:'QUICK QUEST',   traits:'Fast · Fun · Snappy'             },
+  medium: { emoji:'🌙', power:'JUST RIGHT',    traits:'Cozy · Perfect · Sweet'          },
+  long:   { emoji:'🌌', power:'EPIC ADVENTURE',traits:'Grand · Bold · Unforgettable'    },
+};
+
+function popScene(id, emoji) {
+  const el = document.getElementById(id);
+  el.textContent = emoji;
+  el.classList.remove('scene-emoji--pop');
+  void el.offsetWidth;
+  el.classList.add('scene-emoji--pop');
+}
+function setScene(n, emoji, name, data) {
+  popScene(`sceneEmoji${n}`, emoji);
+  document.getElementById(`sceneName${n}`).textContent = name;
+  const pw = document.getElementById(`scenePower${n}`);
+  const tr = document.getElementById(`sceneTraits${n}`);
+  pw.textContent = data.power;
+  pw.classList.add('scene-power--on');
+  if (tr) { tr.textContent = data.traits; tr.classList.add('scene-traits--on'); }
+}
+function resetScene1() {
+  document.getElementById('sceneEmoji1').textContent = '🌙';
+  document.getElementById('sceneEmoji1').classList.remove('scene-emoji--pop');
+  document.getElementById('sceneName1').textContent = "Pick a hero";
+  const pw   = document.getElementById('scenePower1');
+  const wrap = document.getElementById('heroEmojiWrap');
+  if (pw)   { pw.textContent = ''; pw.classList.remove('scene-power--on'); }
+  if (wrap) { wrap.style.boxShadow = ''; wrap.style.background = ''; wrap.style.borderColor = ''; }
+  renderStats(null);
+}
+
 // ── State ─────────────────────────────────────────────────────────────────────
 const MAX_CHARS = 3;
 const TAGLINES  = {
@@ -693,7 +1054,7 @@ function goToStep(n) {
 
 document.getElementById("backBtn").addEventListener("click", () => {
   if (currentStep > 1) goToStep(currentStep - 1);
-  else window.location.href = "/";
+  else window.location.href = "/profiles/";
 });
 
 document.getElementById("nextBtn1").addEventListener("click", () => goToStep(2));
@@ -723,6 +1084,17 @@ function toggleChar(card) {
     card.setAttribute("aria-pressed", "true");
   }
   updateContinueBtn();
+  // Update spotlight
+  const lastId = [...selectedIds].at(-1);
+  if (lastId !== undefined) {
+    const card = document.querySelector(`.char-card[data-char-id="${lastId}"]`);
+    const avatar = card?.dataset.avatar || '🐾';
+    const name   = selectedNames.get(lastId) || '';
+    setScene(1, avatar, name, HERO_TRAITS[avatar] || DEFAULT_HERO);
+    renderStats(avatar);
+  } else {
+    resetScene1();
+  }
 }
 
 document.querySelectorAll(".char-card[data-char-id]").forEach(c =>
@@ -741,6 +1113,8 @@ document.querySelectorAll(".type-tile").forEach(tile => {
     tile.setAttribute("aria-pressed", "true");
     selectedType = tile.dataset.type;
     document.getElementById("inputType").value = selectedType;
+    const ts = TYPE_SCENES[selectedType] || DEFAULT_TYPE;
+    setScene(2, ts.emoji, tile.querySelector('.type-tile-label').textContent.trim(), ts);
   });
 });
 
@@ -755,6 +1129,8 @@ document.querySelectorAll(".length-pill").forEach(pill => {
     pill.setAttribute("aria-pressed", "true");
     selectedLen = pill.dataset.length;
     document.getElementById("inputLength").value = selectedLen;
+    const ls = LENGTH_SCENES[selectedLen] || LENGTH_SCENES.medium;
+    setScene(3, ls.emoji, pill.querySelector('.length-label').textContent.trim(), ls);
   });
 });
 
@@ -790,6 +1166,7 @@ async function addChar() {
     card.className        = "char-card";
     card.dataset.charId   = char.character_id;
     card.dataset.charName = char.name;
+    card.dataset.avatar   = char.avatar_emoji || '🐾';
     card.setAttribute("aria-pressed", "false");
     card.innerHTML = `
       <span class="char-card-avatar">${char.avatar_emoji}</span>
@@ -805,6 +1182,34 @@ async function addChar() {
     alert("Couldn't add that character. Please try again.");
   }
 }
+
+// ── Carousel mouse-wheel scroll (desktop) ────────────────────────────────────
+document.getElementById("charCarousel").addEventListener("wheel", e => {
+  e.preventDefault();
+  e.currentTarget.scrollLeft += e.deltaY + e.deltaX;
+}, { passive: false });
+
+// ── Init spotlights ───────────────────────────────────────────────────────────
+(function initSpotlights() {
+  // Step 1: preselected character
+  const preCard = document.querySelector('.char-card--selected[data-char-id]');
+  if (preCard) {
+    const avatar = preCard.dataset.avatar || '🐾';
+    setScene(1, avatar, preCard.dataset.charName, HERO_TRAITS[avatar] || DEFAULT_HERO);
+    renderStats(avatar);
+  }
+  // Step 2: preselected type
+  const preTile = document.querySelector('.type-tile--selected');
+  if (preTile) {
+    const ts = TYPE_SCENES[preTile.dataset.type] || DEFAULT_TYPE;
+    setScene(2, ts.emoji, preTile.querySelector('.type-tile-label').textContent.trim(), ts);
+  }
+  // Step 3: default length (medium)
+  const initLen = LENGTH_SCENES[selectedLen] || LENGTH_SCENES.medium;
+  const initPill = document.querySelector('.length-pill--selected');
+  setScene(3, initLen.emoji,
+    initPill?.querySelector('.length-label')?.textContent?.trim() || 'Just right', initLen);
+}());
 
 // ── Submit ────────────────────────────────────────────────────────────────────
 document.getElementById("startBtn").addEventListener("click", () => {

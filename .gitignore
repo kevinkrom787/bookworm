@@ -14,3 +14,4 @@ instance/
 *.db
 *.db-shm
 *.db-wal
+img_cache/

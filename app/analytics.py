@@ -1,29 +1,34 @@
 """
-PostHog analytics wrapper. All calls are no-ops when POSTHOG_API_KEY is unset.
-Uses the Posthog client class (v3 API) with atexit flush so events aren't
-dropped when Fly.io auto-stops the machine.
+Lightweight event tracking — writes directly to the app's SQLite DB.
+
+Usage:
+    analytics.init(db_path)          # once at startup
+    analytics.capture(family_id, "signed_up", {"method": "google"})
+
+Each call opens a connection, inserts one row, and closes. No buffering,
+no background threads, no data loss on Fly.io machine stops.
 """
-import atexit
-from posthog import Posthog as _Client
+import json
+import sqlite3
+from pathlib import Path
+from typing import Optional
 
-_client: _Client | None = None
+_db_path: Optional[Path] = None
 
 
-def init(api_key: str, host: str) -> None:
-    global _client
-    if not api_key:
+def init(db_path: Path) -> None:
+    global _db_path
+    _db_path = db_path
+
+
+def capture(family_id: Optional[int], event: str, props: Optional[dict] = None) -> None:
+    if not _db_path:
         return
-    _client = _Client(api_key, host=host)
-    atexit.register(_client.shutdown)
-
-
-def capture(distinct_id: str, event: str, props: dict | None = None) -> None:
-    if _client is None:
-        return
-    _client.capture(str(distinct_id), event, properties=props or {})
-
-
-def identify(distinct_id: str, props: dict | None = None) -> None:
-    if _client is None:
-        return
-    _client.identify(str(distinct_id), properties=props or {})
+    try:
+        with sqlite3.connect(str(_db_path)) as conn:
+            conn.execute(
+                "INSERT INTO events (family_id, event, props) VALUES (?, ?, ?)",
+                (family_id, event, json.dumps(props or {})),
+            )
+    except Exception:
+        pass  # analytics must never crash the app

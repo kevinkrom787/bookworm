@@ -140,14 +140,8 @@ def start():
         length_bucket=length_bucket,
     )
     builder.build_async(story_id, profile, character_ids, story_type, length_bucket)
-
-    analytics.capture(f"family_{session.get('family_id')}", "story_started", {
-        "story_type":   story_type,
-        "length_bucket": length_bucket,
-        "profile_id":   profile.id,
-        "story_id":     story_id,
-    })
-
+    analytics.capture(session.get("family_id"), "story_started",
+                      {"story_type": story_type, "length": length_bucket})
     return redirect(url_for("stories.generating", story_id=story_id))
 
 
@@ -229,7 +223,8 @@ def recap(story_id: int):
     streak  = _streak_svc().get_streak(profile.id)
     story_j = data["full_story_json"]
     recap_d = story_j.get("recap", {})
-    vocab   = story_j.get("vocabulary_used", [])[:3]
+    vocab   = [e["word"] if isinstance(e, dict) else e
+               for e in story_j.get("vocabulary_used", [])][:3]
     images  = [p["image_url"] for p in story_j.get("pages", []) if p.get("image_url")][:6]
 
     return render_template(
@@ -275,10 +270,6 @@ def api_complete(story_id: int):
     if not profile:
         return jsonify({"error": "No active profile"}), 401
     _builder().complete_story(story_id, profile.id)
-    analytics.capture(f"family_{session.get('family_id')}", "story_completed", {
-        "story_id":  story_id,
-        "profile_id": profile.id,
-    })
     return jsonify({"ok": True})
 
 

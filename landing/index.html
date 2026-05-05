@@ -111,7 +111,7 @@
 
     .hero h1 {
       font-family: 'Playfair Display', serif;
-      font-size: clamp(1.9rem, 3vw, 2.9rem);
+      font-size: clamp(2rem, 3.8vw, 3.5rem);
       font-weight: 400;
       line-height: 1.2;
       color: var(--cream);
@@ -121,6 +121,10 @@
     .hero h1 em {
       font-style: italic;
       color: var(--gold-pale);
+      font-size: 0.54em;
+      line-height: 1.3;
+      display: block;
+      margin-top: 6px;
     }
 
     .hero-sub {
@@ -331,26 +335,22 @@
       margin-bottom: 20px;
     }
 
-    .atlas-desc { font-size: 0.95rem; color: var(--cream-dim); line-height: 1.8; margin-bottom: 40px; }
-
-    .feature-list { list-style: none; display: flex; flex-direction: column; gap: 14px; }
-
-    .feature-list li {
-      display: flex;
-      align-items: flex-start;
-      gap: 14px;
-      font-size: 0.9rem;
-      color: var(--cream-soft);
-      line-height: 1.6;
+    .atlas-desc {
+      font-size: 0.92rem; color: var(--cream-dim); line-height: 1.8; margin-bottom: 18px;
     }
+    .atlas-desc:last-of-type { margin-bottom: 32px; }
 
-    .feat-dot {
-      width: 5px; height: 5px;
-      border-radius: 50%;
-      background: var(--gold);
-      flex-shrink: 0;
-      margin-top: 8px;
-      opacity: 0.75;
+    .proof-list { display: flex; flex-direction: column; gap: 20px; }
+    .proof-item {
+      padding-left: 16px;
+      border-left: 1.5px solid rgba(212,168,83,0.22);
+    }
+    .proof-title {
+      font-size: 0.87rem; font-weight: 700;
+      color: var(--cream); display: block; margin-bottom: 4px;
+    }
+    .proof-body {
+      font-size: 0.80rem; color: var(--cream-dim); line-height: 1.65; margin: 0;
     }
 
     /* Story card */
@@ -374,17 +374,75 @@
     .sc-eyebrow { font-family: 'Inter', sans-serif; font-size: 0.63rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--gold); }
     .sc-badge { font-family: 'Inter', sans-serif; font-size: 0.6rem; color: var(--muted); background: rgba(255,255,255,0.06); padding: 3px 10px; border-radius: 20px; letter-spacing: 0.06em; }
 
-    .sc-body { padding: 28px 24px 22px; }
+    .sc-body { padding: 24px 24px 20px; }
 
     .sc-title { font-family: 'Playfair Display', serif; font-style: italic; font-size: 1.15rem; color: var(--cream); margin-bottom: 14px; line-height: 1.4; }
 
-    .sc-text { font-size: 0.87rem; color: var(--cream-soft); line-height: 1.85; }
-    .sc-text .vocab { color: var(--gold-pale); border-bottom: 1px solid rgba(212,168,83,0.35); }
+    /* Color key */
+    .sc-key {
+      display: flex; gap: 12px; flex-wrap: wrap;
+      margin-bottom: 16px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .sc-key-item {
+      display: flex; align-items: center; gap: 5px;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.57rem; letter-spacing: 0.09em; text-transform: uppercase;
+    }
+    .sc-key-dot { width: 7px; height: 7px; border-radius: 2px; flex-shrink: 0; }
+    .sc-key--personal { color: #f0c060; }
+    .sc-key--personal .sc-key-dot { background: #f0c060; }
+    .sc-key--vocab    { color: #4dd9c0; }
+    .sc-key--vocab    .sc-key-dot { background: #4dd9c0; }
+    .sc-key--level    { color: #a78bfa; }
+    .sc-key--level    .sc-key-dot { background: #a78bfa; }
 
-    .sc-footer { padding: 14px 22px; border-top: 1px solid var(--border-dim); display: flex; gap: 8px; flex-wrap: wrap; }
-    .sc-tag { font-family: 'Inter', sans-serif; font-size: 0.6rem; color: var(--muted); background: rgba(255,255,255,0.05); padding: 4px 10px; border-radius: 20px; letter-spacing: 0.05em; }
+    /* Story text */
+    .sc-text { font-size: 0.87rem; color: var(--cream-soft); line-height: 1.9; }
+    .sc-text .sc-personal {
+      color: #f0c060;
+      background: rgba(240,192,96,0.12);
+      padding: 1px 5px; border-radius: 4px;
+      font-weight: 600;
+    }
+    .sc-text .vocab {
+      color: #4dd9c0;
+      background: rgba(77,217,192,0.10);
+      padding: 1px 5px; border-radius: 4px;
+      border-bottom: 1.5px solid rgba(77,217,192,0.40);
+      font-weight: 600;
+    }
 
-    .sc-recap { padding: 18px 22px; background: rgba(212,168,83,0.04); border-top: 1px solid rgba(212,168,83,0.1); }
+    /* Footer stats bar */
+    .sc-footer {
+      padding: 12px 22px;
+      border-top: 1px solid var(--border-dim);
+      display: flex; align-items: center; gap: 0;
+    }
+    .sc-stat {
+      flex: 1;
+      display: flex; flex-direction: column; gap: 3px;
+      padding: 0 14px;
+      border-right: 1px solid rgba(255,255,255,0.06);
+    }
+    .sc-stat:first-child { padding-left: 0; }
+    .sc-stat:last-child  { border-right: none; }
+    .sc-stat-label {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.52rem; letter-spacing: 0.10em; text-transform: uppercase;
+      color: rgba(255,255,255,0.30);
+    }
+    .sc-stat-val {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.78rem; font-weight: 600;
+      color: var(--cream);
+    }
+    .sc-stat-val--personal { color: #f0c060; }
+    .sc-stat-val--vocab    { color: #4dd9c0; }
+    .sc-stat-val--level    { color: #a78bfa; }
+
+    .sc-recap { padding: 16px 22px; background: rgba(212,168,83,0.04); border-top: 1px solid rgba(212,168,83,0.1); }
     .sc-recap-label { font-family: 'Inter', sans-serif; font-size: 0.6rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--gold); display: block; margin-bottom: 8px; }
     .sc-recap-q { font-size: 0.82rem; color: var(--cream-dim); font-style: italic; line-height: 1.6; }
 
@@ -479,6 +537,7 @@
       .hero-image-pane { padding: 40px 20px 0; order: 2; }
       .hero-img-frame { max-width: 420px; }
       .hero-sub { max-width: 480px; }
+      .hero h1 { font-size: clamp(1.6rem, 5vw, 2.4rem); }
     }
 
     @media (max-width: 800px) {
@@ -508,14 +567,12 @@
 <section class="hero">
 
   <div class="hero-content">
-    <p class="hero-label">Atlas · Bedtime Stories</p>
+    <h1>You can only read the same book so many times.<em>We'll handle tonight's story. And tomorrow's.</em></h1>
 
-    <h1>Most children need more reading moments.<br><em>Bedtime is one of them.</em></h1>
-
-    <p class="hero-sub">Atlas turns bedtime into personalized stories that help children build vocabulary, confidence, and a love of reading — one night at a time.</p>
+    <p class="hero-sub">Personalized bedtime stories that adapt to your child's reading level and grow as they do.</p>
 
     <a href="/auth/login" class="btn-primary">
-      Start reading — it's free
+      Start reading for free
       <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7h8M7 3l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </a>
     <a href="#how-it-works" class="btn-ghost">See how it works ↓</a>
@@ -548,7 +605,7 @@
 
     <span class="section-label fade">The reading landscape</span>
 
-    <p class="problem-lead fade fade-d1">Reading is the foundation of every other subject. And most children aren't getting enough of it.</p>
+    <p class="problem-lead fade fade-d1">If reading doesn't click early, it gets harder fast.</p>
 
     <div class="stats-grid fade fade-d2">
       <div class="stat">
@@ -569,7 +626,7 @@
       </div>
     </div>
 
-    <p class="problem-close fade fade-d3">Schools are doing their best. But the window for reading at home — especially in the early years — is one of the most powerful and underused tools families have.</p>
+    <p class="problem-close fade fade-d3">Reading progress doesn't just happen at school.<br>What happens at home, especially at night, makes a huge difference.</p>
 
   </div>
 </section>
@@ -610,17 +667,24 @@
 
       <div class="atlas-left fade">
         <span class="section-label">What Atlas is</span>
-        <h2>A story built for your child.<br>Tonight.</h2>
-        <p class="atlas-desc">Every Atlas story is generated fresh — written around your child's name, age, pet, favorite foods, siblings, and imagination. No two stories are alike. Every story is theirs.</p>
+        <h2>Stories that grow with your child.</h2>
+        <p class="atlas-desc">Every Atlas story is personalized to your child's world and reading level, then gently introduces new words so they keep progressing without even noticing.</p>
+        <p class="atlas-desc">Built on proven reading development frameworks, bedtime becomes more than entertainment.</p>
 
-        <ul class="feature-list">
-          <li><span class="feat-dot"></span>Personalized to your child's name, family, and world</li>
-          <li><span class="feat-dot"></span>Calibrated to their reading level using Fry vocabulary standards and Lexile ranges</li>
-          <li><span class="feat-dot"></span>3–5 Tier 2 vocabulary words woven naturally into each story — introduced in context, never defined outright</li>
-          <li><span class="feat-dot"></span>Ten illustrated pages with a real narrative arc: a problem, three escalating attempts, a resolution</li>
-          <li><span class="feat-dot"></span>Designed to be read aloud — parent and child, together</li>
-          <li><span class="feat-dot"></span>Ends with a conversation prompt rooted in that night's story</li>
-        </ul>
+        <div class="proof-list">
+          <div class="proof-item">
+            <span class="proof-title">Personalized to them</span>
+            <p class="proof-body">Names, interests, pets, and favorite worlds woven into every story.</p>
+          </div>
+          <div class="proof-item">
+            <span class="proof-title">Matched to their level</span>
+            <p class="proof-body">Stories adapt as their reading ability grows.</p>
+          </div>
+          <div class="proof-item">
+            <span class="proof-title">Stretch words, naturally introduced</span>
+            <p class="proof-body">New vocabulary appears in context, not as a lesson.</p>
+          </div>
+        </div>
       </div>
 
       <div class="atlas-right fade fade-d2">
@@ -631,15 +695,32 @@
           </div>
           <div class="sc-body">
             <h3 class="sc-title">The Peculiar Dragon of Pepper Lane</h3>
+            <div class="sc-key">
+              <span class="sc-key-item sc-key--personal"><span class="sc-key-dot"></span>Personalized</span>
+              <span class="sc-key-item sc-key--vocab"><span class="sc-key-dot"></span>Stretch word</span>
+              <span class="sc-key-item sc-key--level"><span class="sc-key-dot"></span>Level-matched</span>
+            </div>
             <p class="sc-text">
-              On the night Jax's dog Biscuit ate an entire pizza — not a slice, the <em>whole</em> pizza — the dragon arrived at the front door with an extremely <span class="vocab">peculiar</span> expression on its face. It looked embarrassed. Dragons, it turned out, did not expect to ring doorbells.
+              On the night <span class="sc-personal">Jax</span>'s dog <span class="sc-personal">Biscuit</span> ate an entire pizza — not a slice, the <em>whole</em> pizza — the dragon arrived at the front door with an extremely <span class="vocab">peculiar</span> expression on its face. It looked embarrassed. Dragons, it turned out, did not expect to ring doorbells.
             </p>
           </div>
           <div class="sc-footer">
-            <span class="sc-tag">Jax · age 7</span>
-            <span class="sc-tag">Dog: Biscuit</span>
-            <span class="sc-tag">vocab: peculiar</span>
-            <span class="sc-tag">Fry 1–300</span>
+            <div class="sc-stat">
+              <span class="sc-stat-label">Personalized</span>
+              <span class="sc-stat-val sc-stat-val--personal">Jax · Biscuit</span>
+            </div>
+            <div class="sc-stat">
+              <span class="sc-stat-label">Stretch word</span>
+              <span class="sc-stat-val sc-stat-val--vocab">peculiar</span>
+            </div>
+            <div class="sc-stat">
+              <span class="sc-stat-label">New words</span>
+              <span class="sc-stat-val sc-stat-val--level">3 tonight</span>
+            </div>
+            <div class="sc-stat">
+              <span class="sc-stat-label">Lexical range</span>
+              <span class="sc-stat-val">1–300</span>
+            </div>
           </div>
           <div class="sc-recap">
             <span class="sc-recap-label">Talk about it</span>

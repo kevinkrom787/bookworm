@@ -44,23 +44,36 @@ class OpenAIImageProvider(ImageProvider):
         return bool(self._api_key)
 
     def generate(self, prompt: str, **kwargs) -> ImageResult:
-        try:
-            from openai import OpenAI
-            client = OpenAI(api_key=self._api_key)
-            # Prepend safety framing — DALL-E 3 responds well to this
-            safe_prompt = f"Children's book illustration, age-appropriate, no text or letters. {prompt}"
-            response = client.images.generate(
-                model=self.MODEL,
-                prompt=safe_prompt,
-                size="1024x1024",
-                quality="standard",
-                n=1,
-            )
-            url = response.data[0].url
-            return ImageResult(url=url)
-        except Exception as exc:
-            log.warning("OpenAI image generation failed: %s", exc)
-            return ImageResult(url=None, error=str(exc))
+        from openai import OpenAI
+        client = OpenAI(api_key=self._api_key)
+
+        attempts = [
+            f"Children's book illustration, age-appropriate, no text or letters. {prompt}",
+            # Fallback: drop the scene description, keep only the art style
+            f"Children's book illustration, age-appropriate, no text or letters. "
+            f"A warm, magical bedtime story scene. Soft lighting, cozy atmosphere. "
+            f"{prompt.split('.')[0]}.",  # just the style descriptor
+        ]
+
+        for attempt in attempts:
+            try:
+                response = client.images.generate(
+                    model=self.MODEL,
+                    prompt=attempt,
+                    size="1024x1024",
+                    quality="standard",
+                    n=1,
+                )
+                return ImageResult(url=response.data[0].url)
+            except Exception as exc:
+                err = str(exc)
+                if "content_policy_violation" in err:
+                    log.warning("DALL-E content policy hit — retrying with fallback prompt")
+                    continue
+                log.warning("OpenAI image generation failed: %s", exc)
+                return ImageResult(url=None, error=err)
+
+        return ImageResult(url=None, error="content_policy_violation after fallback")
 
 
 class ReplicateProvider(ImageProvider):
