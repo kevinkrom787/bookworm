@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+{% block title %}Atlas — Parent Dashboard{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/parent.css') }}" />
+{% endblock %}
+
+{% block body %}
+<div class="par-shell">
+
+  <header class="par-header">
+    <a class="back-btn" href="/" aria-label="Back to home">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <polyline points="15 18 9 12 15 6"/>
+      </svg>
+    </a>
+    <div class="par-title">Parent Dashboard</div>
+  </header>
+
+  <main class="par-main">
+
+    {# ── Stat strip ─────────────────────────────────────────────── #}
+    <div class="par-stat-strip">
+      <div class="par-stat">
+        <div class="par-stat-num">{{ books | length }}</div>
+        <div class="par-stat-label">Books started</div>
+      </div>
+      <div class="par-stat">
+        <div class="par-stat-num">{{ summary.vocab.total }}</div>
+        <div class="par-stat-label">Words in deck</div>
+      </div>
+      <div class="par-stat">
+        <div class="par-stat-num">{{ summary.vocab.mastered }}</div>
+        <div class="par-stat-label">Words mastered</div>
+      </div>
+      <div class="par-stat">
+        <div class="par-stat-num">{{ summary.words_looked_up }}</div>
+        <div class="par-stat-label">Words looked up</div>
+      </div>
+    </div>
+
+    {# ── Reading ────────────────────────────────────────────────── #}
+    <section class="par-section">
+      <h2 class="par-section-title">Reading</h2>
+
+      {% if books %}
+        <div class="par-book-list">
+          {% for book in books %}
+          <a class="par-book-row" href="/read/{{ book.id }}">
+            <img class="par-book-cover"
+                 src="{{ book.cover_url }}"
+                 alt=""
+                 onerror="this.style.display='none'" />
+            <div class="par-book-info">
+              <div class="par-book-title">{{ book.title }}</div>
+              <div class="par-book-author">{{ book.author }}</div>
+              <div class="par-book-progress">
+                {% if book.total_chapters %}
+                  Chapter {{ book.chapter_human }} of {{ book.total_chapters }}
+                {% else %}
+                  Chapter {{ book.chapter_human }}
+                {% endif %}
+                <span class="par-dot">·</span>
+                Last read {{ book.last_read }}
+              </div>
+              {% if book.total_chapters %}
+              <div class="par-progress-track">
+                <div class="par-progress-fill"
+                     style="width: {{ ((book.chapter_human / book.total_chapters) * 100) | round | int }}%">
+                </div>
+              </div>
+              {% endif %}
+            </div>
+          </a>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="par-empty">No books opened yet.</p>
+      {% endif %}
+    </section>
+
+    {# ── Vocabulary ─────────────────────────────────────────────── #}
+    <section class="par-section">
+      <h2 class="par-section-title">Vocabulary</h2>
+
+      <div class="par-vocab-grid">
+        <div class="par-vocab-card">
+          <div class="par-vocab-num">{{ summary.vocab.added_week }}</div>
+          <div class="par-vocab-label">Added this week</div>
+        </div>
+        <div class="par-vocab-card">
+          <div class="par-vocab-num">{{ summary.vocab.from_books }}</div>
+          <div class="par-vocab-label">From books</div>
+        </div>
+        <div class="par-vocab-card">
+          <div class="par-vocab-num">
+            {{ summary.vocab.by_type.get('vocabulary', {}).get('total', 0) }}
+          </div>
+          <div class="par-vocab-label">Word cards</div>
+        </div>
+        <div class="par-vocab-card">
+          <div class="par-vocab-num">
+            {{ summary.vocab.by_type.get('number', {}).get('total', 0) }}
+          </div>
+          <div class="par-vocab-label">Number cards</div>
+        </div>
+      </div>
+
+      {% if summary.vocab.total > 0 %}
+      <div class="par-mastery-bar-wrap">
+        <div class="par-mastery-label">
+          {{ summary.vocab.mastered }} of {{ summary.vocab.total }} mastered
+        </div>
+        <div class="par-mastery-track">
+          <div class="par-mastery-fill"
+               style="width: {{ ((summary.vocab.mastered / summary.vocab.total) * 100) | round | int }}%">
+          </div>
+        </div>
+      </div>
+      {% endif %}
+    </section>
+
+    {# ── Quizzes ────────────────────────────────────────────────── #}
+    <section class="par-section">
+      <h2 class="par-section-title">Quizzes</h2>
+
+      {% if summary.quizzes.avg_score_30d is not none %}
+      <div class="par-quiz-avg">
+        <span class="par-quiz-avg-num">{{ summary.quizzes.avg_score_30d }}%</span>
+        <span class="par-quiz-avg-label">avg score · last 30 days
+          ({{ summary.quizzes.total_30d }} session{{ 's' if summary.quizzes.total_30d != 1 }})</span>
+      </div>
+      {% endif %}
+
+      {% if summary.quizzes.recent %}
+      <table class="par-quiz-table">
+        <thead>
+          <tr>
+            <th>Type</th>
+            <th>Score</th>
+            <th>Questions</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for q in summary.quizzes.recent %}
+          <tr>
+            <td>
+              <div class="par-quiz-type">{{ q.card_type | replace('_', ' ') | title }}</div>
+              {% if q.set_label and q.set_label != 'All' %}
+              <div class="par-quiz-sublabel">{{ q.set_label }}</div>
+              {% endif %}
+            </td>
+            <td>
+              <span class="par-score-badge
+                {% if q.score_pct >= 80 %}good
+                {% elif q.score_pct >= 50 %}ok
+                {% else %}low{% endif %}">
+                {{ q.score_pct | round | int }}%
+              </span>
+            </td>
+            <td>{{ q.questions_correct }} / {{ q.questions_total }}</td>
+            <td>{{ q.completed_at[:10] }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+        <p class="par-empty">No quizzes completed yet.</p>
+      {% endif %}
+    </section>
+
+  </main>
+</div>
+{% endblock %}

@@ -21,7 +21,7 @@
     <div class="topbar-actions">
       <button class="icon-btn" id="fontDecBtn" aria-label="Smaller text">A−</button>
       <button class="icon-btn" id="fontIncBtn" aria-label="Larger text">A+</button>
-      <button class="icon-btn" id="themeBtn" aria-label="Toggle night mode">🌙</button>
+      <!-- dark mode removed until properly implemented -->
     </div>
   </header>
 
@@ -112,7 +112,9 @@ window.ATLAS = {
   theme:         "{{ theme }}",
   ageBand:       "{{ age_band }}",
   ttsAvailable:  {{ 'true' if tts_available else 'false' }},
-  words: {{ chapter.words | map(attribute='text') | list | tojson }},
+  words:         {{ chapter.words | map(attribute='text') | list | tojson }},
+  paragraphs:    {{ chapter.paragraphs | tojson }},
+  savedWordIndex: {{ saved_word }},
 };
 </script>
 {% endblock %}

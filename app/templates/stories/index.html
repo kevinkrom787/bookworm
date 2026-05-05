@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Atlas — My Stories{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/stories.css') }}"/>
+{% endblock %}
+
+{% block body %}
+<div class="si-shell">
+
+  <header class="si-header">
+    <a class="back-btn" href="/" aria-label="Back">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <polyline points="15 18 9 12 15 6"/>
+      </svg>
+    </a>
+    <div class="si-title">My Stories</div>
+    <div class="si-avatar" style="background: {{ profile.avatar_color }}">{{ profile.avatar_emoji }}</div>
+  </header>
+
+  <main class="si-main">
+
+    <!-- New story CTA -->
+    <a class="si-new-card" href="/stories/new">
+      <div class="si-new-icon">✨</div>
+      <div class="si-new-text">
+        <div class="si-new-title">Generate a story</div>
+        <div class="si-new-sub">Personalized just for {{ profile.name }}</div>
+      </div>
+      <div class="si-new-arrow">›</div>
+    </a>
+
+    {% if stories %}
+    <div class="si-stories">
+      {% for s in stories %}
+      <div class="si-story-card">
+        <a class="si-story-link" href="/stories/{{ s.id }}">
+          <div class="si-story-emoji">
+            {{ {"adventure":"🗺️","mystery":"🔍","funny":"😂","magical":"✨","science":"🔬","friendship":"🤝","sports":"🏆","animals":"🐾"}.get(s.theme, "📖") }}
+          </div>
+          <div class="si-story-info">
+            <div class="si-story-title">{{ s.title }}</div>
+            <div class="si-story-meta">{{ s.word_count }} words · {{ s.generated_at[:10] }}</div>
+          </div>
+        </a>
+        <button class="si-story-delete" data-story-id="{{ s.id }}" title="Delete story">🗑️</button>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="si-empty">
+      <div class="si-empty-icon">📖</div>
+      <div class="si-empty-text">No stories yet!</div>
+      <div class="si-empty-sub">Tap above to generate your first one.</div>
+    </div>
+    {% endif %}
+
+  </main>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+"use strict";
+document.querySelectorAll(".si-story-delete").forEach(btn => {
+  btn.addEventListener("click", async (e) => {
+    e.preventDefault();
+    if (!confirm("Delete this story?")) return;
+    const id = btn.dataset.storyId;
+    const resp = await fetch(`/stories/api/${id}`, { method: "DELETE" });
+    if (resp.ok) btn.closest(".si-story-card").remove();
+  });
+});
+</script>
+{% endblock %}

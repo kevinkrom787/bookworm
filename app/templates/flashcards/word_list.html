@@ -1,0 +1,297 @@
+{% extends "base.html" %}
+{% block title %}Atlas — Word Lists{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/flashcards.css') }}" />
+{% endblock %}
+
+{% block body %}
+<div class="fc-shell wl-shell">
+
+  <!-- ── Header ───────────────────────────────────────────────────── -->
+  <header class="fc-header">
+    <a class="back-btn" href="/flashcards/?band={{ age_band }}" aria-label="Back to flashcards">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <polyline points="15 18 9 12 15 6"/>
+      </svg>
+    </a>
+    <div class="fc-title">Word Lists</div>
+    <span class="wl-band-chip" id="bandChip">{{ age_band | capitalize }}</span>
+  </header>
+
+  <!-- ── Progress bar ─────────────────────────────────────────────── -->
+  <div class="wl-progress-section">
+    <div class="wl-progress-text" id="progressText">Loading…</div>
+    <div class="wl-progress-track">
+      <div class="wl-progress-fill" id="progressFill" style="width:0%"></div>
+    </div>
+  </div>
+
+  <!-- ── Level tabs ───────────────────────────────────────────────── -->
+  <div class="wl-tabs" role="tablist">
+    <button class="wl-tab active" data-level="0" role="tab">All</button>
+    <button class="wl-tab" data-level="1" role="tab" id="tab1">Beginner</button>
+    <button class="wl-tab" data-level="2" role="tab" id="tab2">Growing</button>
+    <button class="wl-tab" data-level="3" role="tab" id="tab3">Blooming</button>
+    <button class="wl-add-level-btn" id="addLevelBtn" hidden>Add All</button>
+  </div>
+
+  <!-- ── Word grid ────────────────────────────────────────────────── -->
+  <main class="wl-main" id="wordGrid" role="tabpanel">
+    <div class="wl-loading" id="loadingMsg">Loading words…</div>
+  </main>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+"use strict";
+
+const AGE_BAND = "{{ age_band }}";
+
+// Level display names per band
+const LEVEL_NAMES = {
+  seedlings:   {1: "Beginner", 2: "Growing",  3: "Blooming"},
+  explorers:   {1: "Starter",  2: "Building", 3: "Advanced"},
+  adventurers: {1: "Foundation", 2: "Expanding", 3: "Mastery"},
+};
+
+const CATEGORY_ICONS = {
+  sight_words: "👁️", animals: "🐾", colors: "🎨",
+  actions: "⚡", describing: "💭", feelings: "💛",
+  people: "👨‍👩‍👧", things: "📦", world: "🌍",
+};
+const CATEGORY_LABELS = {
+  sight_words: "Sight Word", animals: "Animals", colors: "Colors",
+  actions: "Action",  describing: "Describing", feelings: "Feeling",
+  people: "People",   things: "Things",         world: "World",
+};
+
+let allWords = [];
+let activeLevel = 0;   // 0 = all
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function esc(s) {
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function levelName(level) {
+  const map = LEVEL_NAMES[AGE_BAND] || LEVEL_NAMES.seedlings;
+  return map[level] || `Level ${level}`;
+}
+
+function wordsForLevel(level) {
+  return level === 0 ? allWords : allWords.filter(w => w.level === level);
+}
+
+function countForLevel(level) {
+  const ws = wordsForLevel(level);
+  return { total: ws.length, inDeck: ws.filter(w => w.in_deck).length };
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+
+function renderProgress() {
+  const total  = allWords.length;
+  const inDeck = allWords.filter(w => w.in_deck).length;
+  const pct    = total ? Math.round(inDeck / total * 100) : 0;
+  document.getElementById("progressText").textContent =
+    `${inDeck} of ${total} words in your deck`;
+  document.getElementById("progressFill").style.width = pct + "%";
+}
+
+function renderTabCounts() {
+  [1, 2, 3].forEach(lvl => {
+    const btn = document.getElementById(`tab${lvl}`);
+    if (!btn) return;
+    const {total, inDeck} = countForLevel(lvl);
+    const name = levelName(lvl);
+    const allDone = total > 0 && inDeck === total;
+    btn.textContent = allDone
+      ? `${name} ✓`
+      : `${name} (${inDeck}/${total})`;
+  });
+}
+
+function renderWords() {
+  const grid = document.getElementById("wordGrid");
+  const words = wordsForLevel(activeLevel);
+
+  // Update Add All button
+  const addLevelBtn = document.getElementById("addLevelBtn");
+  if (activeLevel > 0) {
+    const {total, inDeck} = countForLevel(activeLevel);
+    const remaining = total - inDeck;
+    addLevelBtn.hidden = remaining === 0;
+    addLevelBtn.textContent = `+ Add All ${levelName(activeLevel)}`;
+    addLevelBtn.disabled = false;
+  } else {
+    addLevelBtn.hidden = true;
+  }
+
+  if (words.length === 0) {
+    grid.innerHTML = `<div class="wl-empty">No words found for this level.</div>`;
+    return;
+  }
+
+  // Group by level for "All" view
+  let html = "";
+  if (activeLevel === 0) {
+    [1, 2, 3].forEach(lvl => {
+      const lvlWords = words.filter(w => w.level === lvl);
+      if (lvlWords.length === 0) return;
+      html += `<div class="wl-level-heading">
+        <span class="wl-level-badge wl-level-badge--${lvl}">${esc(levelName(lvl))}</span>
+        <span class="wl-level-count">${lvlWords.filter(w=>w.in_deck).length}/${lvlWords.length} in deck</span>
+      </div>`;
+      html += `<div class="wl-word-grid">`;
+      lvlWords.forEach(w => { html += wordCard(w); });
+      html += `</div>`;
+    });
+  } else {
+    html = `<div class="wl-word-grid">`;
+    words.forEach(w => { html += wordCard(w); });
+    html += `</div>`;
+  }
+
+  grid.innerHTML = html;
+
+  // Wire up add buttons
+  grid.querySelectorAll(".wl-add-btn[data-id]").forEach(btn => {
+    btn.addEventListener("click", () => addWord(btn, parseInt(btn.dataset.id)));
+  });
+}
+
+function wordCard(w) {
+  const icon  = CATEGORY_ICONS[w.category]  || "📝";
+  const label = CATEGORY_LABELS[w.category] || w.category;
+  const inDeck = w.in_deck;
+  return `
+    <div class="wl-word-card wl-word-card--lv${w.level} ${inDeck ? 'is-in-deck' : ''}">
+      <div class="wl-word-header">
+        <span class="wl-word-text">${esc(w.word)}</span>
+        <span class="wl-cat-badge">${icon} ${esc(label)}</span>
+      </div>
+      ${w.phonetic ? `<div class="wl-word-phonetic">${esc(w.phonetic)}</div>` : ""}
+      <div class="wl-word-def">${esc(w.definition)}</div>
+      <div class="wl-word-example">&ldquo;${esc(w.example)}&rdquo;</div>
+      <div class="wl-word-footer">
+        <button class="wl-add-btn ${inDeck ? 'is-in-deck' : ''}"
+                data-id="${w.id}" ${inDeck ? "disabled" : ""}>
+          ${inDeck ? "✓ In Deck" : "+ Add to Deck"}
+        </button>
+      </div>
+    </div>`;
+}
+
+// ── Actions ───────────────────────────────────────────────────────────────────
+
+async function addWord(btn, wordId) {
+  btn.disabled = true;
+  btn.textContent = "Adding…";
+
+  try {
+    const resp = await fetch("/flashcards/api/vocab-words/add", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({vocab_word_id: wordId}),
+    });
+
+    if (resp.ok || resp.status === 409) {
+      const w = allWords.find(w => w.id === wordId);
+      if (w) w.in_deck = true;
+      btn.classList.add("is-in-deck");
+      btn.textContent = "✓ In Deck";
+      const card = btn.closest(".wl-word-card");
+      if (card) card.classList.add("is-in-deck");
+      renderProgress();
+      renderTabCounts();
+      // Hide add-all btn if level is now complete
+      if (activeLevel > 0) {
+        const {total, inDeck} = countForLevel(activeLevel);
+        const addLevelBtn = document.getElementById("addLevelBtn");
+        if (inDeck === total) addLevelBtn.hidden = true;
+      }
+    } else {
+      btn.disabled = false;
+      btn.textContent = "+ Add to Deck";
+    }
+  } catch {
+    btn.disabled = false;
+    btn.textContent = "+ Add to Deck";
+  }
+}
+
+async function addLevel(level) {
+  const btn = document.getElementById("addLevelBtn");
+  btn.disabled = true;
+  btn.textContent = "Adding…";
+
+  try {
+    const resp = await fetch("/flashcards/api/vocab-words/add-level", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({band: AGE_BAND, level}),
+    });
+
+    if (resp.ok) {
+      // Mark all words in this level as in-deck
+      allWords.forEach(w => { if (w.level === level) w.in_deck = true; });
+      renderWords();
+      renderProgress();
+      renderTabCounts();
+    } else {
+      btn.disabled = false;
+      btn.textContent = `+ Add All ${levelName(level)}`;
+    }
+  } catch {
+    btn.disabled = false;
+    btn.textContent = `+ Add All ${levelName(level)}`;
+  }
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+
+async function init() {
+  try {
+    const resp  = await fetch(`/flashcards/api/vocab-words?band=${AGE_BAND}`);
+    const data  = await resp.json();
+    allWords    = data.words || [];
+
+    document.getElementById("loadingMsg")?.remove();
+    document.getElementById("bandChip").textContent =
+      AGE_BAND.charAt(0).toUpperCase() + AGE_BAND.slice(1);
+
+    renderProgress();
+    renderTabCounts();
+    renderWords();
+
+    // Level tab clicks
+    document.querySelectorAll(".wl-tab").forEach(tab => {
+      tab.addEventListener("click", () => {
+        document.querySelectorAll(".wl-tab").forEach(t => t.classList.remove("active"));
+        tab.classList.add("active");
+        activeLevel = parseInt(tab.dataset.level);
+        renderWords();
+      });
+    });
+
+    // Add-all button
+    document.getElementById("addLevelBtn").addEventListener("click", () => {
+      addLevel(activeLevel);
+    });
+
+  } catch (err) {
+    document.getElementById("wordGrid").innerHTML =
+      `<div class="wl-empty">Could not load word list. Please refresh.</div>`;
+  }
+}
+
+init();
+</script>
+{% endblock %}

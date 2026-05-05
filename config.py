@@ -2,18 +2,23 @@ import os
 from pathlib import Path
 
 BASE_DIR = Path(__file__).parent
+# DATA_DIR: persistent storage root. Override with env var on Fly.io (/data volume).
+# Falls back to project root so local dev is unchanged.
+DATA_DIR = Path(os.environ.get("DATA_DIR", str(BASE_DIR)))
 
 
 class Config:
     SECRET_KEY = os.environ.get("SECRET_KEY", "atlas-dev-key-change-before-deploy")
 
-    # Disk cache
-    CACHE_DIR = BASE_DIR / "cache"
+    # Disk cache — stored on persistent volume when DATA_DIR is set
+    CACHE_DIR = DATA_DIR / "cache"
     BOOK_CACHE_DIR = CACHE_DIR / "books"
     AUDIO_CACHE_DIR = CACHE_DIR / "audio"
+    # Image cache on the persistent volume so images survive deploys
+    IMAGE_CACHE_DIR = DATA_DIR / "img_cache"
 
     # SQLite — single file, WAL mode for concurrent reads
-    DB_PATH = BASE_DIR / "atlas.db"
+    DB_PATH = DATA_DIR / "atlas.db"
 
     # TTS defaults
     TTS_VOICE = "af_heart"   # warm American female
@@ -21,6 +26,29 @@ class Config:
 
     # Gutenberg
     GUTENDEX_URL = "https://gutendex.com/books"
+
+    # AI story generation
+    ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
+    AI_PROVIDER       = os.environ.get("AI_PROVIDER", "claude")   # swap to "local" for on-device
+
+    # On-device vocab enrichment (Ollama on Pi)
+    OLLAMA_BASE_URL    = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434")
+    OLLAMA_VOCAB_MODEL = os.environ.get("OLLAMA_VOCAB_MODEL", "gemma4:e2b")
+
+    # Google OAuth (set via fly secrets or .env)
+    GOOGLE_CLIENT_ID     = os.environ.get("GOOGLE_CLIENT_ID", "")
+    GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", "")
+
+    # PostHog analytics
+    POSTHOG_API_KEY  = os.environ.get("POSTHOG_API_KEY", "")
+    POSTHOG_HOST     = os.environ.get("POSTHOG_HOST", "https://us.i.posthog.com")
+
+    # Image generation (parent configures; no default key ever shipped)
+    # Set IMAGE_PROVIDER to 'openai' or 'replicate'
+    IMAGE_PROVIDER        = os.environ.get("IMAGE_PROVIDER", "openai")
+    OPENAI_API_KEY        = os.environ.get("OPENAI_API_KEY", "")
+    REPLICATE_API_KEY     = os.environ.get("REPLICATE_API_KEY", "")
+    MONTHLY_IMAGE_BUDGET  = float(os.environ.get("MONTHLY_IMAGE_BUDGET", "5.0"))
 
     # Default reading settings (will move to user profile in DB phase)
     DEFAULT_AGE_BAND = "explorers"  # seedlings | explorers | adventurers
@@ -47,3 +75,4 @@ class Config:
     def ensure_dirs(cls):
         cls.BOOK_CACHE_DIR.mkdir(parents=True, exist_ok=True)
         cls.AUDIO_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+        cls.IMAGE_CACHE_DIR.mkdir(parents=True, exist_ok=True)

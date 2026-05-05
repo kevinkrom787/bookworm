@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}Atlas — {{ story.title }}{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/stories.css') }}"/>
+{% endblock %}
+
+{% block body %}
+<div class="sr-shell">
+
+  <header class="sr-header">
+    <a class="back-btn" href="/stories/" aria-label="Back to stories">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <polyline points="15 18 9 12 15 6"/>
+      </svg>
+    </a>
+    <div class="sr-header-center">
+      {% if profile %}
+      <div class="sr-avatar-sm" style="background: {{ profile.avatar_color }}">{{ profile.avatar_emoji }}</div>
+      {% endif %}
+    </div>
+    <button class="sr-speak-btn" id="speakBtn" title="Read aloud">🔊</button>
+  </header>
+
+  <div class="sr-body">
+    <h1 class="sr-title">{{ story.title }}</h1>
+    <div class="sr-meta">
+      {{ story.word_count }} words · {{ story.read_minutes }} min read
+      {% if story.vocab_words %}
+      · {{ story.vocab_words | length }} vocab words
+      {% endif %}
+    </div>
+
+    <div class="sr-content" id="storyContent">
+      {% for para in story.content.split('\n') %}
+        {% if para.strip() %}
+        <p>{{ para.strip() }}</p>
+        {% endif %}
+      {% endfor %}
+    </div>
+
+    {% if story.vocab_words %}
+    <div class="sr-vocab-strip">
+      <div class="sr-vocab-label">Words in this story</div>
+      <div class="sr-vocab-pills">
+        {% for w in story.vocab_words %}
+        <span class="sr-vocab-pill">{{ w }}</span>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="sr-actions">
+      <a class="sr-action-btn sr-action-quiz"
+         href="/flashcards/review?type=book_quiz&book={{ story.title | urlencode }}&band={{ story.age_band }}">
+        🏆 Take the Quiz
+      </a>
+      <a class="sr-action-btn sr-action-new" href="/stories/new">
+        ✨ New Story
+      </a>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+"use strict";
+const STORY_TEXT = {{ story.content | tojson }};
+
+document.getElementById("speakBtn").addEventListener("click", () => {
+  if (!window.speechSynthesis) return;
+  const btn = document.getElementById("speakBtn");
+  if (window.speechSynthesis.speaking) {
+    window.speechSynthesis.cancel();
+    btn.textContent = "🔊";
+    return;
+  }
+  const utt = new SpeechSynthesisUtterance(STORY_TEXT);
+  utt.rate  = 0.88;
+  utt.pitch = 1.05;
+  utt.onend = () => { btn.textContent = "🔊"; };
+  btn.textContent = "⏹️";
+  window.speechSynthesis.speak(utt);
+});
+</script>
+{% endblock %}

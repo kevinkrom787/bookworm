@@ -35,6 +35,7 @@ class Chapter:
     index: int          # chapter position in the book (0-based)
     words: list[Word]
     plain_text: str
+    paragraphs: list[tuple[int, int]]  # (word_start, word_end) per paragraph, inclusive
 
     @property
     def word_count(self) -> int:
@@ -98,12 +99,13 @@ def parse_epub(epub_path: Path) -> ParsedBook:
             if len(plain_text.split()) < 50:
                 continue
 
-            words = _tokenize(plain_text)
+            words, paragraphs = _tokenize_with_paragraphs(plain_text)
             chapters.append(Chapter(
                 title=chapter_title or f"Chapter {len(chapters) + 1}",
                 index=len(chapters),
                 words=words,
                 plain_text=plain_text,
+                paragraphs=paragraphs,
             ))
 
     return ParsedBook(
@@ -174,7 +176,7 @@ def _parse_opf(opf_xml: str, opf_dir: str) -> tuple[str, list[str], str, list[tu
 
 
 def _html_to_plain(html_content: str) -> str:
-    """Strip HTML tags and decode entities. Returns clean plain text."""
+    """Strip HTML tags and decode entities. Returns plain text with \\n\\n paragraph breaks."""
     # Drop <script> and <style> blocks entirely
     cleaned = re.sub(
         r"<(script|style)[^>]*>.*?</(script|style)>",
@@ -182,24 +184,45 @@ def _html_to_plain(html_content: str) -> str:
         html_content,
         flags=re.DOTALL | re.IGNORECASE,
     )
-    # Replace block-level tags with newlines to preserve sentence boundaries
-    cleaned = re.sub(r"<(p|div|br|h[1-6]|li)[^>]*>", " ", cleaned, flags=re.IGNORECASE)
+    # Block-level elements become paragraph breaks
+    cleaned = re.sub(r"<(p|div|h[1-6]|li)[^>]*>", "\n\n", cleaned, flags=re.IGNORECASE)
+    # Line breaks become single newlines
+    cleaned = re.sub(r"<br[^>]*/?>", "\n", cleaned, flags=re.IGNORECASE)
     # Strip remaining tags
     cleaned = re.sub(r"<[^>]+>", "", cleaned)
     # Decode HTML entities (&amp; &quot; etc.)
     cleaned = html_module.unescape(cleaned)
-    # Collapse whitespace
-    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+    # Normalize: collapse inline whitespace per line, preserve paragraph breaks
+    lines = [re.sub(r"[ \t]+", " ", line).strip() for line in cleaned.splitlines()]
+    cleaned = "\n".join(lines)
+    # Collapse 3+ newlines to a single paragraph break
+    cleaned = re.sub(r"\n{3,}", "\n\n", cleaned).strip()
     return cleaned
 
 
-def _tokenize(text: str) -> list[Word]:
-    """Split plain text into Word objects, one per whitespace-delimited token."""
-    return [
-        Word(text=raw, index=i)
-        for i, raw in enumerate(text.split())
-        if raw.strip()
-    ]
+def _tokenize_with_paragraphs(plain_text: str) -> tuple[list[Word], list[tuple[int, int]]]:
+    """
+    Split paragraph-marked plain text into Word objects and paragraph boundaries.
+    Paragraphs are separated by \\n\\n. Returns (words, paragraphs).
+    Each entry in paragraphs is (word_start, word_end) — inclusive word indices.
+    Falls back to treating the whole text as one paragraph if no \\n\\n is found.
+    """
+    words: list[Word] = []
+    paragraphs: list[tuple[int, int]] = []
+
+    for para_text in re.split(r"\n\n+", plain_text):
+        para_text = para_text.strip()
+        if not para_text:
+            continue
+        raw_words = [w for w in para_text.split() if w.strip()]
+        if not raw_words:
+            continue
+        start = len(words)
+        for raw in raw_words:
+            words.append(Word(text=raw, index=len(words)))
+        paragraphs.append((start, len(words) - 1))
+
+    return words, paragraphs
 
 
 # ---------------------------------------------------------------- parse cache
@@ -216,6 +239,7 @@ def save_parsed_book(book: ParsedBook, path: Path) -> None:
                 "index": ch.index,
                 "plain_text": ch.plain_text,
                 "words": [w.text for w in ch.words],  # index is implicit
+                "paragraphs": [[s, e] for s, e in ch.paragraphs],
             }
             for ch in book.chapters
         ],
@@ -234,6 +258,7 @@ def load_parsed_book(path: Path) -> ParsedBook:
             index=ch["index"],
             plain_text=ch["plain_text"],
             words=[Word(text=w, index=i) for i, w in enumerate(ch["words"])],
+            paragraphs=[(p[0], p[1]) for p in ch.get("paragraphs", [])],
         )
         for ch in data["chapters"]
     ]

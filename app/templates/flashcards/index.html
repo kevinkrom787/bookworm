@@ -17,34 +17,41 @@
   </header>
 
   <main class="fc-main">
+    <div class="fc-type-grid">
 
-    <div class="fc-type-grid" id="typeGrid">
-
-      <a class="fc-type-tile" data-type="number"
-         href="/flashcards/quiz?band={{ age_band }}&type=number">
+      <button class="fc-type-tile" data-type="number"
+              data-count="{{ stats.by_type.get('number', 0) }}">
         <div class="fc-type-icon">🔢</div>
         <div class="fc-type-name">Numbers</div>
-        <div class="fc-type-meta" id="metaNumber">
-          {{ stats.by_type.get('number', 0) }} cards
-        </div>
-      </a>
+        <div class="fc-type-meta">{{ stats.by_type.get('number', 0) }} cards</div>
+      </button>
 
-      <a class="fc-type-tile" data-type="vocabulary"
-         href="/flashcards/quiz?band={{ age_band }}&type=vocabulary">
+      <button class="fc-type-tile" data-type="vocabulary"
+              data-count="{{ word_counts.total }}">
         <div class="fc-type-icon">📖</div>
         <div class="fc-type-name">Vocabulary</div>
-        <div class="fc-type-meta" id="metaVocab">
-          {{ stats.by_type.get('vocabulary', 0) }} cards
-        </div>
-      </a>
+        <div class="fc-type-meta">{{ word_counts.total }} words</div>
+      </button>
 
-      <a class="fc-type-tile" data-type="book_quiz"
-         href="/flashcards/quiz?band={{ age_band }}&type=book_quiz">
+      <button class="fc-type-tile" data-type="book_quiz"
+              data-count="{{ stats.by_type.get('book_quiz', 0) }}">
         <div class="fc-type-icon">🏆</div>
         <div class="fc-type-name">Book Quiz</div>
-        <div class="fc-type-meta" id="metaQuiz">
-          {{ stats.by_type.get('book_quiz', 0) }} cards
-        </div>
+        <div class="fc-type-meta">{{ stats.by_type.get('book_quiz', 0) }} cards</div>
+      </button>
+
+      <button class="fc-type-tile" data-type="story_word"
+              data-count="{{ stats.by_type.get('story_word', 0) }}">
+        <div class="fc-type-icon">✨</div>
+        <div class="fc-type-name">Story Words</div>
+        <div class="fc-type-meta">{{ stats.by_type.get('story_word', 0) }} words</div>
+      </button>
+
+      <a class="fc-type-tile" data-type="word_list"
+         href="/flashcards/word-bank?band={{ age_band }}">
+        <div class="fc-type-icon">🌱</div>
+        <div class="fc-type-name">Word Bank</div>
+        <div class="fc-type-meta">Add &amp; manage words</div>
       </a>
 
       <div class="fc-type-tile is-soon">
@@ -54,20 +61,208 @@
       </div>
 
     </div>
-
   </main>
+
+  <!-- ── Quiz picker sheet ──────────────────────────────────────── -->
+  <div class="fc-sheet" id="fcSheet" hidden>
+    <div class="fc-sheet-bg" id="fcSheetBg"></div>
+    <div class="fc-sheet-panel" id="fcSheetPanel">
+      <div class="fc-sheet-handle"></div>
+      <div class="fc-sheet-header">
+        <span class="fc-sheet-icon" id="fcSheetIcon"></span>
+        <div>
+          <div class="fc-sheet-name" id="fcSheetName"></div>
+          <div class="fc-sheet-sub"  id="fcSheetSub"></div>
+        </div>
+      </div>
+      <!-- Step 1: category (vocab only) -->
+      <div class="fc-sheet-step" id="fcSheetStep1">
+        <div class="fc-sheet-cats" id="fcSheetCats"></div>
+      </div>
+      <!-- Step 2: count -->
+      <div class="fc-sheet-step" id="fcSheetStep2" hidden>
+        <button class="fc-sheet-back-btn" id="fcSheetBack">← All categories</button>
+        <div class="fc-sheet-counts" id="fcSheetCounts"></div>
+      </div>
+    </div>
+  </div>
+
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
 "use strict";
-// Disable tiles with 0 cards
+const AGE_BAND    = "{{ age_band }}";
+const VOCAB_COUNTS = {{ word_counts | tojson }};
+// by_level: {1: adjectives, 2: verbs, 3: nouns}
+
+const TYPE_CFG = {
+  number:     { icon: "🔢", name: "Numbers"     },
+  vocabulary: { icon: "📖", name: "Vocabulary"  },
+  book_quiz:  { icon: "🏆", name: "Book Quiz"   },
+  story_word: { icon: "✨", name: "Story Words" },
+};
+
+const VOCAB_CATS = [
+  { level: null, label: "All Words",  icon: "📖" },
+  { level: 1,    label: "Adjectives", icon: "🎨" },
+  { level: 2,    label: "Verbs",      icon: "⚡" },
+  { level: 3,    label: "Nouns",      icon: "📦" },
+];
+
+let activeType     = null;
+let activeTotal    = 0;
+let activeLevel    = null;   // null = all vocab, 1/2/3 = specific level
+let activeCategory = null;   // "adjectives" / "verbs" / "nouns" / null
+
+const LEVEL_TO_CATEGORY = { 1: "adjectives", 2: "verbs", 3: "nouns" };
+
+// ── Tile tap → open sheet ─────────────────────────────────────────────────────
 document.querySelectorAll(".fc-type-tile[data-type]").forEach(tile => {
-  const meta = tile.querySelector(".fc-type-meta");
-  if (meta && meta.textContent.trim().startsWith("0")) {
+  const type = tile.dataset.type;
+  if (!TYPE_CFG[type]) return;
+
+  const total = parseInt(tile.dataset.count || "0", 10);
+
+  // Vocabulary: always openable (words auto-added on quiz start)
+  if (type !== "vocabulary" && total === 0) {
     tile.classList.add("is-empty");
+    return;
   }
+
+  tile.addEventListener("click", e => {
+    e.preventDefault();
+    openSheet(type, total);
+  });
+});
+
+// ── Sheet open ────────────────────────────────────────────────────────────────
+function openSheet(type, total) {
+  activeType  = type;
+  activeTotal = total;
+
+  const cfg = TYPE_CFG[type];
+  document.getElementById("fcSheetIcon").textContent = cfg.icon;
+  document.getElementById("fcSheetName").textContent = cfg.name;
+  document.getElementById("fcSheetPanel").dataset.type = type;
+
+  const step1 = document.getElementById("fcSheetStep1");
+  const step2 = document.getElementById("fcSheetStep2");
+
+  if (type === "vocabulary") {
+    document.getElementById("fcSheetSub").textContent = "Pick a category to practice";
+    buildCategoryStep();
+    step1.hidden = false;
+    step2.hidden = true;
+  } else {
+    document.getElementById("fcSheetSub").textContent =
+      total + " card" + (total !== 1 ? "s" : "") + " ready";
+    buildCountStep(total, null, null);
+    step1.hidden = true;
+    step2.hidden = false;
+  }
+
+  const sheet = document.getElementById("fcSheet");
+  sheet.hidden = false;
+  requestAnimationFrame(() => sheet.classList.add("is-open"));
+}
+
+// ── Category step (vocabulary only) ──────────────────────────────────────────
+function buildCategoryStep() {
+  const el = document.getElementById("fcSheetCats");
+  el.innerHTML = "";
+  const totalWords = VOCAB_COUNTS.total || 0;
+  const byLevel    = VOCAB_COUNTS.by_level || {};
+
+  VOCAB_CATS.forEach(cat => {
+    const count = cat.level === null ? totalWords : (byLevel[cat.level] || 0);
+    const btn = document.createElement("button");
+    btn.className = "fc-sheet-cat-btn";
+    btn.innerHTML =
+      '<span class="fc-cat-icon">' + cat.icon + '</span>' +
+      '<span class="fc-cat-label">' + cat.label + '</span>' +
+      '<span class="fc-cat-count">' + count + ' words</span>' +
+      '<span class="fc-cat-arrow">›</span>';
+    btn.addEventListener("click", () => selectCategory(cat.level, count));
+    el.appendChild(btn);
+  });
+}
+
+function selectCategory(level, count) {
+  activeLevel    = level;
+  activeCategory = level !== null ? LEVEL_TO_CATEGORY[level] : null;
+  buildCountStep(count, level, activeCategory);
+  document.getElementById("fcSheetStep1").hidden = true;
+  document.getElementById("fcSheetStep2").hidden = false;
+  const catName = level !== null
+    ? VOCAB_CATS.find(c => c.level === level).label
+    : "All Words";
+  document.getElementById("fcSheetSub").textContent = catName + " · " + count + " words";
+  document.getElementById("fcSheetBack").hidden = false;
+}
+
+// ── Count step ────────────────────────────────────────────────────────────────
+function buildCountStep(total, level, category) {
+  const el = document.getElementById("fcSheetCounts");
+  el.innerHTML = "";
+  [5, 10, 20, 0].forEach(n => {
+    const actual   = n === 0 ? total : n;
+    const disabled = n !== 0 && n > total;
+    const btn      = document.createElement("button");
+    btn.className  = "fc-sheet-count-btn";
+    btn.disabled   = disabled;
+    btn.innerHTML  =
+      '<span class="fc-count-num">' + (n === 0 ? "All" : n) + '</span>' +
+      '<span class="fc-count-sub">' + (n === 0 ? total + " cards" : "questions") + '</span>';
+    btn.addEventListener("click", () => startQuiz(actual));
+    el.appendChild(btn);
+  });
+}
+
+// ── Start quiz ────────────────────────────────────────────────────────────────
+async function startQuiz(count) {
+  const cfg   = TYPE_CFG[activeType];
+  const band  = AGE_BAND.charAt(0).toUpperCase() + AGE_BAND.slice(1);
+  const catName = activeCategory
+    ? VOCAB_CATS.find(c => c.level === activeLevel)?.label || cfg.name
+    : cfg.name;
+  const label = band + " · " + catName + " · " + count + " cards";
+
+  // For vocabulary: silently ensure all relevant words are in the deck
+  if (activeType === "vocabulary") {
+    const body = { band: AGE_BAND };
+    if (activeLevel !== null) body.level = activeLevel;
+    try {
+      await fetch("/flashcards/api/vocab-words/ensure-deck", {
+        method:  "POST",
+        headers: {"Content-Type": "application/json"},
+        body:    JSON.stringify(body),
+      });
+    } catch(e) { /* offline — proceed anyway */ }
+  }
+
+  let url = "/flashcards/review?band=" + encodeURIComponent(AGE_BAND) +
+    "&type="      + encodeURIComponent(activeType) +
+    "&count="     + count +
+    "&set_label=" + encodeURIComponent(label);
+  if (activeCategory) url += "&category=" + encodeURIComponent(activeCategory);
+
+  window.location.href = url;
+}
+
+// ── Sheet close ───────────────────────────────────────────────────────────────
+function closeSheet() {
+  const sheet = document.getElementById("fcSheet");
+  sheet.classList.remove("is-open");
+  sheet.addEventListener("transitionend", () => { sheet.hidden = true; }, { once: true });
+}
+
+document.getElementById("fcSheetBg").addEventListener("click", closeSheet);
+document.getElementById("fcSheetBack").addEventListener("click", () => {
+  document.getElementById("fcSheetStep2").hidden = true;
+  document.getElementById("fcSheetStep1").hidden = false;
+  document.getElementById("fcSheetSub").textContent = "Pick a category to practice";
 });
 </script>
 {% endblock %}

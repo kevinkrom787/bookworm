@@ -118,6 +118,13 @@
   -webkit-font-smoothing: antialiased;
 }
 
+/* ── Paragraphs ──────────────────────────────────────────────── */
+.reading-para {
+  display: block;
+  margin: 0 0 1.1em 0;
+}
+.reading-para:last-child { margin-bottom: 0; }
+
 /* ── Word spans ──────────────────────────────────────────────── */
 .word {
   display: inline;

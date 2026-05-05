@@ -97,10 +97,10 @@ const HOME_MODULES = [
   {
     id:       "story",
     label:    "My Story",
-    subtitle: "Story Workshop",
-    href:     null,
-    soon:     "Story Workshop is coming soon!",
-    cta:      null,
+    subtitle: "Bedtime stories",
+    href:     "/stories/new",
+    soon:     false,
+    cta:      "Start a story →",
     icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M229.66,58.34l-32-32a8,8,0,0,0-11.32,0l-96,96A8,8,0,0,0,88,128v32a8,8,0,0,0,8,8h32a8,8,0,0,0,5.66-2.34l96-96A8,8,0,0,0,229.66,58.34ZM124.69,152H104V131.31l64-64L188.69,88ZM200,76.69,179.31,56,192,43.31,212.69,64ZM224,128v80a16,16,0,0,1-16,16H48a16,16,0,0,1-16-16V48A16,16,0,0,1,48,32h80a8,8,0,0,1,0,16H48V208H208V128a8,8,0,0,1,16,0Z"/></svg>`,
   },
 ];
@@ -380,31 +380,18 @@ function emojiShower(sourceEl, emojis) {
 }
 
 function loadStats() {
-  // ── Days read ──────────────────────────────────────────────
-  let daysRead = parseInt(localStorage.getItem('atlas:total_days_read') || '0');
-  try {
-    const lastDate = localStorage.getItem('atlas:last_read_date');
-    const counted  = localStorage.getItem('atlas:last_counted_day');
-    if (lastDate && lastDate !== counted) {
-      daysRead++;
-      localStorage.setItem('atlas:total_days_read', String(daysRead));
-      localStorage.setItem('atlas:last_counted_day', lastDate);
-    }
-  } catch(e) {}
+  fetch("/stories/api/stats")
+    .then(r => r.ok ? r.json() : null)
+    .then(data => _renderStats(data || {}))
+    .catch(() => _renderStats({}));
+}
 
-  // ── Vocab words saved ─────────────────────────────────────
-  let vocabCount = 0;
-  try {
-    for (let i = 0; i < localStorage.length; i++)
-      if (localStorage.key(i).startsWith('atlas:vocab_image:')) vocabCount++;
-  } catch(e) {}
-
-  // ── Render each chip ──────────────────────────────────────
+function _renderStats(data) {
   const stats = [
-    { id: 'statDays',   value: daysRead   },
-    { id: 'statVocab',  value: vocabCount },
-    { id: 'statTested', value: 0          },
-    { id: 'statChars',  value: 0          },
+    { id: 'statDays',   value: data.days_read   || 0 },
+    { id: 'statVocab',  value: data.words_saved  || 0 },
+    { id: 'statTested', value: data.words_tested || 0 },
+    { id: 'statChars',  value: data.characters   || 0 },
   ];
 
   for (const s of stats) {

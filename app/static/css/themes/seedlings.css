@@ -21,7 +21,6 @@
 
 /* Larger reading text for early readers */
 [data-band="seedlings"] .reader-content {
-  font-size: 26px !important;
   line-height: 2.0;
   letter-spacing: 0.02em;
 }

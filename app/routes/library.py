@@ -1,5 +1,7 @@
-from flask import Blueprint, jsonify, render_template, request, current_app
+from flask import Blueprint, jsonify, render_template, request, current_app, session
 from app.services.gutenberg import GutenbergService
+from app.services.flashcard_service import FlashcardService
+from app.routes.profiles import active_band
 
 bp = Blueprint("library", __name__, url_prefix="/library")
 
@@ -7,10 +9,17 @@ bp = Blueprint("library", __name__, url_prefix="/library")
 def _gutenberg() -> GutenbergService:
     return GutenbergService(current_app.config["BOOK_CACHE_DIR"])
 
+def _progress() -> FlashcardService:
+    return FlashcardService(current_app.config["DB_PATH"])
+
+
+def _uid() -> str:
+    return str(session.get("profile_id", "default"))
+
 
 @bp.route("/")
 def index():
-    age_band = request.args.get("band", current_app.config["DEFAULT_AGE_BAND"])
+    age_band = request.args.get("band") or active_band()
     return render_template("library/index.html", age_band=age_band)
 
 
@@ -52,6 +61,36 @@ def book_detail(book_id: int):
         return jsonify(_to_dict(meta))
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+@bp.route("/api/my-books")
+def my_books():
+    """Books already downloaded to this device, most-recently-opened first."""
+    cache_dir = current_app.config["BOOK_CACHE_DIR"]
+    svc       = _gutenberg()
+    prog_svc  = _progress()
+
+    epub_files = sorted(
+        cache_dir.glob("*.epub"),
+        key=lambda p: p.stat().st_mtime,
+        reverse=True,
+    )
+
+    books = []
+    for epub_path in epub_files:
+        try:
+            book_id = int(epub_path.stem)
+        except ValueError:
+            continue
+        meta = svc.get_book(book_id)
+        if not meta:
+            continue
+        progress = prog_svc.get_reading_progress(book_id, user_id=_uid())
+        entry = _to_dict(meta)
+        entry["progress"] = progress  # {chapter_index, word_index} or None
+        books.append(entry)
+
+    return jsonify({"books": books})
 
 
 def _to_dict(book) -> dict:

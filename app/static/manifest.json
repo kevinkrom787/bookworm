@@ -1,0 +1,24 @@
+{
+  "name": "Atlas",
+  "short_name": "Atlas",
+  "description": "Personalized bedtime stories for your child",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0e0c1e",
+  "theme_color": "#0e0c1e",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/static/img/atlas-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/img/atlas-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

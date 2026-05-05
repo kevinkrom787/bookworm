@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
+  <title>Atlas — Who's reading?</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/atlas.css') }}"/>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/profiles.css') }}"/>
+  <script>(function(){var t=localStorage.getItem("atlas:theme")||"light";document.documentElement.dataset.theme=t;}());</script>
+</head>
+<body>
+<div class="ps-shell">
+  <div class="ps-header">
+    <div class="ps-title">Who's reading today?</div>
+    {% if current_family_name %}
+    <div class="ps-family">{{ current_family_name }}</div>
+    {% endif %}
+  </div>
+
+  <div class="ps-grid" id="profileGrid">
+    {% for p in profiles %}
+    <div class="ps-card-wrap">
+      <button class="ps-card" data-profile-id="{{ p.id }}" style="--card-color: {{ p.avatar_color }}">
+        <div class="ps-avatar">{{ p.avatar_emoji }}</div>
+        <div class="ps-name">{{ p.name }}</div>
+        <div class="ps-band">{{ {"seedlings": "Ages 4–6", "explorers": "Ages 7–9", "adventurers": "Ages 10+"}.get(p.age_band, p.age_band) }}</div>
+      </button>
+      <button class="ps-opts-btn" data-profile-id="{{ p.id }}" data-profile-name="{{ p.name | e }}" aria-label="Options for {{ p.name | e }}">⋯</button>
+      <div class="ps-opts-menu" id="menu-{{ p.id }}" hidden>
+        <a class="ps-opts-item" href="{{ url_for('profiles.edit', profile_id=p.id) }}">✏️ Edit</a>
+        <button class="ps-opts-item ps-opts-del" data-profile-id="{{ p.id }}" data-profile-name="{{ p.name | e }}">🗑 Delete</button>
+      </div>
+    </div>
+    {% endfor %}
+
+    <a class="ps-card ps-card--add" href="{{ url_for('profiles.new') }}">
+      <div class="ps-avatar ps-avatar--add">+</div>
+      <div class="ps-name">Add reader</div>
+    </a>
+  </div>
+
+  <div class="ps-footer">
+    <a href="{{ url_for('profiles.new') }}" class="ps-manage-link">Add profile</a>
+    <form method="POST" action="{{ url_for('auth.logout') }}" style="display:inline;">
+      <button type="submit" class="ps-signout-btn">Sign out</button>
+    </form>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+function escHtml(s) {
+  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+// ── Profile activation ────────────────────────────────────────────────────────
+document.querySelectorAll(".ps-card[data-profile-id]").forEach(card => {
+  card.addEventListener("click", async () => {
+    card.classList.add("is-loading");
+    await fetch(`/profiles/api/${card.dataset.profileId}/activate`, { method: "POST" });
+    window.location.href = "/stories/";
+  });
+});
+
+// ── Options menu ──────────────────────────────────────────────────────────────
+function closeAllMenus() {
+  document.querySelectorAll(".ps-opts-menu").forEach(m => { m.hidden = true; });
+}
+
+document.querySelectorAll(".ps-opts-btn").forEach(btn => {
+  btn.addEventListener("click", e => {
+    e.stopPropagation();
+    const id   = btn.dataset.profileId;
+    const menu = document.getElementById("menu-" + id);
+    const opening = menu.hidden;
+    closeAllMenus();
+    if (opening) menu.hidden = false;
+  });
+});
+
+document.addEventListener("click", closeAllMenus);
+
+// ── Delete flow ───────────────────────────────────────────────────────────────
+document.querySelectorAll(".ps-opts-del").forEach(btn => {
+  btn.addEventListener("click", e => {
+    e.stopPropagation();
+    const id   = btn.dataset.profileId;
+    const name = btn.dataset.profileName;
+    const menu = document.getElementById("menu-" + id);
+    menu.innerHTML = `
+      <div class="ps-opts-confirm">
+        <div class="ps-opts-confirm-text">Delete ${escHtml(name)}?</div>
+        <div class="ps-opts-confirm-btns">
+          <button class="ps-opts-confirm-no"  onclick="closeAllMenus()">Cancel</button>
+          <button class="ps-opts-confirm-yes" onclick="doDelete(${Number(id)})">Delete</button>
+        </div>
+      </div>`;
+  });
+});
+
+async function doDelete(id) {
+  const resp = await fetch(`/profiles/api/${id}`, { method: "DELETE" });
+  if (resp.ok) {
+    const menu = document.getElementById("menu-" + id);
+    if (menu) menu.closest(".ps-card-wrap").remove();
+  }
+  closeAllMenus();
+}
+</script>
+</body>
+</html>

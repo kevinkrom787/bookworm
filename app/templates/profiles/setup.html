@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#0e0c1e" />
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}" />
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/atlas-apple-touch.png') }}" />
+  <title>Atlas — {{ "Edit" if profile else "New" }} Reader</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/atlas.css') }}"/>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/profiles.css') }}"/>
+  <style>
+    /* Override atlas.css body lock so the wizard scrolls naturally */
+    html, body { overflow: auto !important; height: auto !important; min-height: 100dvh; background: #0e0c1e !important; }
+
+    /* Collapsible educational cards */
+    details.pw-band-card summary {
+      list-style: none; cursor: pointer;
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 0;
+    }
+    details.pw-band-card summary::-webkit-details-marker { display: none; }
+    details.pw-band-card[open] summary { margin-bottom: 10px; }
+    details.pw-band-card summary::after {
+      content: '▾'; margin-left: auto;
+      opacity: 0.45; font-size: 0.85rem;
+      transition: transform 0.2s;
+    }
+    details.pw-band-card[open] summary::after { transform: rotate(-180deg); }
+
+    /* Force the app's dark night-sky palette regardless of localStorage theme */
+
+    .pw-band-card {
+      margin-top: 16px;
+      background: rgba(212,167,106,0.07);
+      border: 1px solid rgba(212,167,106,0.20);
+      border-radius: 16px;
+      padding: 16px 18px;
+      animation: bandIn 0.3s cubic-bezier(0.34,1.28,0.64,1) both;
+    }
+    @keyframes bandIn {
+      from { opacity: 0; transform: translateY(8px) scale(0.98); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .pw-band-card-header {
+      display: flex; align-items: center; gap: 12px; margin-bottom: 10px;
+    }
+    .pw-band-icon { font-size: 2rem; line-height: 1; }
+    .pw-band-name {
+      font-size: 0.95rem; font-weight: 800;
+      color: #d4a76a;
+    }
+    .pw-band-lexile {
+      font-size: 0.72rem; font-weight: 700;
+      color: rgba(212,167,106,0.55);
+      margin-top: 2px; letter-spacing: 0.04em;
+    }
+    .pw-band-desc {
+      font-size: 0.82rem; font-weight: 600; line-height: 1.6;
+      color: rgba(237,232,223,0.65);
+      margin-bottom: 12px;
+    }
+    .pw-band-tags {
+      display: flex; flex-wrap: wrap; gap: 6px;
+    }
+    .pw-band-tag {
+      font-size: 0.68rem; font-weight: 700;
+      background: rgba(212,167,106,0.10);
+      border: 1px solid rgba(212,167,106,0.20);
+      color: rgba(212,167,106,0.75);
+      padding: 3px 9px; border-radius: 99px;
+      letter-spacing: 0.03em;
+    }
+
+    /* ── Per-question fun-fact steps ─────────────────────────────────────── */
+    .pw-choice-grid {
+      display: flex; flex-wrap: nowrap; gap: 10px;
+      overflow-x: auto; overflow-y: hidden;
+      padding: 4px 4px 12px; width: 100%;
+      -webkit-overflow-scrolling: touch; scrollbar-width: none;
+    }
+    .pw-choice-grid::-webkit-scrollbar { display: none; }
+    .pw-choice-btn {
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+      flex-shrink: 0; width: 88px; padding: 18px 8px;
+      background: var(--pw-surface);
+      border: 2px solid var(--pw-border);
+      border-radius: 16px;
+      cursor: pointer;
+      font-size: 2rem;
+      color: var(--pw-text);
+      transition: border-color 0.15s, background 0.15s, transform 0.12s;
+    }
+    .pw-choice-btn span { font-size: 0.75rem; font-weight: 700; color: var(--pw-text-2); }
+    .pw-choice-btn:active { transform: scale(0.95); }
+    .pw-choice-btn.is-selected {
+      border-color: var(--pw-accent);
+      background: var(--pw-accent-lt);
+    }
+    .pw-choice-btn.is-selected span { color: var(--pw-accent); }
+    .pw-choice-no {
+      display: flex; flex-direction: row; align-items: center; justify-content: center;
+      gap: 10px; width: 100%; padding: 14px; margin-top: 10px;
+      background: var(--pw-surface); border: 2px solid var(--pw-border);
+      border-radius: 16px; cursor: pointer; font-size: 1.4rem; color: var(--pw-text);
+      transition: border-color 0.15s, background 0.15s, transform 0.12s;
+    }
+    .pw-choice-no:active { transform: scale(0.97); }
+    .pw-choice-no.is-selected { border-color: var(--pw-accent); background: var(--pw-accent-lt); }
+    .pw-choice-no span { font-size: 0.82rem; font-weight: 700; color: var(--pw-text-2); }
+    .pw-choice-no.is-selected span { color: var(--pw-accent); }
+
+    .pw-twin-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 14px; width: 100%; max-width: 380px; margin: 0 auto;
+    }
+    .pw-twin-btn {
+      display: flex; flex-direction: column; align-items: center; gap: 10px;
+      padding: 28px 10px;
+      background: var(--pw-surface);
+      border: 2px solid var(--pw-border);
+      border-radius: 20px; cursor: pointer;
+      color: var(--pw-text); font-size: 0.88rem; font-weight: 700;
+      transition: border-color 0.15s, background 0.15s, transform 0.12s;
+    }
+    .pw-twin-btn:active { transform: scale(0.96); }
+    .pw-twin-btn.is-selected { border-color: var(--pw-accent); background: var(--pw-accent-lt); color: var(--pw-accent); }
+    .pw-twin-emoji { font-size: 2.4rem; line-height: 1; }
+
+    .pw-reveal-wrap {
+      width: 100%; max-width: 380px; margin: 16px auto 0;
+      animation: revealDown 0.22s cubic-bezier(0.34,1.28,0.64,1) both;
+    }
+    @keyframes revealDown {
+      from { opacity: 0; transform: translateY(-6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .pw-single-input {
+      width: 100%; box-sizing: border-box;
+      padding: 16px 18px;
+      background: var(--pw-surface);
+      border: 2px solid var(--pw-border);
+      border-radius: 16px;
+      color: var(--pw-text); font-size: 1rem; font-weight: 600;
+      font-family: inherit; outline: none;
+      transition: border-color 0.15s;
+    }
+    .pw-single-input:focus { border-color: var(--pw-accent); }
+    .pw-single-input::placeholder { color: var(--pw-text-2); }
+    .pw-single-input--big { font-size: 1.15rem; padding: 22px 24px; }
+
+    :root {
+      --pw-bg:       #0e0c1e;
+      --pw-surface:  rgba(255,255,255,0.05);
+      --pw-border:   rgba(255,255,255,0.09);
+      --pw-text:     #ede8df;
+      --pw-text-2:   rgba(237,232,223,0.55);
+      --pw-accent:   #d4a76a;
+      --pw-accent-lt: rgba(212,167,106,0.12);
+      --pw-radius:   20px;
+      --pw-radius-sm: 12px;
+    }
+  </style>
+</head>
+<body>
+<div class="pw-shell">
+
+  <!-- Progress bar -->
+  <div class="pw-progress">
+    <div class="pw-progress-fill" id="progressFill" style="width: 25%"></div>
+  </div>
+
+  <!-- Steps — form wrapper so iOS Safari respects autocomplete="off" at field level -->
+  <form autocomplete="off" onsubmit="return false;">
+  <div class="pw-steps" id="pwSteps">
+
+    <!-- Step 1: Avatar + Name -->
+    <div class="pw-step" id="step1">
+      <div class="pw-step-content">
+        <div class="pw-step-heading">
+          <div class="pw-step-emoji">👋</div>
+          <h1>What's your name?</h1>
+          <p>Pick an avatar and tell us who you are</p>
+        </div>
+
+        <!-- Avatar picker -->
+        <div class="pw-avatar-preview" id="avatarPreview">🦁</div>
+        <div class="pw-avatar-grid" id="avatarGrid">
+          {% for emoji in avatars %}
+          <button class="pw-avatar-btn {{ 'is-selected' if profile and profile.avatar_emoji == emoji }}"
+                  data-emoji="{{ emoji }}">{{ emoji }}</button>
+          {% endfor %}
+        </div>
+
+        <!-- Color picker -->
+        <div class="pw-color-grid" id="colorGrid">
+          {% for color in colors %}
+          <button class="pw-color-btn {{ 'is-selected' if profile and profile.avatar_color == color }}"
+                  data-color="{{ color }}"
+                  style="background: {{ color }}"></button>
+          {% endfor %}
+        </div>
+
+        <!-- Name input -->
+        <input class="pw-name-input" id="nameInput" type="text"
+               placeholder="Enter name…" maxlength="30"
+               value="{{ profile.name if profile else '' }}" autocomplete="off"/>
+      </div>
+
+      <button class="pw-next-btn" id="step1Next">Next →</button>
+    </div>
+
+    <!-- Step 2: Age -->
+    <div class="pw-step" id="step2" hidden>
+      <div class="pw-step-content">
+        <div class="pw-step-heading">
+          <div class="pw-step-emoji" id="previewEmoji2">🦁</div>
+          <h1>How old are they?</h1>
+          <p>We'll meet them exactly where they are</p>
+        </div>
+        <div class="pw-age-grid" id="ageGrid">
+          {% for age in range(2, 13) %}
+          <button class="pw-age-btn {{ 'is-selected' if profile and profile.age == age }}"
+                  data-age="{{ age }}">{{ age }}</button>
+          {% endfor %}
+        </div>
+        <div class="pw-band-card" id="bandCard" hidden>
+          <div class="pw-band-card-header">
+            <span class="pw-band-icon" id="bandIcon"></span>
+            <div>
+              <div class="pw-band-name" id="bandName"></div>
+              <div class="pw-band-lexile" id="bandLexile"></div>
+            </div>
+          </div>
+          <p class="pw-band-desc" id="bandDesc"></p>
+          <div class="pw-band-tags" id="bandTags"></div>
+        </div>
+        <div class="pw-band-label" id="bandLabel" style="display:none"></div>
+      </div>
+      <div class="pw-btn-row">
+        <button class="pw-back-btn" id="step2Back">← Back</button>
+        <button class="pw-next-btn" id="step2Next" disabled>Next →</button>
+      </div>
+    </div>
+
+    <!-- Step 3: Interests -->
+    <div class="pw-step" id="step3" hidden>
+      <div class="pw-step-content">
+        <div class="pw-step-heading">
+          <div class="pw-step-emoji" id="previewEmoji3">🦁</div>
+          <h1>What do you love?</h1>
+          <p>Pick as many as you like!</p>
+        </div>
+        <div class="pw-interests-grid" id="interestsGrid">
+          {% for interest in interests %}
+          <button class="pw-interest-btn {% if profile and interest.key in profile.interests %}is-selected{% endif %}"
+                  data-key="{{ interest.key }}">
+            <span class="pw-int-emoji">{{ interest.emoji }}</span>
+            <span class="pw-int-label">{{ interest.label }}</span>
+          </button>
+          {% endfor %}
+        </div>
+        <details class="pw-band-card" style="margin-top:20px">
+          <summary class="pw-band-card-header">
+            <span class="pw-band-icon">🧠</span>
+            <div><div class="pw-band-name">The fastest way to a bigger vocabulary is a subject they're obsessed with.</div></div>
+          </summary>
+          <p class="pw-band-desc">Kids absorb vocabulary faster when the story is set in a world they love. We use their interests to pick the setting — the lessons hide inside the adventure.</p>
+          <div class="pw-band-tags">
+            <span class="pw-band-tag">Interest-driven learning</span>
+            <span class="pw-band-tag">54% comprehension boost</span>
+            <span class="pw-band-tag">Intrinsic motivation</span>
+            <span class="pw-band-tag">Domain vocabulary</span>
+          </div>
+        </details>
+      </div>
+      <div class="pw-btn-row">
+        <button class="pw-back-btn" id="step3Back">← Back</button>
+        <button class="pw-next-btn" id="step3Next">Next →</button>
+      </div>
+    </div>
+
+    <!-- Step 4: Pet -->
+    <div class="pw-step" id="step4" hidden>
+      <div class="pw-step-content">
+        <div class="pw-step-heading">
+          <div class="pw-step-emoji" id="previewEmoji4">🦁</div>
+          <h1>Do you have a pet?</h1>
+          <p>We'll make them a star in your stories</p>
+        </div>
+        <div class="pw-choice-grid">
+          <button class="pw-choice-btn" data-pet="dog">🐕<span>Dog</span></button>
+          <button class="pw-choice-btn" data-pet="cat">🐈<span>Cat</span></button>
+          <button class="pw-choice-btn" data-pet="fish">🐠<span>Fish</span></button>
+          <button class="pw-choice-btn" data-pet="bird">🐦<span>Bird</span></button>
+          <button class="pw-choice-btn" data-pet="bunny">🐇<span>Bunny</span></button>
+          <button class="pw-choice-btn" data-pet="other">🦎<span>Other</span></button>
+        </div>
+        <button class="pw-choice-no" data-pet="">🚫 <span>No pet</span></button>
+        <div class="pw-reveal-wrap" id="petNameWrap" hidden>
+          <input class="pw-single-input" id="petName" type="text"
+                 placeholder="What's their name?" maxlength="20" autocomplete="off"
+                 value="{{ profile.fun_facts.get('pet_name', '') if profile else '' }}"/>
+        </div>
+        <details class="pw-band-card" style="margin-top:20px">
+          <summary class="pw-band-card-header">
+            <span class="pw-band-icon">🐾</span>
+            <div><div class="pw-band-name">The sidekick that makes the lesson land.</div></div>
+          </summary>
+          <p class="pw-band-desc">When their real pet shows up in the story, abstract lessons become personal. Kids absorb moral concepts through characters they already love.</p>
+          <div class="pw-band-tags">
+            <span class="pw-band-tag">Emotional anchoring</span>
+            <span class="pw-band-tag">Embodied learning</span>
+            <span class="pw-band-tag">Character attachment</span>
+            <span class="pw-band-tag">Virtue vocabulary</span>
+          </div>
+        </details>
+      </div>
+      <div class="pw-btn-row">
+        <button class="pw-back-btn" id="step4Back">← Back</button>
+        <button class="pw-next-btn" id="step4Next">Next →</button>
+      </div>
+    </div>
+
+    <!-- Step 5: Siblings -->
+    <div class="pw-step" id="step5" hidden>
+      <div class="pw-step-content">
+        <div class="pw-step-heading">
+          <div class="pw-step-emoji" id="previewEmoji5">🦁</div>
+          <h1>Any brothers or sisters?</h1>
+          <p>We can write them into the adventure too</p>
+        </div>
+        <div class="pw-twin-grid">
+          <button class="pw-twin-btn" id="sibNo">
+            <span class="pw-twin-emoji">🌟</span>
+            <span>Nope, just me!</span>
+          </button>
+          <button class="pw-twin-btn" id="sibYes">
+            <span class="pw-twin-emoji">👨‍👩‍👧‍👦</span>
+            <span>Yes!</span>
+          </button>
+        </div>
+        <div class="pw-reveal-wrap" id="siblingWrap" hidden>
+          <input class="pw-single-input" id="siblings" type="text"
+                 placeholder="Their names… e.g. Max, Sofia" autocomplete="off"
+                 value="{{ profile.fun_facts.get('siblings', '') if profile else '' }}"/>
+        </div>
+        <details class="pw-band-card" style="margin-top:20px">
+          <summary class="pw-band-card-header">
+            <span class="pw-band-icon">👨‍👩‍👧‍👦</span>
+            <div><div class="pw-band-name">Stories that reflect real life teach real skills.</div></div>
+          </summary>
+          <p class="pw-band-desc">Including real siblings turns the story into quiet practice for real life. Narrative role-play builds empathy and conflict resolution better than direct instruction.</p>
+          <div class="pw-band-tags">
+            <span class="pw-band-tag">Social-emotional learning</span>
+            <span class="pw-band-tag">Narrative role-play</span>
+            <span class="pw-band-tag">Empathy development</span>
+            <span class="pw-band-tag">Real-world context</span>
+          </div>
+        </details>
+      </div>
+      <div class="pw-btn-row">
+        <button class="pw-back-btn" id="step5Back">← Back</button>
+        <button class="pw-next-btn" id="step5Next">Next →</button>
+      </div>
+    </div>
+
+    <!-- Step 6: Favorite food -->
+    <div class="pw-step" id="step6" hidden>
+      <div class="pw-step-content">
+        <div class="pw-step-heading">
+          <div class="pw-step-emoji" id="previewEmoji6">🦁</div>
+          <h1>Favorite food?</h1>
+          <p>Maybe it'll show up in a story...</p>
+        </div>
+        <div style="width:100%;max-width:380px;margin:0 auto;">
+          <input class="pw-single-input pw-single-input--big" id="favFood" type="text"
+                 placeholder="e.g. pizza, tacos, ice cream…" maxlength="40" autocomplete="off"
+                 value="{{ profile.fun_facts.get('fav_food', '') if profile else '' }}"/>
+        </div>
+        <details class="pw-band-card" style="margin-top:20px">
+          <summary class="pw-band-card-header">
+            <span class="pw-band-icon">🍕</span>
+            <div><div class="pw-band-name">The most random detail makes the whole story real.</div></div>
+          </summary>
+          <p class="pw-band-desc">When their favorite food shows up in the story, it signals: <em>this was made for me</em>. That moment of being seen turns a passive listener into an active one.</p>
+          <div class="pw-band-tags">
+            <span class="pw-band-tag">Personalization signal</span>
+            <span class="pw-band-tag">Narrative immersion</span>
+            <span class="pw-band-tag">Cultural identity</span>
+            <span class="pw-band-tag">Cross-subject vocabulary</span>
+          </div>
+        </details>
+      </div>
+      <div class="pw-btn-row">
+        <button class="pw-back-btn" id="step6Back">← Back</button>
+        <button class="pw-next-btn" id="step6Save">
+          {{ "Save changes" if profile else "Let's go! 🚀" }}
+        </button>
+      </div>
+    </div>
+
+  </div><!-- /pw-steps -->
+  </form>
+</div>
+
+<script>
+"use strict";
+
+const IS_EDIT    = {{ 'true' if profile else 'false' }};
+const PROFILE_ID = {{ profile.id if profile else 'null' }};
+
+let state = {
+  avatar_emoji: "{{ profile.avatar_emoji if profile else '🦁' }}",
+  avatar_color: "{{ profile.avatar_color if profile else '#6C8EF5' }}",
+  name:         "{{ profile.name if profile else '' }}",
+  age:          {{ profile.age if profile else 'null' }},
+  interests:    {{ (profile.interests | tojson) if profile else '[]' }},
+  fun_facts:    {{ (profile.fun_facts | tojson) if profile else '{}' }},
+};
+
+const avatarPreview = document.getElementById("avatarPreview");
+const progressFill  = document.getElementById("progressFill");
+
+// ── Avatar ────────────────────────────────────────────────────────────────────
+document.querySelectorAll(".pw-avatar-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".pw-avatar-btn").forEach(b => b.classList.remove("is-selected"));
+    btn.classList.add("is-selected");
+    state.avatar_emoji = btn.dataset.emoji;
+    updateAvatarPreview();
+  });
+});
+document.querySelectorAll(".pw-color-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".pw-color-btn").forEach(b => b.classList.remove("is-selected"));
+    btn.classList.add("is-selected");
+    state.avatar_color = btn.dataset.color;
+    updateAvatarPreview();
+  });
+});
+function updateAvatarPreview() {
+  avatarPreview.textContent = state.avatar_emoji;
+  avatarPreview.style.background = state.avatar_color;
+  ["previewEmoji2","previewEmoji3","previewEmoji4","previewEmoji5","previewEmoji6"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.textContent = state.avatar_emoji; el.style.background = state.avatar_color; }
+  });
+}
+updateAvatarPreview();
+
+// ── Name ──────────────────────────────────────────────────────────────────────
+document.getElementById("nameInput").addEventListener("input", e => {
+  state.name = e.target.value.trim();
+});
+
+// ── Age ───────────────────────────────────────────────────────────────────────
+const AGE_INFO = {
+  2: {
+    icon: "🌟", name: "Age 2 — First Stories",
+    lexile: "Pre-Lexile · Pre-phonemic awareness",
+    desc: "Stories are pure joy — rhythm, repetition, and sound play. At 2, children absorb language like music before they decode a single letter. Every story uses very simple words, bold repetition, and playful sounds to build the love of narrative itself.",
+    tags: ["Listening vocabulary", "Rhythm & rhyme", "Sound play", "Language exposure", "Pre-literacy"],
+  },
+  3: {
+    icon: "🌱", name: "Age 3 — Sprouting Listener",
+    lexile: "Lexile BR–50L · Emerging phonemic awareness",
+    desc: "Language is exploding at 3. Stories use short musical sentences and introduce 1 new word per story — shown clearly in context so the child can feel the meaning without being told it. Repetition of phrases gives children the delight of predicting what comes next.",
+    tags: ["Emergent literacy", "1 stretch word", "Phonemic awareness", "Predictive language", "Pre-reading"],
+  },
+  4: {
+    icon: "🌿", name: "Age 4 — Pre-K Reader",
+    lexile: "Lexile 50–150L · Dolch Pre-K words",
+    desc: "Stories are built on Dolch Pre-K sight words — the 40 most common words children encounter in their first books. 1–2 Tier 2 vocabulary words appear with obvious context clues. Stakes are cozy and domestic; the world is safe, the problem is always solvable.",
+    tags: ["Dolch Pre-K", "1–2 stretch words", "Lexile 50–150L", "Sight word fluency", "Cozy stakes"],
+  },
+  5: {
+    icon: "🌸", name: "Age 5 — Kindergartner",
+    lexile: "Lexile 150–250L · Dolch Kindergarten",
+    desc: "Kindergarteners are decoding their first real words. Stories use Dolch Kindergarten sight words and introduce 1–2 Tier 2 vocabulary words with context so clear the child can guess the meaning before the page turns. Simple sentences. Big feelings about small problems.",
+    tags: ["Dolch Kindergarten", "1–2 stretch words", "Lexile 150–250L", "Decoding support", "Story shape"],
+  },
+  6: {
+    icon: "🐣", name: "Age 6 — First Grader",
+    lexile: "Lexile 250–400L · Dolch Grade 1 · Fry 1–200",
+    desc: "First grade is where reading takes off. Stories use Fry words 1–200, simple and compound sentences, and 2 Tier 2 vocabulary words introduced naturally. Stakes feel real to a 6-year-old even if they're objectively small — lost toys, hurt feelings, things that seem deeply unfair.",
+    tags: ["Dolch Grade 1", "Fry 1–200", "2 stretch words", "Lexile 250–400L", "Compound sentences"],
+  },
+  7: {
+    icon: "🔭", name: "Age 7 — Second Grader",
+    lexile: "Lexile 400–550L · Fry 1–300",
+    desc: "Second graders can handle real tension and mild social themes. Stories use Fry words 1–300 and 2–3 Tier 2 vocabulary words in varied sentence structures. The protagonist solves their own problems. Adults in the story can be clueless — that's part of the fun.",
+    tags: ["Fry 1–300", "2–3 stretch words", "Lexile 400–550L", "Social themes", "Self-reliant protagonist"],
+  },
+  8: {
+    icon: "🧭", name: "Age 8 — Third Grader",
+    lexile: "Lexile 550–700L · Fry 1–500",
+    desc: "Third grade is the pivot from learning to read to reading to learn. Stories use Fry words 1–500 and 3–4 Tier 2 vocabulary words. Dry wit begins to appear in the narration. Questions of fairness and belonging enter the plot. Each failure in the story must sting a little more.",
+    tags: ["Fry 1–500", "3–4 stretch words", "Lexile 550–700L", "Fairness & belonging", "Narrative dry wit"],
+  },
+  9: {
+    icon: "🗺️", name: "Age 9 — Fourth Grader",
+    lexile: "Lexile 700–820L · Fry 1–600",
+    desc: "Fourth graders are independent readers ready for real moral dilemmas. Stories use Fry words 1–600 and 3–5 Tier 2 vocabulary words in complex sentence structures. The protagonist faces genuine cost moments — loyalty versus self-interest, honesty versus comfort.",
+    tags: ["Fry 1–600", "3–5 stretch words", "Lexile 700–820L", "Moral dilemmas", "Complex plot"],
+  },
+  10: {
+    icon: "🏔️", name: "Age 10 — Fifth Grader",
+    lexile: "Lexile 820–950L · Fry 1–700",
+    desc: "Fifth graders are sophisticated readers who notice when a story is being lazy. Stories use Fry words 1–700 and 4–5 Tier 2 vocabulary words. The narrator can be wry and a little conspiratorial. Competing loyalties. Resolutions that don't tie up perfectly — but warmth always remains.",
+    tags: ["Fry 1–700", "4–5 stretch words", "Lexile 820–950L", "Competing loyalties", "Wry narrator"],
+  },
+  11: {
+    icon: "🌌", name: "Age 11 — Sixth Grader",
+    lexile: "Lexile 950–1050L · Fry 1–800",
+    desc: "Middle school is arriving, and the stories know it. Friendship friction, feeling misunderstood, and the weight of expectations are fair game. Stories use Fry words 1–800 and 4–6 Tier 2 vocabulary words in rich, layered sentences. The narrator can be unreliable.",
+    tags: ["Fry 1–800", "4–6 stretch words", "Lexile 950–1050L", "Social complexity", "Unreliable narrator"],
+  },
+  12: {
+    icon: "🌠", name: "Age 12 — Seventh Grader",
+    lexile: "Lexile 1050–1150L · Fry 1–1000",
+    desc: "At 12, readers bring real-world context to what they read. Stories use Fry words 1–1000 and 5–6 sophisticated Tier 2 vocabulary words. The protagonist reasons through genuinely hard problems. Ambiguity is welcome. The ending earns its hope rather than assuming it.",
+    tags: ["Fry 1–1000", "5–6 stretch words", "Lexile 1050–1150L", "Emotional depth", "Earned hope"],
+  },
+};
+
+document.querySelectorAll(".pw-age-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".pw-age-btn").forEach(b => b.classList.remove("is-selected"));
+    btn.classList.add("is-selected");
+    state.age = parseInt(btn.dataset.age);
+    const info = AGE_INFO[state.age];
+    const card = document.getElementById("bandCard");
+    card.hidden = false;
+    card.style.animation = "none"; card.offsetHeight; card.style.animation = "";
+    document.getElementById("bandIcon").textContent   = info.icon;
+    document.getElementById("bandName").textContent   = info.name;
+    document.getElementById("bandLexile").textContent = info.lexile;
+    document.getElementById("bandDesc").textContent   = info.desc;
+    document.getElementById("bandTags").innerHTML     =
+      info.tags.map(t => `<span class="pw-band-tag">${t}</span>`).join("");
+    document.getElementById("step2Next").disabled = false;
+  });
+});
+
+// ── Interests ─────────────────────────────────────────────────────────────────
+document.querySelectorAll(".pw-interest-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    btn.classList.toggle("is-selected");
+    const key = btn.dataset.key;
+    if (btn.classList.contains("is-selected")) {
+      if (!state.interests.includes(key)) state.interests.push(key);
+    } else {
+      state.interests = state.interests.filter(k => k !== key);
+    }
+  });
+});
+
+// ── Pet ───────────────────────────────────────────────────────────────────────
+document.querySelectorAll(".pw-choice-btn, .pw-choice-no").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".pw-choice-btn, .pw-choice-no").forEach(b => b.classList.remove("is-selected"));
+    btn.classList.add("is-selected");
+    state.fun_facts = state.fun_facts || {};
+    state.fun_facts.pet_type = btn.dataset.pet;
+    const wrap = document.getElementById("petNameWrap");
+    if (btn.dataset.pet) {
+      wrap.hidden = false;
+      document.getElementById("petName").focus();
+    } else {
+      wrap.hidden = true;
+      state.fun_facts.pet_name = "";
+    }
+  });
+});
+
+// ── Siblings ──────────────────────────────────────────────────────────────────
+document.getElementById("sibNo").addEventListener("click", () => {
+  document.getElementById("sibNo").classList.add("is-selected");
+  document.getElementById("sibYes").classList.remove("is-selected");
+  document.getElementById("siblingWrap").hidden = true;
+});
+document.getElementById("sibYes").addEventListener("click", () => {
+  document.getElementById("sibYes").classList.add("is-selected");
+  document.getElementById("sibNo").classList.remove("is-selected");
+  document.getElementById("siblingWrap").hidden = false;
+  document.getElementById("siblings").focus();
+});
+
+// ── Navigation ────────────────────────────────────────────────────────────────
+function goStep(from, to) {
+  document.getElementById("step" + from).hidden = true;
+  document.getElementById("step" + to).hidden = false;
+  const pct = { 1:17, 2:33, 3:50, 4:67, 5:83, 6:100 }[to] || 17;
+  progressFill.style.width = pct + "%";
+  window.scrollTo(0, 0);
+}
+
+document.getElementById("step1Next").addEventListener("click", () => {
+  state.name = document.getElementById("nameInput").value.trim();
+  if (!state.name) { document.getElementById("nameInput").focus(); return; }
+  goStep(1, 2);
+});
+document.getElementById("step2Back").addEventListener("click", () => goStep(2, 1));
+document.getElementById("step2Next").addEventListener("click", () => goStep(2, 3));
+document.getElementById("step3Back").addEventListener("click", () => goStep(3, 2));
+document.getElementById("step3Next").addEventListener("click", () => goStep(3, 4));
+document.getElementById("step4Back").addEventListener("click", () => goStep(4, 3));
+document.getElementById("step4Next").addEventListener("click", () => goStep(4, 5));
+document.getElementById("step5Back").addEventListener("click", () => goStep(5, 4));
+document.getElementById("step5Next").addEventListener("click", () => goStep(5, 6));
+document.getElementById("step6Back").addEventListener("click", () => goStep(6, 5));
+
+// ── Save ──────────────────────────────────────────────────────────────────────
+document.getElementById("step6Save").addEventListener("click", async () => {
+  const btn = document.getElementById("step6Save");
+  btn.disabled = true;
+  btn.textContent = "Saving…";
+
+  state.fun_facts = {
+    ...(state.fun_facts || {}),
+    pet_name: document.getElementById("petName").value.trim(),
+    siblings: document.getElementById("siblings").value.trim(),
+    fav_food: document.getElementById("favFood").value.trim(),
+  };
+
+  const url    = IS_EDIT ? `/profiles/api/${PROFILE_ID}` : "/profiles/api";
+  const method = IS_EDIT ? "PUT" : "POST";
+
+  try {
+    const resp = await fetch(url, {
+      method,
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify(state),
+    });
+    if (resp.ok) {
+      window.location.href = "/";
+    } else {
+      const err = await resp.json();
+      alert(err.error || "Something went wrong");
+      btn.disabled = false;
+      btn.textContent = IS_EDIT ? "Save changes" : "Let's go! 🚀";
+    }
+  } catch(e) {
+    btn.disabled = false;
+    btn.textContent = IS_EDIT ? "Save changes" : "Let's go! 🚀";
+  }
+});
+
+// ── Init (edit mode) ──────────────────────────────────────────────────────────
+if (IS_EDIT) {
+  document.querySelectorAll(".pw-avatar-btn").forEach(b => {
+    b.classList.toggle("is-selected", b.dataset.emoji === state.avatar_emoji);
+  });
+  document.querySelectorAll(".pw-color-btn").forEach(b => {
+    b.classList.toggle("is-selected", b.dataset.color === state.avatar_color);
+  });
+  if (state.age) {
+    const ageBtn = document.querySelector(`.pw-age-btn[data-age="${state.age}"]`);
+    if (ageBtn) {
+      ageBtn.classList.add("is-selected");
+      document.getElementById("step2Next").disabled = false;
+      const info = AGE_INFO[state.age];
+      const card = document.getElementById("bandCard");
+      card.hidden = false;
+      document.getElementById("bandIcon").textContent   = info.icon;
+      document.getElementById("bandName").textContent   = info.name;
+      document.getElementById("bandLexile").textContent = info.lexile;
+      document.getElementById("bandDesc").textContent   = info.desc;
+      document.getElementById("bandTags").innerHTML =
+        info.tags.map(t => `<span class="pw-band-tag">${t}</span>`).join("");
+    }
+  }
+  if (state.fun_facts) {
+    if (state.fun_facts.pet_type !== undefined) {
+      const petBtn = document.querySelector(`.pw-choice-btn[data-pet="${state.fun_facts.pet_type}"], .pw-choice-no[data-pet="${state.fun_facts.pet_type}"]`);
+      if (petBtn) {
+        petBtn.classList.add("is-selected");
+        if (state.fun_facts.pet_type) { document.getElementById("petNameWrap").hidden = false; }
+      }
+    }
+    if (state.fun_facts.siblings) {
+      document.getElementById("sibYes").classList.add("is-selected");
+      document.getElementById("siblingWrap").hidden = false;
+    }
+  }
+}
+</script>
+</body>
+</html>

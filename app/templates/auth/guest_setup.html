@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#0e0c1e" />
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}" />
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/atlas-apple-touch.png') }}" />
+  <title>Atlas — One quick question</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}"/>
+  <style>
+    html, body { overflow: auto !important; height: auto !important; min-height: 100dvh; }
+
+    .gs-wrap {
+      min-height: 100dvh;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 32px 20px 48px;
+    }
+
+    .gs-card {
+      width: 100%; max-width: 400px;
+      display: flex; flex-direction: column; gap: 28px;
+    }
+
+    .gs-heading { text-align: center; }
+    .gs-heading h1 {
+      font-size: 1.55rem; font-weight: 900;
+      color: #ede8df; margin: 0 0 8px;
+      line-height: 1.25;
+    }
+    .gs-heading p {
+      font-size: 0.93rem; color: rgba(237,232,223,0.55);
+      margin: 0; line-height: 1.5;
+    }
+
+    /* Age grid */
+    .gs-age-grid {
+      display: grid; grid-template-columns: repeat(6, 1fr);
+      gap: 8px;
+    }
+    .gs-age-btn {
+      padding: 14px 4px;
+      background: rgba(255,255,255,0.05);
+      border: 2px solid rgba(255,255,255,0.09);
+      border-radius: 14px;
+      font-family: 'Nunito', sans-serif;
+      font-size: 1.1rem; font-weight: 800;
+      color: rgba(237,232,223,0.70);
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s, transform 0.1s;
+    }
+    .gs-age-btn:active { transform: scale(0.92); }
+    .gs-age-btn.is-selected {
+      border-color: #d4a76a;
+      background: rgba(212,167,106,0.12);
+      color: #d4a76a;
+    }
+
+    /* Explainer card */
+    .gs-explainer {
+      background: rgba(212,167,106,0.07);
+      border: 1px solid rgba(212,167,106,0.18);
+      border-radius: 16px;
+      padding: 18px 20px;
+      display: none;
+      animation: fadeUp 0.22s cubic-bezier(0.34,1.28,0.64,1) both;
+    }
+    .gs-explainer.visible { display: block; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .gs-band-header {
+      display: flex; align-items: center; gap: 12px; margin-bottom: 10px;
+    }
+    .gs-band-icon { font-size: 1.8rem; line-height: 1; }
+    .gs-band-name {
+      font-size: 0.95rem; font-weight: 800; color: #d4a76a;
+      margin: 0 0 2px;
+    }
+    .gs-band-range {
+      font-size: 0.72rem; font-weight: 700;
+      color: rgba(212,167,106,0.55);
+      letter-spacing: 0.04em;
+    }
+    .gs-band-desc {
+      font-size: 0.82rem; font-weight: 600; line-height: 1.6;
+      color: rgba(237,232,223,0.65);
+      margin: 0 0 12px;
+    }
+    .gs-band-tags {
+      display: flex; flex-wrap: wrap; gap: 6px;
+    }
+    .gs-band-tag {
+      font-size: 0.68rem; font-weight: 700;
+      background: rgba(212,167,106,0.10);
+      border: 1px solid rgba(212,167,106,0.20);
+      color: rgba(212,167,106,0.75);
+      padding: 3px 9px; border-radius: 99px;
+    }
+
+    /* CTA */
+    .gs-btn {
+      display: flex; align-items: center; justify-content: center;
+      width: 100%; padding: 16px;
+      background: #d4a76a;
+      border: none; border-radius: 14px;
+      font-family: 'Nunito', sans-serif;
+      font-size: 1.05rem; font-weight: 800;
+      color: #0e0c1e; cursor: pointer;
+      transition: opacity 0.2s, transform 0.15s;
+      opacity: 0.35; pointer-events: none;
+    }
+    .gs-btn.active { opacity: 1; pointer-events: auto; }
+    .gs-btn.active:active { transform: scale(0.97); }
+  </style>
+</head>
+<body>
+<div class="gs-wrap">
+  <div class="gs-card">
+
+    <div class="gs-heading">
+      <h1>How old is the reader?</h1>
+      <p>Atlas tailors the story's vocabulary, sentence length,<br>and emotional stakes to exactly this age.</p>
+    </div>
+
+    <div class="gs-age-grid" id="ageGrid">
+      {% for age in range(2, 14) %}
+      <button class="gs-age-btn" type="button" data-age="{{ age }}">{{ age }}</button>
+      {% endfor %}
+    </div>
+
+    <div class="gs-explainer" id="explainer">
+      <div class="gs-band-header">
+        <span class="gs-band-icon" id="bandIcon"></span>
+        <div>
+          <div class="gs-band-name" id="bandName"></div>
+          <div class="gs-band-range" id="bandRange"></div>
+        </div>
+      </div>
+      <p class="gs-band-desc" id="bandDesc"></p>
+      <div class="gs-band-tags" id="bandTags"></div>
+    </div>
+
+    <form method="POST" action="{{ url_for('auth.guest_setup') }}" id="setupForm">
+      <input type="hidden" name="age" id="ageInput" value="">
+      <button class="gs-btn" type="submit" id="startBtn">
+        Start reading →
+      </button>
+    </form>
+
+  </div>
+</div>
+
+<script>
+"use strict";
+const BANDS = {
+  seedlings: {
+    icon: "🌱", name: "Seedlings",
+    range: "Ages 2–6 · Lexile 100–400L",
+    desc: "Short, musical sentences built around words they already know. We weave in 1–2 Tier 2 words per story — ones like curious or brave — in sentences where the meaning is obvious from context.",
+    tags: ["Dolch sight words", "Tier 1–2 vocabulary", "Lexile 100–400L", "Listening comprehension"],
+  },
+  explorers: {
+    icon: "🔭", name: "Explorers",
+    range: "Ages 7–9 · Lexile 400–800L",
+    desc: "Stories stretch vocabulary intentionally. Every tale introduces 3–5 Tier 2 words — high-utility academic words like fortunate, hesitate, and determined — that appear across subjects in school.",
+    tags: ["Beck's Tier 2 vocabulary", "Fry words 1–500", "Lexile 400–800L", "Context clues"],
+  },
+  adventurers: {
+    icon: "🏔️", name: "Adventurers",
+    range: "Ages 10–12 · Lexile 800–1100L",
+    desc: "Rich, complex narratives with 4–6 stretch words per story. Calibrated to the Lexile range that prepares readers for middle school texts, with nuance and moral complexity built in.",
+    tags: ["Advanced Tier 2 vocabulary", "Fry words 500–1000", "Lexile 800–1100L", "Middle school readiness"],
+  },
+};
+
+function ageToBand(age) {
+  return age <= 6 ? "seedlings" : age <= 9 ? "explorers" : "adventurers";
+}
+
+let selectedAge = null;
+const explainer = document.getElementById("explainer");
+const startBtn  = document.getElementById("startBtn");
+const ageInput  = document.getElementById("ageInput");
+
+document.querySelectorAll(".gs-age-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".gs-age-btn").forEach(b => b.classList.remove("is-selected"));
+    btn.classList.add("is-selected");
+    selectedAge = parseInt(btn.dataset.age);
+    ageInput.value = selectedAge;
+
+    const band = BANDS[ageToBand(selectedAge)];
+    document.getElementById("bandIcon").textContent = band.icon;
+    document.getElementById("bandName").textContent = band.name;
+    document.getElementById("bandRange").textContent = band.range;
+    document.getElementById("bandDesc").textContent  = band.desc;
+    document.getElementById("bandTags").innerHTML =
+      band.tags.map(t => `<span class="gs-band-tag">${t}</span>`).join("");
+
+    explainer.classList.add("visible");
+    startBtn.classList.add("active");
+  });
+});
+</script>
+</body>
+</html>

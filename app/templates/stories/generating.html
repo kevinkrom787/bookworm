@@ -1,0 +1,253 @@
+{% extends "base.html" %}
+{% block title %}Getting cozy…{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/story.css') }}" />
+  <style>
+    .gen-shell { transition: opacity 0.35s ease; }
+
+    /* Floating moon */
+    .gen-moon-wrap {
+      position: relative;
+      animation: moonFloat 5s ease-in-out infinite;
+    }
+    @keyframes moonFloat {
+      0%, 100% { transform: translateY(0px); }
+      50%       { transform: translateY(-10px); }
+    }
+
+    /* Sparkle dots orbiting the moon */
+    .gen-sp {
+      position: absolute;
+      width: 4px; height: 4px;
+      border-radius: 50%;
+      background: rgba(245,217,122,0.65);
+      animation: spAnim 3.4s ease-in-out infinite;
+    }
+    @keyframes spAnim {
+      0%, 100% { opacity: 0; transform: scale(0.4); }
+      50%       { opacity: 1; transform: scale(1.1); }
+    }
+
+    /* Headline */
+    .gen-headline {
+      font-family: var(--font-story);
+      font-size: 1.35rem;
+      color: rgba(255,255,255,0.92);
+      text-align: center;
+      letter-spacing: 0.01em;
+    }
+    .gen-dots span {
+      display: inline-block;
+      animation: dotBounce 1.4s ease-in-out infinite;
+      color: rgba(245,217,122,0.8);
+    }
+    .gen-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .gen-dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes dotBounce {
+      0%, 80%, 100% { opacity: 0.2; transform: translateY(0); }
+      40%            { opacity: 1;   transform: translateY(-4px); }
+    }
+
+    /* "While it bakes…" label */
+    .gen-while {
+      font-size: 0.8rem;
+      color: rgba(255,255,255,0.35);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      margin-bottom: -14px;
+    }
+
+    /* Ritual prompt — primary text */
+    .gen-ritual {
+      font-family: var(--font-story);
+      font-size: 1.1rem;
+      color: rgba(245,217,122,0.88);
+      text-align: center;
+      line-height: 1.7;
+      max-width: 300px;
+      min-height: 3em;
+      display: flex; align-items: center; justify-content: center;
+      transition: opacity 0.4s ease;
+    }
+
+    /* Story attribution — secondary */
+    .gen-copy {
+      font-size: 0.9rem;
+      color: rgba(255,255,255,0.35);
+      max-width: 240px;
+    }
+
+    .gen-stage { gap: 28px; }
+  </style>
+{% endblock %}
+
+{% block body %}
+<div class="gen-shell">
+  <canvas id="starCanvas" class="star-canvas" aria-hidden="true"></canvas>
+
+  <div class="gen-stage">
+
+    <div class="gen-headline">
+      Sit tight! We're baking your story<span class="gen-dots"><span>.</span><span>.</span><span>.</span></span>
+    </div>
+
+    <div class="gen-moon-wrap">
+      <div class="gen-moon">
+        <div class="gen-moon-glow"></div>
+      </div>
+      <!-- Sparkle dots staggered around the moon (96×96px) -->
+      <span class="gen-sp" style="top:-7px;left:28px;animation-delay:0s"></span>
+      <span class="gen-sp" style="top:10px;right:-7px;animation-delay:.7s"></span>
+      <span class="gen-sp" style="top:44px;left:-9px;animation-delay:1.4s"></span>
+      <span class="gen-sp" style="bottom:8px;right:-6px;animation-delay:2.1s"></span>
+      <span class="gen-sp" style="bottom:-6px;left:32px;animation-delay:2.8s"></span>
+    </div>
+
+    <div class="gen-while">While it bakes&hellip;</div>
+    <div class="gen-ritual" id="genRitual"></div>
+
+    <div class="gen-copy" id="genCopy">
+      {% if char_names %}
+        {% if char_names | length == 1 %}
+          Tonight's story stars <strong>{{ char_names[0] }}</strong>.
+        {% elif char_names | length == 2 %}
+          Tonight's story stars <strong>{{ char_names[0] }}</strong> and <strong>{{ char_names[1] }}</strong>.
+        {% else %}
+          Tonight's story stars <strong>{{ char_names[:-1] | join(', ') }}</strong> and <strong>{{ char_names[-1] }}</strong>.
+        {% endif %}
+      {% else %}
+        Your story is being written.
+      {% endif %}
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+"use strict";
+const STORY_ID = {{ story_id }};
+
+// ── Starfield ─────────────────────────────────────────────────────────────────
+const canvas = document.getElementById("starCanvas");
+const ctx    = canvas.getContext("2d");
+let stars = [], raf;
+
+function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+function initStars(n) {
+  stars = Array.from({length: n}, () => ({
+    x: Math.random() * canvas.width, y: Math.random() * canvas.height,
+    r: Math.random() * 1.6 + 0.3, target: Math.random() * 0.7 + 0.1,
+    speed: Math.random() * 0.008 + 0.003, phase: Math.random() * Math.PI * 2,
+  }));
+}
+function drawStars(t) {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  for (const s of stars) {
+    const o = s.target * (0.6 + 0.4 * Math.sin(t * s.speed * 60 + s.phase));
+    ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(180,170,140,${o})`; ctx.fill();
+  }
+  raf = requestAnimationFrame(drawStars);
+}
+resize(); initStars(90); raf = requestAnimationFrame(drawStars);
+window.addEventListener("resize", () => { resize(); initStars(90); });
+
+// ── Bedtime ritual prompts ────────────────────────────────────────────────────
+const RITUALS = [
+  "Have you brushed your teeth? 🦷",
+  "Water bottle filled for bed? 💧",
+  "Found your comfiest spot? 🛋️",
+  "Nightlight on? 🌙",
+  "Blanket pulled all the way up? 🛏️",
+  "One last hug before the story? 🤗",
+  "Ready to close your eyes and listen? ✨",
+  "Pillow in just the right place? 🪂",
+  "Phone away for the night? 📵",
+  "Room feeling nice and cozy? 🕯️",
+];
+
+// Shuffle so it's different each session
+for (let i = RITUALS.length - 1; i > 0; i--) {
+  const j = Math.floor(Math.random() * (i + 1));
+  [RITUALS[i], RITUALS[j]] = [RITUALS[j], RITUALS[i]];
+}
+
+let ritualIdx = 0;
+const ritualEl = document.getElementById("genRitual");
+let ritualTimer;
+
+function showNextRitual() {
+  ritualEl.style.opacity = "0";
+  setTimeout(() => {
+    ritualEl.textContent = RITUALS[ritualIdx % RITUALS.length];
+    ritualIdx++;
+    ritualEl.style.opacity = "1";
+  }, 400);
+}
+showNextRitual();
+ritualTimer = setInterval(showNextRitual, 4000);
+
+// ── Redirect with first-image preload ─────────────────────────────────────────
+let redirected = false;
+
+function redirect() {
+  if (redirected) return;
+  redirected = true;
+  clearInterval(pollTimer);
+  clearInterval(ritualTimer);
+  cancelAnimationFrame(raf);
+  document.querySelector(".gen-shell").style.opacity = "0";
+  setTimeout(() => { window.location.href = "/stories/bedtime/" + STORY_ID + "/read"; }, 350);
+}
+
+function onReady() {
+  // Preload page 1 image so the reader doesn't flash a blank on first load
+  fetch("/stories/api/bedtime/" + STORY_ID + "/images")
+    .then(r => r.json())
+    .then(data => {
+      const url = (data.images || {})["1"] || (data.images || {})["0"]
+                  || Object.values(data.images || {})[0];
+      if (url) {
+        const img = new Image();
+        img.onload  = redirect;
+        img.onerror = redirect;
+        img.src = url;
+        setTimeout(redirect, 2000); // don't wait more than 2 s
+      } else {
+        redirect();
+      }
+    })
+    .catch(redirect);
+}
+
+// ── Polling ───────────────────────────────────────────────────────────────────
+let pollTimer;
+
+function poll() {
+  fetch("/stories/api/bedtime/" + STORY_ID + "/status")
+    .then(r => r.json())
+    .then(data => {
+      if (data.status === "ready") {
+        clearInterval(pollTimer);
+        onReady();
+      } else if (data.status === "error") {
+        clearInterval(pollTimer); clearInterval(ritualTimer);
+        document.getElementById("genCopy").innerHTML =
+          "Something went wrong.<br><a href='/stories/new' style='text-decoration:underline'>Try again</a>";
+      } else if (data.status === "stopped") {
+        clearInterval(pollTimer); clearInterval(ritualTimer);
+        document.getElementById("genCopy").innerHTML =
+          "Let's try a different story tomorrow.<br><a href='/' style='text-decoration:underline'>Home</a>";
+      }
+    })
+    .catch(() => {});
+}
+
+pollTimer = setInterval(poll, 2000);
+poll();
+
+
+</script>
+{% endblock %}

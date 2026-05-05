@@ -1,10 +1,15 @@
 import base64
-from flask import Blueprint, jsonify, render_template, request, current_app
+from flask import Blueprint, jsonify, render_template, request, current_app, session, redirect, url_for
 from app.services.gutenberg import GutenbergService
 from app.services.epub_parser import parse_epub, save_parsed_book, load_parsed_book
 from app.services.tts import TTSService
 
 bp = Blueprint("reader", __name__)
+
+
+def _uid() -> str:
+    from flask import session
+    return str(session.get("profile_id", "default"))
 
 # Singleton TTS service — lazy-loaded on first request
 _tts = None  # type: TTSService
@@ -25,16 +30,32 @@ def _gutenberg() -> GutenbergService:
 
 @bp.route("/")
 def home():
-    age_band = current_app.config["DEFAULT_AGE_BAND"]
-    return render_template("home/index.html", age_band=age_band)
+    if not session.get("profile_id"):
+        from app.services.profile_service import ProfileService
+        svc = ProfileService(current_app.config["DB_PATH"])
+        if svc.list_profiles(family_id=session.get("family_id")):
+            return redirect(url_for("profiles.select"))
+        else:
+            return redirect(url_for("profiles.new"))
+    return redirect(url_for("stories.index"))
 
 
 @bp.route("/read/<int:book_id>")
 def read(book_id: int):
-    chapter_index = max(0, int(request.args.get("chapter", 0)))
-    age_band = request.args.get("band", current_app.config["DEFAULT_AGE_BAND"])
+    from app.services.flashcard_service import FlashcardService
+    age_band  = request.args.get("band",      current_app.config["DEFAULT_AGE_BAND"])
     font_size = int(request.args.get("font_size", current_app.config["DEFAULT_FONT_SIZE"]))
-    theme = request.args.get("theme", current_app.config["DEFAULT_THEME"])
+    theme     = request.args.get("theme",     current_app.config["DEFAULT_THEME"])
+
+    # If the caller didn't specify a chapter, restore from DB progress
+    progress_svc = FlashcardService(current_app.config["DB_PATH"])
+    if "chapter" not in request.args:
+        saved = progress_svc.get_reading_progress(book_id, user_id=_uid())
+        chapter_index = saved["chapter_index"] if saved else 0
+        saved_word    = saved["word_index"]    if saved else 0
+    else:
+        chapter_index = max(0, int(request.args["chapter"]))
+        saved_word    = 0  # explicit navigation — start from top of chapter
 
     try:
         svc = _gutenberg()
@@ -85,6 +106,7 @@ def read(book_id: int):
             font_size=font_size,
             theme=theme,
             tts_available=_get_tts().is_available,
+            saved_word=saved_word,
         )
     except Exception as e:
         return render_template("reader/error.html", error=str(e), book_id=book_id), 500
@@ -144,30 +166,39 @@ def tts_synthesize():
 @bp.route("/api/vocab/define")
 def vocab_define():
     """
-    Return definition + audio pronunciation + image for a word.
+    Return definition + audio pronunciation for a word.
 
-    Data sources (all free, no API key):
-      - Free Dictionary API  → definitions, phonetic text, audio MP3 URL
-      - Wikipedia REST API   → thumbnail image for concrete words
+    Lookup order (fastest/most-offline first):
+      1. word_cache DB table  — instant, fully offline, grows with use
+      2. vocab_words table    — curated words have kid-friendly definitions
+      3. Free Dictionary API  — requires internet; result saved to cache
+      4. Stub                 — last resort when offline and word is unknown
 
-    Schema note: when the DB is built, vocab_words will store
-    image_url and audio_url columns so these load instantly offline.
+    Image search is intentionally separate (requires a SafeSearch API key).
     """
+    from app.services.flashcard_service import FlashcardService
     word = (request.args.get("word") or "").strip().lower()
     word = word.strip(".,!?;:\"'()")
     if not word:
         return jsonify({"error": "word is required"}), 400
 
-    result = {
-        "word": word,
-        "definitions": [],
-        "phonetic": "",
-        "audio_url": None,    # direct MP3 link — browser plays it natively
-        "image_url": None,    # thumbnail for the vocab card
-        "source": "offline_stub",
-    }
+    svc = FlashcardService(current_app.config["DB_PATH"])
 
-    # ── 1. Free Dictionary API — definitions + audio ──────────────────
+    # ── 1. DB cache (instant, offline) ───────────────────────────────
+    cached = svc.get_cached_word(word)
+    if cached and cached["definitions"]:
+        return jsonify({"word": word, "image_url": None, "source": "cache", **cached})
+
+    # ── 2. Curated vocab_words table ─────────────────────────────────
+    curated = svc.get_vocab_word_definition(word)
+    if curated and curated["definitions"]:
+        # Don't cache vocab_words — they're already in the DB
+        return jsonify({"word": word, "image_url": None, "source": "curated", **curated})
+
+    # ── 3. Free Dictionary API (online) ──────────────────────────────
+    phonetic    = ""
+    audio_url   = ""
+    definitions = []
     try:
         import requests as req
         resp = req.get(
@@ -178,46 +209,62 @@ def vocab_define():
             entries = resp.json()
             if entries and isinstance(entries, list):
                 entry = entries[0]
-                result["phonetic"] = entry.get("phonetic", "")
-
-                # Grab the first phonetics entry that has an audio URL
+                phonetic = entry.get("phonetic", "")
                 for ph in entry.get("phonetics", []):
-                    audio = ph.get("audio", "")
-                    if audio:
-                        result["audio_url"] = audio
-                        # Use this entry's text if root phonetic is missing
-                        if not result["phonetic"]:
-                            result["phonetic"] = ph.get("text", "")
+                    if ph.get("audio"):
+                        audio_url = ph["audio"]
+                        if not phonetic:
+                            phonetic = ph.get("text", "")
                         break
-
-                # Definitions — up to 2 parts of speech, 1 definition each
                 for meaning in entry.get("meanings", [])[:2]:
                     for defn in meaning.get("definitions", [])[:1]:
-                        result["definitions"].append({
+                        definitions.append({
                             "part_of_speech": meaning.get("partOfSpeech", ""),
-                            "definition": defn.get("definition", ""),
-                            "example": defn.get("example", ""),
+                            "definition":     defn.get("definition", ""),
+                            "example":        defn.get("example", ""),
                         })
-
-                result["source"] = "online"
     except Exception:
         pass
 
-    # ── 2. Auto-image disabled ────────────────────────────────────────
-    # Wikipedia and Wikimedia Commons have no SafeSearch — not appropriate
-    # for a kids product. Image association is a parent-initiated action
-    # via the image search panel, which requires a configured API key
-    # (Pixabay or Google) with SafeSearch enforced. image_url stays None.
+    if definitions:
+        svc.cache_word(word, phonetic, audio_url, definitions)
+        return jsonify({
+            "word":        word,
+            "phonetic":    phonetic,
+            "audio_url":   audio_url or None,
+            "image_url":   None,
+            "definitions": definitions,
+            "source":      "online",
+        })
 
-    # ── Offline fallback ──────────────────────────────────────────────
-    if not result["definitions"]:
-        result["definitions"] = [{
-            "part_of_speech": "",
-            "definition": "Definition unavailable offline. A local dictionary is coming in the next build.",
-            "example": "",
-        }]
+    # ── 4. Stub ───────────────────────────────────────────────────────
+    return jsonify({
+        "word":        word,
+        "phonetic":    "",
+        "audio_url":   None,
+        "image_url":   None,
+        "definitions": [{"part_of_speech": "", "definition": "No definition found. Connect to the internet to look this word up.", "example": ""}],
+        "source":      "offline_stub",
+    })
 
-    return jsonify(result)
+
+@bp.route("/api/progress", methods=["POST"])
+def save_progress():
+    """Save reading position. Called fire-and-forget on every page turn."""
+    from app.services.flashcard_service import FlashcardService
+    data = request.get_json(silent=True) or {}
+    book_id       = data.get("book_id")
+    chapter_index = data.get("chapter_index")
+    word_index    = data.get("word_index", 0)
+    if book_id is None or chapter_index is None:
+        return jsonify({"error": "book_id and chapter_index required"}), 400
+    FlashcardService(current_app.config["DB_PATH"]).save_reading_progress(
+        book_id=int(book_id),
+        chapter_index=int(chapter_index),
+        word_index=int(word_index),
+        user_id=_uid(),
+    )
+    return jsonify({"saved": True})
 
 
 @bp.route("/api/vocab/save", methods=["POST"])
@@ -232,7 +279,7 @@ def vocab_save():
     svc = FlashcardService(current_app.config["DB_PATH"])
 
     # Avoid duplicates
-    existing_id = svc.word_exists(word)
+    existing_id = svc.word_exists(word, user_id=_uid())
     if existing_id:
         return jsonify({"duplicate": True, "card_id": existing_id}), 200
 
@@ -251,6 +298,7 @@ def vocab_save():
         back_data=back_data,
         source_book=data.get("source_book") or None,
         source_chapter=data.get("source_chapter") or None,
+        user_id=_uid(),
     )
     return jsonify({"saved": True, "card_id": card.id}), 201
 

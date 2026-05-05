@@ -1,0 +1,433 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block extra_css %}
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/story.css') }}" />
+{% endblock %}
+
+{% block body %}
+<div class="recap-shell" id="recapShell">
+
+  <canvas id="recapStarCanvas" class="recap-star-canvas" aria-hidden="true"></canvas>
+
+  <div class="recap-content">
+
+    <div class="recap-the-end">The End.</div>
+
+    {% if images %}
+    <div class="recap-images-scroll" id="imageStrip">
+      {% for url in images %}
+      <img class="recap-image-thumb" src="{{ url }}" alt="Story illustration" loading="lazy">
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if lesson %}
+    <div class="recap-section recap-lesson">
+      <div class="recap-section-label">The moral</div>
+      <p class="recap-lesson-text">{{ lesson }}</p>
+    </div>
+    {% endif %}
+
+    {% if talk_about_it %}
+    <div class="recap-section recap-talk">
+      <div class="recap-section-label">Ask {{ profile.name }}</div>
+      <p class="recap-talk-text">{{ talk_about_it }}</p>
+    </div>
+    {% endif %}
+
+    {% if vocab_words %}
+    <div class="recap-section recap-vocab">
+      <div class="recap-section-label">Words to discuss</div>
+      <div class="recap-vocab-cards">
+        {% for word in vocab_words %}
+        <button class="recap-vocab-chip" data-word="{{ word }}">
+          <span class="recap-vocab-word">{{ word }}</span>
+          <span class="recap-vocab-chip-check" hidden>✓</span>
+        </button>
+        {% endfor %}
+      </div>
+      <div class="recap-vocab-hint">Tap a word to see its definition</div>
+    </div>
+    {% endif %}
+
+    <!-- Word detail sheet -->
+    <div class="recap-word-sheet" id="wordSheet" hidden>
+      <div class="recap-word-sheet-bg" id="wordSheetBg"></div>
+      <div class="recap-word-sheet-panel">
+        <div class="recap-word-sheet-handle"></div>
+        <div class="recap-word-detail" id="wordDetail"></div>
+        <button class="recap-word-save-btn" id="wordSaveBtn">Save to flashcards</button>
+      </div>
+    </div>
+
+    {% if streak >= 1 %}
+    <div class="recap-streak">🔥 {{ streak }} night{{ 's' if streak != 1 }} in a row</div>
+    {% endif %}
+
+    <div class="recap-actions">
+      <a href="/stories/new" class="recap-btn recap-btn--another">Read another story ✨</a>
+      <button class="recap-btn recap-btn--night" id="goodnightBtn">Goodnight</button>
+    </div>
+
+  </div>
+
+</div>
+
+<div class="goodnight-overlay" id="goodnightOverlay" hidden></div>
+
+<!-- Image lightbox -->
+<div class="recap-lightbox" id="recapLightbox" hidden>
+  <div class="recap-lightbox-bg" id="lightboxBg"></div>
+  <button class="recap-lightbox-close" id="lightboxClose" aria-label="Close">✕</button>
+  <button class="recap-lightbox-prev" id="lightboxPrev" aria-label="Previous image">&#8249;</button>
+  <img class="recap-lightbox-img" id="lightboxImg" src="" alt="Story illustration">
+  <button class="recap-lightbox-next" id="lightboxNext" aria-label="Next image">&#8250;</button>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+"use strict";
+const STORY_ID = {{ story_id }};
+
+// ── Star canvas ───────────────────────────────────────────────────────────────
+(function () {
+  const canvas = document.getElementById("recapStarCanvas");
+  const ctx    = canvas.getContext("2d");
+  let stars    = [];
+
+  function resize() {
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+
+  function initStars(n) {
+    stars = [];
+    for (let i = 0; i < n; i++) {
+      stars.push({
+        x:      Math.random() * canvas.width,
+        y:      Math.random() * canvas.height,
+        r:      Math.random() * 1.4 + 0.3,
+        target: Math.random() * 0.6 + 0.1,
+        speed:  Math.random() * 0.006 + 0.002,
+        phase:  Math.random() * Math.PI * 2,
+      });
+    }
+  }
+
+  function draw(t) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (const s of stars) {
+      const opacity = s.target * (0.6 + 0.4 * Math.sin(t * s.speed * 60 + s.phase));
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(180, 170, 140, ${opacity})`;
+      ctx.fill();
+    }
+    requestAnimationFrame(draw);
+  }
+
+  resize();
+  initStars(70);
+  requestAnimationFrame(draw);
+  window.addEventListener("resize", () => { resize(); initStars(70); });
+}());
+
+// ── Image polling ─────────────────────────────────────────────────────────────
+(function () {
+  const strip = document.getElementById("imageStrip");
+  if (!strip) return;
+
+  const MAX_RECAP_IMAGES = 6;
+
+  // Use getAttribute("src") to get the original relative URL, not browser-resolved absolute
+  const seenUrls = new Set(
+    Array.from(strip.querySelectorAll("img")).map(img => img.getAttribute("src"))
+  );
+
+  let polls = 0;
+  const timer = setInterval(() => {
+    fetch("/stories/api/bedtime/" + STORY_ID + "/images")
+      .then(r => r.json())
+      .then(data => {
+        for (const url of Object.values(data.images || {})) {
+          if (seenUrls.has(url)) continue;
+          if (strip.querySelectorAll("img").length >= MAX_RECAP_IMAGES) break;
+          seenUrls.add(url);
+          const img = document.createElement("img");
+          img.className = "recap-image-thumb";
+          img.setAttribute("src", url);
+          img.setAttribute("aria-hidden", "true");
+          img.loading = "lazy";
+          strip.appendChild(img);
+        }
+        if (++polls >= 20) clearInterval(timer);
+      })
+      .catch(() => {});
+  }, 2000);
+}());
+
+// ── Actions ───────────────────────────────────────────────────────────────────
+document.getElementById("goodnightBtn").addEventListener("click", () => {
+  const overlay = document.getElementById("goodnightOverlay");
+  overlay.hidden = false;
+  requestAnimationFrame(() => {
+    overlay.style.opacity = "1";
+    overlay.style.transition = "opacity 10s ease";
+  });
+  setTimeout(() => { window.location.href = "/"; }, 10500);
+});
+
+// ── Story word definitions ────────────────────────────────────────────────────
+(function () {
+  const STORY_TITLE = {{ title | tojson }};
+  const AGE_BAND    = {{ profile.age_band | tojson }};
+
+  // Cache: word → {phonetic, definition, example} | "loading" | "error"
+  const enrichCache = {};
+  // Track which words are already saved
+  const savedWords  = new Set();
+
+  let activeWord    = null;
+
+  // ── Pre-fetch definitions in background on page load ──────────────────
+  const chips = [...document.querySelectorAll(".recap-vocab-chip")];
+
+  chips.forEach(chip => {
+    const word = chip.dataset.word;
+    enrichCache[word] = "loading";
+    fetch("/flashcards/api/story-words/enrich", {
+      method:  "POST",
+      headers: {"Content-Type": "application/json"},
+      body:    JSON.stringify({ word, story_title: STORY_TITLE, age_band: AGE_BAND }),
+    })
+      .then(r => r.json())
+      .then(data => { enrichCache[word] = data; })
+      .catch(() => { enrichCache[word] = "error"; });
+  });
+
+  // Pre-check which words are already saved
+  if (chips.length) {
+    const params = new URLSearchParams({ story_id: STORY_ID });
+    chips.forEach(c => params.append("words", c.dataset.word));
+    fetch("/flashcards/api/story-words/status?" + params)
+      .then(r => r.json())
+      .then(data => {
+        Object.entries(data.status || {}).forEach(([w, saved]) => {
+          if (saved) markChipSaved(w);
+        });
+      })
+      .catch(() => {});
+  }
+
+  // ── Sheet open / close ────────────────────────────────────────────────
+  const sheet   = document.getElementById("wordSheet");
+  const sheetBg = document.getElementById("wordSheetBg");
+  const detail  = document.getElementById("wordDetail");
+  const saveBtn = document.getElementById("wordSaveBtn");
+
+  function openSheet(word) {
+    activeWord = word;
+    renderDetail(word);
+    sheet.hidden = false;
+    requestAnimationFrame(() => sheet.classList.add("is-open"));
+  }
+
+  function closeSheet() {
+    sheet.classList.remove("is-open");
+    sheet.addEventListener("transitionend", () => { sheet.hidden = true; }, { once: true });
+    activeWord = null;
+  }
+
+  sheetBg.addEventListener("click", closeSheet);
+
+  // ── Render detail content ─────────────────────────────────────────────
+  function renderDetail(word) {
+    const isSaved = savedWords.has(word);
+    const data    = enrichCache[word];
+
+    // Still loading — show spinner and poll
+    if (!data || data === "loading") {
+      detail.innerHTML = `
+        <div class="recap-word-big">${esc(word)}</div>
+        <div class="recap-word-loading">Looking up definition…</div>`;
+      saveBtn.disabled    = true;
+      saveBtn.textContent = "Save to flashcards";
+      saveBtn.classList.remove("is-saved");
+      const poll = setInterval(() => {
+        if (enrichCache[word] && enrichCache[word] !== "loading") {
+          clearInterval(poll);
+          if (activeWord === word) renderDetail(word);
+        }
+      }, 400);
+      return;
+    }
+
+    // Ollama error or empty response — offer retry
+    const phonetic   = (data !== "error" && data.phonetic)   ? data.phonetic   : "";
+    const definition = (data !== "error" && data.definition) ? data.definition : "";
+    const example    = (data !== "error" && data.example)    ? data.example    : "";
+
+    if (!definition) {
+      detail.innerHTML = `
+        <div class="recap-word-big">${esc(word)}</div>
+        <div class="recap-word-loading">
+          Couldn't load definition.
+          <button class="recap-word-retry-btn" id="retryBtn">Try again</button>
+        </div>`;
+      document.getElementById("retryBtn").addEventListener("click", () => {
+        enrichCache[word] = "loading";
+        fetch("/flashcards/api/story-words/enrich", {
+          method:  "POST",
+          headers: {"Content-Type": "application/json"},
+          body:    JSON.stringify({ word, story_title: STORY_TITLE, age_band: AGE_BAND }),
+        })
+          .then(r => r.json())
+          .then(d => { enrichCache[word] = d; if (activeWord === word) renderDetail(word); })
+          .catch(() => { enrichCache[word] = "error"; if (activeWord === word) renderDetail(word); });
+        if (activeWord === word) renderDetail(word);
+      });
+      saveBtn.disabled    = false;
+      saveBtn.textContent = "Save anyway";
+      saveBtn.classList.remove("is-saved");
+      return;
+    }
+
+    detail.innerHTML = `
+      <div class="recap-word-big">${esc(word)}</div>
+      ${phonetic   ? `<div class="recap-word-phonetic">${esc(phonetic)}</div>` : ""}
+      <div class="recap-word-def">${esc(definition)}</div>
+      ${example    ? `<div class="recap-word-example">"${esc(example)}"</div>` : ""}`;
+
+    if (isSaved) {
+      saveBtn.textContent = "Saved ✓";
+      saveBtn.disabled    = true;
+      saveBtn.classList.add("is-saved");
+    } else {
+      saveBtn.textContent = "Save to flashcards";
+      saveBtn.disabled    = false;
+      saveBtn.classList.remove("is-saved");
+    }
+  }
+
+  // ── Save button ───────────────────────────────────────────────────────
+  saveBtn.addEventListener("click", async () => {
+    if (!activeWord || savedWords.has(activeWord)) return;
+    const word = activeWord;
+    const data = enrichCache[word];
+    saveBtn.disabled    = true;
+    saveBtn.textContent = "Saving…";
+
+    const body = {
+      word, story_id: STORY_ID, story_title: STORY_TITLE, age_band: AGE_BAND,
+    };
+    if (data && data !== "loading" && data !== "error") {
+      body.phonetic   = data.phonetic   || "";
+      body.definition = data.definition || "";
+      body.example    = data.example    || "";
+    }
+
+    try {
+      const res = await fetch("/flashcards/api/story-words/add", {
+        method:  "POST",
+        headers: {"Content-Type": "application/json"},
+        body:    JSON.stringify(body),
+      });
+      if (res.ok || res.status === 409) {
+        markChipSaved(word);
+        saveBtn.textContent = "Saved ✓";
+        saveBtn.classList.add("is-saved");
+        setTimeout(closeSheet, 800);
+      } else {
+        saveBtn.disabled    = false;
+        saveBtn.textContent = "Save to flashcards";
+      }
+    } catch {
+      saveBtn.disabled    = false;
+      saveBtn.textContent = "Save to flashcards";
+    }
+  });
+
+  // ── Chip interactions ─────────────────────────────────────────────────
+  chips.forEach(chip => {
+    chip.addEventListener("click", () => openSheet(chip.dataset.word));
+  });
+
+  function markChipSaved(word) {
+    savedWords.add(word);
+    const chip = document.querySelector(`.recap-vocab-chip[data-word="${CSS.escape(word)}"]`);
+    if (chip) {
+      chip.classList.add("is-saved");
+      chip.querySelector(".recap-vocab-chip-check").hidden = false;
+    }
+  }
+
+  function esc(s) {
+    return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  }
+}());
+
+// ── Image lightbox ────────────────────────────────────────────────────────────
+(function () {
+  const lightbox    = document.getElementById("recapLightbox");
+  const lightboxBg  = document.getElementById("lightboxBg");
+  const lightboxImg = document.getElementById("lightboxImg");
+  const closeBtn    = document.getElementById("lightboxClose");
+  const prevBtn     = document.getElementById("lightboxPrev");
+  const nextBtn     = document.getElementById("lightboxNext");
+  const strip       = document.getElementById("imageStrip");
+  if (!strip || !lightbox) return;
+
+  let current = 0;
+
+  function thumbs() {
+    return Array.from(strip.querySelectorAll(".recap-image-thumb"));
+  }
+
+  function open(index) {
+    const imgs = thumbs();
+    if (!imgs[index]) return;
+    current = index;
+    lightboxImg.src = imgs[index].getAttribute("src");
+    prevBtn.hidden = (current === 0);
+    nextBtn.hidden = (current === imgs.length - 1);
+    lightbox.hidden = false;
+    document.body.style.overflow = "hidden";
+  }
+
+  function close() {
+    lightbox.hidden = true;
+    lightboxImg.src = "";
+    document.body.style.overflow = "";
+  }
+
+  function go(delta) {
+    const imgs = thumbs();
+    const next = current + delta;
+    if (next >= 0 && next < imgs.length) open(next);
+  }
+
+  // Event delegation so dynamically-appended thumbs work automatically
+  strip.addEventListener("click", e => {
+    const img = e.target.closest(".recap-image-thumb");
+    if (!img) return;
+    const index = thumbs().indexOf(img);
+    if (index >= 0) open(index);
+  });
+
+  lightboxBg.addEventListener("click", close);
+  closeBtn.addEventListener("click", close);
+  prevBtn.addEventListener("click", e => { e.stopPropagation(); go(-1); });
+  nextBtn.addEventListener("click", e => { e.stopPropagation(); go(1); });
+
+  document.addEventListener("keydown", e => {
+    if (lightbox.hidden) return;
+    if (e.key === "Escape")      close();
+    if (e.key === "ArrowLeft")   go(-1);
+    if (e.key === "ArrowRight")  go(1);
+  });
+}());
+</script>
+{% endblock %}
