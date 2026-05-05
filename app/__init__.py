@@ -2,7 +2,7 @@ from pathlib import Path
 from flask import Flask, redirect, request, session, url_for
 from config import Config
 
-_AUTH_EXEMPT = ("/auth/", "/static/")
+_AUTH_EXEMPT = ("/auth/", "/static/", "/landing")
 
 
 def _run_migrations(db_path: Path) -> None:
@@ -54,12 +54,6 @@ def create_app(config_class=Config):
             client_kwargs={"scope": "openid email profile"},
         )
 
-    # PostHog server-side analytics
-    from app.analytics import init as init_analytics
-    init_analytics(
-        api_key=app.config.get("POSTHOG_API_KEY", ""),
-        host=app.config.get("POSTHOG_HOST", "https://us.i.posthog.com"),
-    )
 
     # Register route blueprints
     from app.routes import (library, reader, flashcards, parent,
@@ -87,13 +81,26 @@ def create_app(config_class=Config):
             "active_profile_name": session.get("profile_name"),
             "active_age_band":     session.get("age_band", config_class.DEFAULT_AGE_BAND),
             "current_family_name": session.get("family_name", ""),
-            "POSTHOG_API_KEY":     app.config.get("POSTHOG_API_KEY", ""),
-            "POSTHOG_HOST":        app.config.get("POSTHOG_HOST", "https://us.i.posthog.com"),
         }
+
+    @app.route("/landing")
+    @app.route("/landing/")
+    def landing():
+        from flask import send_file
+        landing_path = Path(__file__).parent.parent / "landing" / "index.html"
+        return send_file(landing_path)
+
+    @app.route("/img_cache/<path:filename>")
+    def serve_img_cache(filename):
+        import re
+        from flask import send_from_directory, abort
+        if not re.match(r'^[a-f0-9]{24}\.(png|jpg|webp)$', filename):
+            abort(404)
+        return send_from_directory(config_class.IMAGE_CACHE_DIR, filename)
 
     @app.after_request
     def add_cache_headers(response):
-        if request.path.startswith("/static/"):
+        if request.path.startswith("/static/") or request.path.startswith("/img_cache/"):
             response.headers["Cache-Control"] = "public, max-age=3600"
         return response
 

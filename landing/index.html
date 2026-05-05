@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Atlas — The American Literacy Crisis</title>
+  <meta name="description" content="Two out of three American children cannot read proficiently. Atlas is building toward a solution."/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,800;1,400&family=Source+Serif+4:opsz,wght@8..60,300;8..60,400;8..60,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0c0c0c;
+      --bg-2:     #101010;
+      --cream:    #f0ebe0;
+      --cream-2:  rgba(240,235,224,0.62);
+      --cream-3:  rgba(240,235,224,0.28);
+      --gold:     #c8a44a;
+      --divider:  rgba(240,235,224,0.07);
+      --serif:    'Playfair Display', Georgia, 'Times New Roman', serif;
+      --body:     'Source Serif 4', Georgia, 'Times New Roman', serif;
+      --ui:       'Inter', system-ui, sans-serif;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--cream);
+      font-family: var(--body);
+      line-height: 1.75;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    /* ─────────────────────────────────────────────────────────
+       HERO
+    ───────────────────────────────────────────────────────── */
+    .hero {
+      min-height: 100svh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 80px 24px 120px;
+      position: relative;
+      border-bottom: 1px solid var(--divider);
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 80% 60% at 50% 40%, rgba(200,164,74,0.05) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .eyebrow {
+      font-family: var(--ui);
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 32px;
+    }
+
+    .hero-headline {
+      font-family: var(--serif);
+      font-size: clamp(2.6rem, 6.5vw, 5.2rem);
+      font-weight: 700;
+      line-height: 1.08;
+      letter-spacing: -0.02em;
+      color: var(--cream);
+      max-width: 820px;
+      margin-bottom: 30px;
+    }
+
+    .hero-sub {
+      font-family: var(--body);
+      font-size: clamp(1.1rem, 2.2vw, 1.3rem);
+      font-weight: 300;
+      color: var(--cream-2);
+      max-width: 480px;
+      margin-bottom: 56px;
+      line-height: 1.65;
+    }
+
+    .btn {
+      display: inline-block;
+      font-family: var(--ui);
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      text-decoration: none;
+      color: var(--cream);
+      border: 1px solid rgba(240,235,224,0.25);
+      padding: 15px 40px;
+      transition: border-color 0.2s, color 0.2s;
+    }
+    .btn:hover { border-color: var(--cream); color: #fff; }
+
+    .scroll-hint {
+      position: absolute;
+      bottom: 40px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      animation: pulse 2.8s ease-in-out infinite;
+      pointer-events: none;
+    }
+    .scroll-hint span {
+      font-family: var(--ui);
+      font-size: 0.6rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--cream-3);
+    }
+    .scroll-hint-line {
+      width: 1px;
+      height: 44px;
+      background: linear-gradient(to bottom, var(--cream-3), transparent);
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 0.4; transform: translateX(-50%) translateY(0); }
+      50%       { opacity: 0.9; transform: translateX(-50%) translateY(7px); }
+    }
+
+    /* ─────────────────────────────────────────────────────────
+       SHARED LAYOUT
+    ───────────────────────────────────────────────────────── */
+    section { border-bottom: 1px solid var(--divider); }
+
+    .container      { max-width: 720px;  margin: 0 auto; padding: 104px 24px; }
+    .container--lg  { max-width: 960px;  margin: 0 auto; padding: 104px 24px; }
+    .container--c   { max-width: 720px;  margin: 0 auto; padding: 104px 24px; text-align: center; }
+
+    /* ─────────────────────────────────────────────────────────
+       EDITORIAL OPENER
+    ───────────────────────────────────────────────────────── */
+    .editorial {
+      font-size: clamp(1.1rem, 2.2vw, 1.35rem);
+      font-weight: 300;
+      color: var(--cream-2);
+      line-height: 1.85;
+    }
+    .editorial strong {
+      color: var(--cream);
+      font-weight: 400;
+    }
+
+    /* ─────────────────────────────────────────────────────────
+       PROBLEM BLOCKS
+    ───────────────────────────────────────────────────────── */
+    .problem-section { background: var(--bg-2); }
+
+    .problem-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 80px;
+    }
+
+    .problem-block {}
+
+    .block-label {
+      font-family: var(--ui);
+      font-size: 0.65rem;
+      font-weight: 600;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 20px;
+    }
+
+    .block-stat {
+      font-family: var(--serif);
+      font-size: clamp(3.5rem, 8vw, 6.5rem);
+      font-weight: 800;
+      line-height: 1;
+      letter-spacing: -0.03em;
+      color: var(--cream);
+      margin-bottom: 16px;
+    }
+
+    .block-title {
+      font-family: var(--serif);
+      font-size: clamp(1.2rem, 2.5vw, 1.65rem);
+      font-weight: 400;
+      line-height: 1.35;
+      color: var(--cream);
+      margin-bottom: 20px;
+      max-width: 560px;
+    }
+
+    .block-rule {
+      width: 36px;
+      height: 1px;
+      background: var(--gold);
+      opacity: 0.45;
+      margin-bottom: 20px;
+    }
+
+    .block-body {
+      font-size: 0.975rem;
+      font-weight: 300;
+      line-height: 1.85;
+      color: var(--cream-2);
+      max-width: 580px;
+    }
+
+    /* ─────────────────────────────────────────────────────────
+       BRIDGE
+    ───────────────────────────────────────────────────────── */
+    .bridge-text {
+      font-family: var(--serif);
+      font-size: clamp(1.4rem, 3.2vw, 2.1rem);
+      font-weight: 400;
+      font-style: italic;
+      line-height: 1.6;
+      color: var(--cream);
+    }
+    .bridge-text em {
+      font-style: normal;
+      color: var(--gold);
+    }
+
+    /* ─────────────────────────────────────────────────────────
+       ATLAS
+    ───────────────────────────────────────────────────────── */
+    .atlas-section { background: var(--bg-2); }
+
+    .atlas-overline {
+      font-family: var(--ui);
+      font-size: 0.65rem;
+      font-weight: 600;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 24px;
+    }
+
+    .atlas-headline {
+      font-family: var(--serif);
+      font-size: clamp(1.5rem, 3.2vw, 2.3rem);
+      font-weight: 400;
+      line-height: 1.38;
+      color: var(--cream);
+      max-width: 620px;
+      margin-bottom: 36px;
+    }
+
+    .atlas-body {
+      font-size: 0.975rem;
+      font-weight: 300;
+      line-height: 1.9;
+      color: var(--cream-2);
+      max-width: 600px;
+    }
+    .atlas-body p + p { margin-top: 22px; }
+
+    .pillars {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(196px, 1fr));
+      gap: 0;
+      margin-top: 56px;
+      border-top: 1px solid var(--divider);
+    }
+    .pillar {
+      padding: 28px 0 28px;
+      border-right: 1px solid var(--divider);
+    }
+    .pillar:last-child { border-right: none; }
+    .pillar + .pillar { padding-left: 28px; }
+
+    .pillar-label {
+      font-family: var(--ui);
+      font-size: 0.65rem;
+      font-weight: 600;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 10px;
+    }
+    .pillar-text {
+      font-size: 0.88rem;
+      font-weight: 300;
+      line-height: 1.75;
+      color: var(--cream-2);
+    }
+
+    /* ─────────────────────────────────────────────────────────
+       CLOSING / CTA
+    ───────────────────────────────────────────────────────── */
+    .closing-headline {
+      font-family: var(--serif);
+      font-size: clamp(1.7rem, 4vw, 2.9rem);
+      font-weight: 700;
+      line-height: 1.18;
+      letter-spacing: -0.015em;
+      color: var(--cream);
+      margin-bottom: 22px;
+    }
+
+    .closing-sub {
+      font-size: 1rem;
+      font-weight: 300;
+      color: var(--cream-2);
+      max-width: 460px;
+      margin: 0 auto 52px;
+      line-height: 1.75;
+    }
+
+    .email-wrap { max-width: 420px; margin: 0 auto; }
+
+    .email-form {
+      display: flex;
+      border: 1px solid rgba(240,235,224,0.18);
+    }
+
+    .email-input {
+      flex: 1;
+      min-width: 0;
+      background: transparent;
+      border: none;
+      padding: 15px 18px;
+      font-family: var(--body);
+      font-size: 0.95rem;
+      color: var(--cream);
+      outline: none;
+    }
+    .email-input::placeholder { color: var(--cream-3); }
+
+    .email-btn {
+      flex-shrink: 0;
+      background: var(--gold);
+      border: none;
+      padding: 15px 22px;
+      font-family: var(--ui);
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #0c0c0c;
+      cursor: pointer;
+      transition: opacity 0.18s;
+      white-space: nowrap;
+    }
+    .email-btn:hover { opacity: 0.82; }
+
+    .email-hint {
+      margin-top: 14px;
+      font-family: var(--ui);
+      font-size: 0.72rem;
+      color: var(--cream-3);
+      letter-spacing: 0.04em;
+    }
+
+    .email-success {
+      display: none;
+      font-family: var(--serif);
+      font-size: 1.05rem;
+      font-weight: 300;
+      font-style: italic;
+      color: var(--gold);
+      padding: 24px 0;
+    }
+
+    /* ─────────────────────────────────────────────────────────
+       FOOTER
+    ───────────────────────────────────────────────────────── */
+    footer {
+      padding: 36px 24px;
+      text-align: center;
+    }
+    .footer-text {
+      font-family: var(--ui);
+      font-size: 0.68rem;
+      letter-spacing: 0.1em;
+      color: var(--cream-3);
+    }
+
+    /* ─────────────────────────────────────────────────────────
+       FADE-IN
+    ───────────────────────────────────────────────────────── */
+    .fade {
+      opacity: 0;
+      transform: translateY(22px);
+      transition: opacity 0.75s ease, transform 0.75s ease;
+    }
+    .fade.in {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .fade.delay-1 { transition-delay: 0.1s; }
+    .fade.delay-2 { transition-delay: 0.2s; }
+    .fade.delay-3 { transition-delay: 0.3s; }
+
+    /* ─────────────────────────────────────────────────────────
+       MOBILE
+    ───────────────────────────────────────────────────────── */
+    @media (max-width: 600px) {
+      .container, .container--lg, .container--c { padding: 72px 20px; }
+      .hero { padding: 72px 20px 110px; }
+
+      .pillars { grid-template-columns: 1fr 1fr; }
+      .pillar { border-right: none; border-bottom: 1px solid var(--divider); padding: 24px 0; }
+      .pillar + .pillar { padding-left: 0; }
+      .pillar:nth-child(odd) { padding-right: 16px; }
+      .pillar:nth-child(even) { padding-left: 16px; border-left: 1px solid var(--divider); }
+      .pillar:nth-last-child(-n+2) { border-bottom: none; }
+
+      .email-form { flex-direction: column; }
+      .email-btn { padding: 15px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── HERO ───────────────────────────────────────────────── -->
+<section class="hero" id="top">
+  <p class="eyebrow">The American literacy crisis</p>
+  <h1 class="hero-headline">Two out of three American children cannot read proficiently.</h1>
+  <p class="hero-sub">And the system designed to help them is under strain.</p>
+  <a class="btn" href="#problem">See the problem</a>
+  <div class="scroll-hint" aria-hidden="true">
+    <span>Scroll</span>
+    <div class="scroll-hint-line"></div>
+  </div>
+</section>
+
+<!-- ── OPENING EDITORIAL ──────────────────────────────────── -->
+<section>
+  <div class="container fade">
+    <p class="editorial">
+      Reading is not one subject among many. It is the foundation beneath every other subject.
+      A child who cannot read proficiently cannot fully access history, science, or mathematics.
+      <strong>Every year that passes without intervention makes the gap harder to close.</strong>
+      By the time most children are identified as struggling, they have already spent years
+      falling further behind — often without anyone around them recognizing the scale of what
+      is happening.
+    </p>
+  </div>
+</section>
+
+<!-- ── PROBLEM SECTION ────────────────────────────────────── -->
+<section class="problem-section" id="problem">
+  <div class="container--lg">
+    <div class="problem-grid">
+
+      <div class="problem-block fade">
+        <p class="block-label">A &nbsp;·&nbsp; The core problem</p>
+        <div class="block-stat">2 in 3</div>
+        <h2 class="block-title">American students are not reading proficiently.</h2>
+        <div class="block-rule"></div>
+        <p class="block-body">
+          According to the National Assessment of Educational Progress — the Nation's Report Card —
+          only one in three fourth graders reads at or above a proficient level. This is not a new
+          crisis. It has persisted for decades, across every demographic, in states that spend
+          heavily on education and states that do not. The numbers have barely moved in a generation.
+        </p>
+      </div>
+
+      <div class="problem-block fade delay-1">
+        <p class="block-label">B &nbsp;·&nbsp; Why it is not being solved</p>
+        <div class="block-stat">50%</div>
+        <h2 class="block-title">Of school leaders report being critically understaffed in reading instruction.</h2>
+        <div class="block-rule"></div>
+        <p class="block-body">
+          The shortfall is not a matter of intent. Schools across the country lack enough trained
+          reading specialists, interventionists, and instructional aides to provide consistent,
+          individualized support. When a classroom teacher carries 25 students, sustained
+          one-on-one attention is not a realistic expectation — it is a privilege most children
+          never receive.
+        </p>
+      </div>
+
+      <div class="problem-block fade delay-2">
+        <p class="block-label">C &nbsp;·&nbsp; Why it must be solved early</p>
+        <div class="block-stat">4×</div>
+        <h2 class="block-title">More likely to drop out of high school if not reading proficiently by third grade.</h2>
+        <div class="block-rule"></div>
+        <p class="block-body">
+          Third grade is a turning point. Before it, children are learning to read. After it,
+          they are reading to learn. A child who does not make that transition on time does not
+          simply lag in one subject — they begin to fall behind in every subject that depends on
+          reading. History. Science. Mathematics. The compounding effects follow them forward.
+        </p>
+      </div>
+
+      <div class="problem-block fade delay-3">
+        <p class="block-label">D &nbsp;·&nbsp; The critical insight</p>
+        <div class="block-stat">95%</div>
+        <h2 class="block-title">Of children can learn to read. The barrier is access, not ability.</h2>
+        <div class="block-rule"></div>
+        <p class="block-body">
+          Research consistently shows that the vast majority of children who struggle to read
+          can learn to read — given consistent, high-quality exposure to language, vocabulary,
+          and text. The problem is not a ceiling on potential. It is a shortage of the right
+          moments, arriving reliably, for every child — not just those whose families can
+          engineer them.
+        </p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ── BRIDGE ─────────────────────────────────────────────── -->
+<section>
+  <div class="container--c fade">
+    <p class="bridge-text">
+      If the problem begins early, and the system cannot reach every child,
+      then the question becomes: <em>where else can reading happen, consistently?</em>
+    </p>
+  </div>
+</section>
+
+<!-- ── ATLAS ──────────────────────────────────────────────── -->
+<section class="atlas-section">
+  <div class="container fade">
+    <p class="atlas-overline">One small answer</p>
+    <h2 class="atlas-headline">
+      Atlas began with a simple belief: the twenty minutes before bed can become
+      one of the most powerful learning moments of a child's day.
+    </h2>
+    <div class="atlas-body">
+      <p>
+        Atlas is an AI-powered bedtime story app that generates personalized stories for children —
+        calibrated to their reading level, rich in vocabulary, and built from the specific details
+        of their own lives. Their pet. Their sibling. Their favorite food. Every story feels
+        like it was written just for them, because it was.
+      </p>
+      <p>
+        Atlas does not replace teachers. It does not claim to solve a crisis that has
+        resisted solutions for decades. What it does is create more reading moments —
+        consistent ones, in the setting children already associate with safety and warmth.
+        Not a program. A habit.
+      </p>
+      <p>
+        We are building it for every child. Not just the ones whose parents can afford
+        a reading tutor, or whose school happens to have the right specialist,
+        or who were lucky enough to be born into the right zip code.
+      </p>
+    </div>
+
+    <div class="pillars">
+      <div class="pillar">
+        <p class="pillar-label">Personalized</p>
+        <p class="pillar-text">Built from the child's real life — their name, world, and the people they love.</p>
+      </div>
+      <div class="pillar">
+        <p class="pillar-label">Level-calibrated</p>
+        <p class="pillar-text">Matched to each child's reading band using Lexile and Fry word research.</p>
+      </div>
+      <div class="pillar">
+        <p class="pillar-label">Vocabulary-rich</p>
+        <p class="pillar-text">3–5 Tier 2 words per story, introduced naturally — the words that predict comprehension.</p>
+      </div>
+      <div class="pillar">
+        <p class="pillar-label">Consistent</p>
+        <p class="pillar-text">A new story, every night, for every child — regardless of circumstance.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── CLOSING CTA ────────────────────────────────────────── -->
+<section>
+  <div class="container--c fade">
+    <h2 class="closing-headline">
+      We're building Atlas for every child,<br>not just the ones whose parents<br>can afford a reading tutor.
+    </h2>
+    <p class="closing-sub">
+      If more reading moments is part of the solution, we're building for that.
+      Follow along as we build.
+    </p>
+
+    <div class="email-wrap">
+      <form class="email-form" id="emailForm" novalidate>
+        <input class="email-input" type="email" id="emailInput"
+               placeholder="your@email.com" autocomplete="email" required/>
+        <button class="email-btn" type="submit">Follow along</button>
+      </form>
+      <p class="email-hint" id="emailHint">Get updates as we build. No spam, ever.</p>
+      <p class="email-success" id="emailSuccess">Thank you. We'll be in touch as Atlas grows.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ── FOOTER ─────────────────────────────────────────────── -->
+<footer>
+  <p class="footer-text">Atlas &nbsp;·&nbsp; Built for every child &nbsp;·&nbsp; 2026</p>
+</footer>
+
+<script>
+  // Fade-in on scroll
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+    });
+  }, { threshold: 0.1 });
+  document.querySelectorAll('.fade').forEach(el => io.observe(el));
+
+  // Email capture
+  document.getElementById('emailForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const email = document.getElementById('emailInput').value.trim();
+    if (!email) return;
+    this.style.display = 'none';
+    document.getElementById('emailHint').style.display = 'none';
+    document.getElementById('emailSuccess').style.display = 'block';
+  });
+</script>
+
+</body>
+</html>
