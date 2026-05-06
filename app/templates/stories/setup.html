@@ -582,57 +582,59 @@
       padding: clamp(10px, 2.5vh, 24px) 0 8px;
       gap: 0;
     }
-    /* Mobile: card fills the top, carousel pins to bottom — no dead zones */
+    /* Mobile: card fills the space above the carousel, carousel always visible */
     @media (max-width: 600px) {
       #step1 .step-body {
         justify-content: flex-start;
-        gap: 12px;
-        padding-top: 8px;
+        gap: 8px;
+        padding: 6px 0 0;
+        overflow: hidden;
       }
-      /* Prompt is redundant on mobile — the carousel is self-evident */
       #step1 .step-prompt { display: none; }
 
-      /* Card grows to fill all available space above the carousel */
+      /* flex:1 fills available space; min-height:0 lets it shrink;
+         overflow:hidden prevents stats from bleeding over the carousel */
       .hero-card {
         flex: 1;
+        min-height: 0;
+        overflow: hidden;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 16px;
-        min-height: unset;
-        padding: 20px 20px;
+        gap: 12px;
+        padding: 14px 20px;
         width: calc(100% - 36px);
       }
       .hero-char {
         width: 100%;
         flex-direction: column;
         align-items: center;
-        gap: 6px;
+        gap: 5px;
+        flex-shrink: 0;
       }
       .hero-emoji-wrap {
-        width: clamp(140px, 42vw, 200px);
-        height: clamp(140px, 42vw, 200px);
+        width: clamp(80px, 22vw, 110px);
+        height: clamp(80px, 22vw, 110px);
       }
       .hero-emoji-wrap .scene-emoji {
-        font-size: clamp(5.5rem, 24vw, 8rem) !important;
+        font-size: clamp(3.2rem, 13vw, 4.5rem) !important;
       }
-      .hero-char .scene-name  { font-size: 1.15rem; }
-      .hero-char .scene-power { font-size: 0.6rem; opacity: 1; }
+      .hero-char .scene-name  { font-size: 1.05rem; }
+      .hero-char .scene-power { font-size: 0.58rem; opacity: 1; }
 
-      /* Stats go full-width below the emoji */
       .hero-stats {
         width: 100%;
-        gap: 11px;
-      }
-      .hero-stat-label { width: 52px; }
-      .hero-stat-pip {
-        height: 12px;
-        max-width: 28px;
-      }
-      #step1 .carousel {
-        margin-top: auto;
+        gap: 8px;
         flex-shrink: 0;
-        padding-bottom: 4px;
+      }
+      .hero-stat-label { width: 50px; }
+      .hero-stat-pip   { height: 10px; max-width: 26px; }
+
+      /* Carousel always at the bottom — no scrolling needed */
+      #step1 .carousel {
+        flex-shrink: 0;
+        padding-top: 4px;
+        padding-bottom: 6px;
       }
     }
 
