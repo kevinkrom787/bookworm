@@ -216,30 +216,44 @@
 }());
 
 // ── Age selection ─────────────────────────────────────────────────────────
-const BANDS = {
-  seedlings: {
-    icon: "🌱", name: "Seedlings",
-    range: "Ages 2–6 · Lexile 100–400L",
-    desc: "Short, musical sentences built around words they already know. We weave in 1–2 Tier 2 words per story — ones like curious or brave — in sentences where the meaning is obvious from context.",
-    tags: ["Dolch sight words", "Tier 1–2 vocabulary", "Lexile 100–400L", "Listening comprehension"],
-  },
-  explorers: {
-    icon: "🔭", name: "Explorers",
-    range: "Ages 7–9 · Lexile 400–800L",
-    desc: "Stories stretch vocabulary intentionally. Every tale introduces 3–5 Tier 2 words — high-utility academic words like fortunate, hesitate, and determined — that appear across subjects in school.",
-    tags: ["Beck's Tier 2 vocabulary", "Fry words 1–500", "Lexile 400–800L", "Context clues"],
-  },
-  adventurers: {
-    icon: "🏔️", name: "Adventurers",
-    range: "Ages 10–12 · Lexile 800–1100L",
-    desc: "Rich, complex narratives with 4–6 stretch words per story. Calibrated to the Lexile range that prepares readers for middle school texts, with nuance and moral complexity built in.",
-    tags: ["Advanced Tier 2 vocabulary", "Fry words 500–1000", "Lexile 800–1100L", "Middle school readiness"],
-  },
+const AGES = {
+  2:  { icon: "🌱", name: "Age 2",  range: "Pre-reader · Parent reads aloud",
+        desc: "Entirely read aloud by a parent. Very short, rhythmic sentences with lots of repetition. Stories stay cozy and familiar — home, family, pets. No reading required from the child.",
+        tags: ["Parent reads aloud", "Rhythm & repetition", "Listening only"] },
+  3:  { icon: "🌱", name: "Age 3",  range: "Pre-reader · Lexile BR",
+        desc: "Short, musical sentences with one idea each. Heavy repetition builds memory and early phonics awareness. Stories stay close to home with warm, safe endings.",
+        tags: ["Parent reads aloud", "Repetition", "Lexile BR", "1 new word"] },
+  4:  { icon: "🌿", name: "Age 4",  range: "Emergent reader · Lexile 100–200L",
+        desc: "Beginning to recognise common sight words. Uses Dolch pre-primer words and introduces 1–2 Tier 2 words — like curious or brave — in sentences where the meaning is obvious.",
+        tags: ["Dolch pre-primer", "Lexile 100–200L", "1–2 stretch words"] },
+  5:  { icon: "🌿", name: "Age 5",  range: "Kindergarten · Lexile 200–300L",
+        desc: "Short, clear sentences built from Fry 1–100 words. Stories introduce 1–2 vocabulary words with enough context that the child can guess the meaning without asking.",
+        tags: ["Fry words 1–100", "Lexile 200–300L", "1–2 stretch words"] },
+  6:  { icon: "📖", name: "Age 6",  range: "Grade 1 · Lexile 300–400L",
+        desc: "Simple and compound sentences, mostly Fry 1–200 words. 2–3 Tier 2 words woven in naturally. Stories can carry a little more plot and a clear moment where the protagonist chooses right over easy.",
+        tags: ["Fry words 1–200", "Lexile 300–400L", "2–3 stretch words"] },
+  7:  { icon: "📖", name: "Age 7",  range: "Grade 2 · Lexile 400–550L",
+        desc: "Confident early reader. Fry 1–300 words, 2–3 Tier 2 stretch words per story. Real tension is okay — the protagonist should solve the problem themselves without needing an adult to rescue them.",
+        tags: ["Fry words 1–300", "Lexile 400–550L", "2–3 stretch words"] },
+  8:  { icon: "🔭", name: "Age 8",  range: "Grade 3 · Lexile 550–700L",
+        desc: "Growing reader ready for richer vocabulary. Fry 1–400 words, 3–4 Tier 2 words like fortunate, determined, and cautious introduced through context — never defined outright.",
+        tags: ["Fry words 1–400", "Lexile 550–700L", "3–4 stretch words"] },
+  9:  { icon: "🔭", name: "Age 9",  range: "Grade 4 · Lexile 700–850L",
+        desc: "Fluent reader ready for mild social complexity. 3–5 Tier 2 words per story, plus storylines that explore fairness, friendship, and what it actually costs to do the right thing.",
+        tags: ["Fry words 1–500", "Lexile 700–850L", "3–5 stretch words"] },
+  10: { icon: "🏔️", name: "Age 10", range: "Grade 5 · Lexile 850–1000L",
+        desc: "Upper elementary reader ready for nuance. 4–5 Tier 2 words, complex characters, and storylines that don't tie up perfectly — but always end with warmth and hope intact.",
+        tags: ["Fry words 1–700", "Lexile 850–1000L", "4–5 stretch words"] },
+  11: { icon: "🏔️", name: "Age 11", range: "Grade 6 · Lexile 950–1100L",
+        desc: "Approaching middle school. Rich vocabulary, 4–6 stretch words, and stories that explore competing loyalties, friendship friction, and genuine moral complexity.",
+        tags: ["Fry words 1–800", "Lexile 950–1100L", "4–6 stretch words"] },
+  12: { icon: "⭐", name: "Age 12", range: "Grade 7 · Lexile 1000–1200L",
+        desc: "Confident middle school reader. Full vocabulary range, 5–6 Tier 2 words, and stories that handle real emotional nuance and ambiguity without needing a tidy resolution.",
+        tags: ["Advanced vocabulary", "Lexile 1000–1200L", "5–6 stretch words"] },
+  13: { icon: "⭐", name: "Age 13", range: "Grade 8 · Lexile 1100–1300L",
+        desc: "Advanced reader. Sophisticated narrative, 5–6 high-utility stretch words, and storylines that treat the reader as capable of genuine moral and emotional reasoning.",
+        tags: ["Advanced vocabulary", "Lexile 1100–1300L", "5–6 stretch words"] },
 };
-
-function ageToBand(age) {
-  return age <= 6 ? "seedlings" : age <= 9 ? "explorers" : "adventurers";
-}
 
 let selectedAge = null;
 const explainer = document.getElementById("explainer");
@@ -253,13 +267,13 @@ document.querySelectorAll(".gs-age-btn").forEach(btn => {
     selectedAge = parseInt(btn.dataset.age);
     ageInput.value = selectedAge;
 
-    const band = BANDS[ageToBand(selectedAge)];
-    document.getElementById("bandIcon").textContent = band.icon;
-    document.getElementById("bandName").textContent = band.name;
-    document.getElementById("bandRange").textContent = band.range;
-    document.getElementById("bandDesc").textContent  = band.desc;
-    document.getElementById("bandTags").innerHTML =
-      band.tags.map(t => `<span class="gs-band-tag">${t}</span>`).join("");
+    const info = AGES[selectedAge];
+    document.getElementById("bandIcon").textContent  = info.icon;
+    document.getElementById("bandName").textContent  = info.name;
+    document.getElementById("bandRange").textContent = info.range;
+    document.getElementById("bandDesc").textContent  = info.desc;
+    document.getElementById("bandTags").innerHTML    =
+      info.tags.map(t => `<span class="gs-band-tag">${t}</span>`).join("");
 
     explainer.classList.add("visible");
     startBtn.classList.add("active");
